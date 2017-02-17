@@ -66,10 +66,17 @@
     End Sub
 
     ''' <summary>
-    ''' File is opened, load in the images, and the file attributes.
+    ''' Load a file when a file is opened in the open file dialog.
     ''' </summary>
     Private Sub ofdVideoIn_FileOk(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles ofdVideoIn.FileOk
-        mStrVideoPath = ofdVideoIn.FileName
+        LoadFile(ofdVideoIn.FileName)
+    End Sub
+
+    ''' <summary>
+    ''' File is opened, load in the images, and the file attributes.
+    ''' </summary>
+    Public Sub LoadFile(ByVal fullPath As String)
+        mStrVideoPath = fullPath
         txtFileName.Text = System.IO.Path.GetFileName(mStrVideoPath)
         'Get video duration
         Dim duration As String() = GetHHMMSS(mStrVideoPath).Split(":")
@@ -108,7 +115,9 @@
         picFrame5.Image = Nothing
         Dim defaultLoadThread As New System.Threading.Thread(AddressOf LoadDefaultFrames)
         defaultLoadThread.Start()
-        tensClock.Start()
+        If Not tensClock.Enabled Then
+            tensClock.Start()
+        End If
     End Sub
 
     ''' <summary>
@@ -543,6 +552,16 @@
 
         'Start clock
         tensClock.Interval = 100
+
+        'Check if the program was started with a dragdrop exe
+        Dim args() As String = Environment.GetCommandLineArgs()
+        If args.Length > 1 Then
+            For index As Integer = 1 To args.Length - 1
+                If System.IO.File.Exists(args(index)) Then
+                    LoadFile(args(index))
+                End If
+            Next
+        End If
     End Sub
 
     ''' <summary>
