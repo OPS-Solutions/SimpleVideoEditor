@@ -293,6 +293,8 @@
             processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
         End If
         'CROP VIDEO(Can not be done with a rotate, must run twice)
+        Dim cropWidth As Integer = newWidth
+        Dim cropHeight As Integer = newHeight
         If (cropBottomRight.X - cropTopLeft.X) > 0 And (cropBottomRight.Y - cropTopLeft.Y) > 0 Then
             'Calculate actual crop locations due to bars and aspect ration changes
             Dim actualAspectRatio As Double = (mIntAspectHeight / mIntAspectWidth)
@@ -303,8 +305,8 @@
             Dim horizontalBarSizeRealPx As Integer = If(actualAspectRatio > picVideoAspectRatio, (fullWidth - mIntAspectWidth) / 2, 0)
             Dim realStartCrop As Point = New Point(mPtStartCrop.X * (fullWidth / picVideo.Width) - horizontalBarSizeRealPx, mPtStartCrop.Y * (fullHeight / picVideo.Height) - verticalBarSizeRealPx)
             Dim realEndCrop As Point = New Point(mPtEndCrop.X * (fullWidth / picVideo.Width) - horizontalBarSizeRealPx, mPtEndCrop.Y * (fullHeight / picVideo.Height) - verticalBarSizeRealPx)
-            Dim cropWidth As Integer = (realEndCrop.X - realStartCrop.X)
-            Dim cropHeight As Integer = (realEndCrop.Y - realStartCrop.Y)
+            cropWidth = (realEndCrop.X - realStartCrop.X)
+            cropHeight = (realEndCrop.Y - realStartCrop.Y)
             processInfo.Arguments += " -filter:v ""crop=" & cropWidth & ":" & cropHeight & ":" & realStartCrop.X & ":" & realStartCrop.Y & """"
         End If
         'SCALE VIDEO
@@ -324,7 +326,7 @@
         End Select
         scale /= newHeight
         If scale <> 1 Then
-            processInfo.Arguments += " -s " & Math.Floor(newWidth * scale) & "x" & Math.Floor(newHeight * scale) & " -threads 4"
+            processInfo.Arguments += " -s " & Math.Floor(cropWidth * scale) & "x" & Math.Floor(cropHeight * scale) & " -threads 4"
         End If
         'ROTATE VIDEO
         processInfo.Arguments += If(flip = 0, "", If(flip = 1, " -vf transpose=1", If(flip = 2, " -vf vflip -vf hflip", If(flip = 3, " -vf transpose=2", ""))))
@@ -370,7 +372,7 @@
             Dim distanceBetweenPoints As Double = picRangeSlider.Width / numberOfTicks
             'Draw background
             Dim fullrange As Integer = mRangeMax - mRangeMin
-            e.Graphics.DrawRectangle(New Pen(Color.Green, 6), CType((RangeMinValue * ((picRangeSlider.Width - 1) / fullrange)) + 3, Integer), 6, CType(((RangeMaxValue - RangeMinValue) * ((picRangeSlider.Width - 1) / fullrange)) - 6, Integer), picRangeSlider.Height - 12)
+            e.Graphics.DrawRectangle(New Pen(If(picRangeSlider.Enabled, Color.Green, Color.Gray), 6), CType((RangeMinValue * ((picRangeSlider.Width - 1) / fullrange)) + 3, Integer), 6, CType(((RangeMaxValue - RangeMinValue) * ((picRangeSlider.Width - 1) / fullrange)) - 6, Integer), picRangeSlider.Height - 12)
             For index As Integer = 0 To numberOfTicks - 1
                 e.Graphics.DrawLine(pen, New Point(index * distanceBetweenPoints, picRangeSlider.Height), New Point(index * distanceBetweenPoints, picRangeSlider.Height - 2))
             Next
@@ -658,4 +660,17 @@
     End Function
 
 
+    Private Sub btnClose_Click(sender As Object, e As EventArgs)
+        Application.Exit()
+    End Sub
+
+    Private Sub btnMinimize_Click(sender As Object, e As EventArgs)
+        Me.WindowState = FormWindowState.Minimized
+    End Sub
+
+    Private Sub SimpleVideoEditor_HelpButtonClicked(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles MyBase.HelpButtonClicked
+        frmAbout.Show()
+        frmAbout.Focus()
+        e.Cancel = True
+    End Sub
 End Class

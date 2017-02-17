@@ -34,24 +34,24 @@ Partial Class SimpleVideoEditor
         Me.btnBrowse = New System.Windows.Forms.Button()
         Me.chkOverwriteOriginal = New System.Windows.Forms.CheckBox()
         Me.btnいくよ = New System.Windows.Forms.Button()
-        Me.picVideo = New System.Windows.Forms.PictureBox()
-        Me.picFrame1 = New System.Windows.Forms.PictureBox()
-        Me.picFrame2 = New System.Windows.Forms.PictureBox()
-        Me.picFrame3 = New System.Windows.Forms.PictureBox()
-        Me.picFrame4 = New System.Windows.Forms.PictureBox()
         Me.cmbDefinition = New System.Windows.Forms.ComboBox()
-        Me.picRangeSlider = New System.Windows.Forms.PictureBox()
         Me.grpSettings = New System.Windows.Forms.GroupBox()
         Me.picFrame5 = New System.Windows.Forms.PictureBox()
+        Me.picRangeSlider = New System.Windows.Forms.PictureBox()
+        Me.picFrame4 = New System.Windows.Forms.PictureBox()
+        Me.picFrame3 = New System.Windows.Forms.PictureBox()
+        Me.picFrame2 = New System.Windows.Forms.PictureBox()
+        Me.picFrame1 = New System.Windows.Forms.PictureBox()
+        Me.picVideo = New System.Windows.Forms.PictureBox()
         Me.grpRotation.SuspendLayout()
-        CType(Me.picVideo, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.picRangeSlider, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.grpSettings.SuspendLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.picRangeSlider, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.picVideo, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'chkMute
@@ -74,7 +74,7 @@ Partial Class SimpleVideoEditor
         '
         Me.txtFileName.Enabled = False
         Me.txtFileName.Font = New System.Drawing.Font("Microsoft Sans Serif", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.txtFileName.Location = New System.Drawing.Point(12, 11)
+        Me.txtFileName.Location = New System.Drawing.Point(11, 10)
         Me.txtFileName.Name = "txtFileName"
         Me.txtFileName.Size = New System.Drawing.Size(227, 22)
         Me.txtFileName.TabIndex = 1
@@ -133,7 +133,7 @@ Partial Class SimpleVideoEditor
         'btnBrowse
         '
         Me.btnBrowse.Font = New System.Drawing.Font("Microsoft Sans Serif", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.btnBrowse.Location = New System.Drawing.Point(245, 10)
+        Me.btnBrowse.Location = New System.Drawing.Point(244, 9)
         Me.btnBrowse.Name = "btnBrowse"
         Me.btnBrowse.Size = New System.Drawing.Size(88, 24)
         Me.btnBrowse.TabIndex = 7
@@ -155,62 +155,12 @@ Partial Class SimpleVideoEditor
         Me.btnいくよ.BackColor = System.Drawing.SystemColors.Control
         Me.btnいくよ.Enabled = False
         Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.btnいくよ.Location = New System.Drawing.Point(245, 215)
+        Me.btnいくよ.Location = New System.Drawing.Point(244, 214)
         Me.btnいくよ.Name = "btnいくよ"
         Me.btnいくよ.Size = New System.Drawing.Size(87, 35)
         Me.btnいくよ.TabIndex = 9
         Me.btnいくよ.Text = "いくよ!!"
         Me.btnいくよ.UseVisualStyleBackColor = False
-        '
-        'picVideo
-        '
-        Me.picVideo.BackColor = System.Drawing.SystemColors.ControlDark
-        Me.picVideo.Location = New System.Drawing.Point(12, 53)
-        Me.picVideo.Name = "picVideo"
-        Me.picVideo.Size = New System.Drawing.Size(227, 157)
-        Me.picVideo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
-        Me.picVideo.TabIndex = 10
-        Me.picVideo.TabStop = False
-        '
-        'picFrame1
-        '
-        Me.picFrame1.BackColor = System.Drawing.SystemColors.ControlDark
-        Me.picFrame1.Location = New System.Drawing.Point(13, 216)
-        Me.picFrame1.Name = "picFrame1"
-        Me.picFrame1.Size = New System.Drawing.Size(42, 33)
-        Me.picFrame1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
-        Me.picFrame1.TabIndex = 12
-        Me.picFrame1.TabStop = False
-        '
-        'picFrame2
-        '
-        Me.picFrame2.BackColor = System.Drawing.SystemColors.ControlDark
-        Me.picFrame2.Location = New System.Drawing.Point(59, 216)
-        Me.picFrame2.Name = "picFrame2"
-        Me.picFrame2.Size = New System.Drawing.Size(42, 33)
-        Me.picFrame2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
-        Me.picFrame2.TabIndex = 13
-        Me.picFrame2.TabStop = False
-        '
-        'picFrame3
-        '
-        Me.picFrame3.BackColor = System.Drawing.SystemColors.ControlDark
-        Me.picFrame3.Location = New System.Drawing.Point(105, 216)
-        Me.picFrame3.Name = "picFrame3"
-        Me.picFrame3.Size = New System.Drawing.Size(42, 33)
-        Me.picFrame3.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
-        Me.picFrame3.TabIndex = 14
-        Me.picFrame3.TabStop = False
-        '
-        'picFrame4
-        '
-        Me.picFrame4.BackColor = System.Drawing.SystemColors.ControlDark
-        Me.picFrame4.Location = New System.Drawing.Point(151, 216)
-        Me.picFrame4.Name = "picFrame4"
-        Me.picFrame4.Size = New System.Drawing.Size(42, 33)
-        Me.picFrame4.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
-        Me.picFrame4.TabIndex = 15
-        Me.picFrame4.TabStop = False
         '
         'cmbDefinition
         '
@@ -222,22 +172,13 @@ Partial Class SimpleVideoEditor
         Me.cmbDefinition.Size = New System.Drawing.Size(75, 21)
         Me.cmbDefinition.TabIndex = 17
         '
-        'picRangeSlider
-        '
-        Me.picRangeSlider.Enabled = False
-        Me.picRangeSlider.Location = New System.Drawing.Point(12, 35)
-        Me.picRangeSlider.Name = "picRangeSlider"
-        Me.picRangeSlider.Size = New System.Drawing.Size(227, 17)
-        Me.picRangeSlider.TabIndex = 18
-        Me.picRangeSlider.TabStop = False
-        '
         'grpSettings
         '
         Me.grpSettings.Controls.Add(Me.cmbDefinition)
         Me.grpSettings.Controls.Add(Me.chkOverwriteOriginal)
         Me.grpSettings.Controls.Add(Me.chkMute)
         Me.grpSettings.Controls.Add(Me.grpRotation)
-        Me.grpSettings.Location = New System.Drawing.Point(245, 35)
+        Me.grpSettings.Location = New System.Drawing.Point(244, 34)
         Me.grpSettings.Name = "grpSettings"
         Me.grpSettings.Size = New System.Drawing.Size(87, 175)
         Me.grpSettings.TabIndex = 19
@@ -247,18 +188,77 @@ Partial Class SimpleVideoEditor
         'picFrame5
         '
         Me.picFrame5.BackColor = System.Drawing.SystemColors.ControlDark
-        Me.picFrame5.Location = New System.Drawing.Point(197, 216)
+        Me.picFrame5.Location = New System.Drawing.Point(196, 215)
         Me.picFrame5.Name = "picFrame5"
         Me.picFrame5.Size = New System.Drawing.Size(42, 33)
         Me.picFrame5.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
         Me.picFrame5.TabIndex = 20
         Me.picFrame5.TabStop = False
         '
+        'picRangeSlider
+        '
+        Me.picRangeSlider.Enabled = False
+        Me.picRangeSlider.Location = New System.Drawing.Point(11, 34)
+        Me.picRangeSlider.Name = "picRangeSlider"
+        Me.picRangeSlider.Size = New System.Drawing.Size(227, 17)
+        Me.picRangeSlider.TabIndex = 18
+        Me.picRangeSlider.TabStop = False
+        '
+        'picFrame4
+        '
+        Me.picFrame4.BackColor = System.Drawing.SystemColors.ControlDark
+        Me.picFrame4.Location = New System.Drawing.Point(150, 215)
+        Me.picFrame4.Name = "picFrame4"
+        Me.picFrame4.Size = New System.Drawing.Size(42, 33)
+        Me.picFrame4.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
+        Me.picFrame4.TabIndex = 15
+        Me.picFrame4.TabStop = False
+        '
+        'picFrame3
+        '
+        Me.picFrame3.BackColor = System.Drawing.SystemColors.ControlDark
+        Me.picFrame3.Location = New System.Drawing.Point(104, 215)
+        Me.picFrame3.Name = "picFrame3"
+        Me.picFrame3.Size = New System.Drawing.Size(42, 33)
+        Me.picFrame3.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
+        Me.picFrame3.TabIndex = 14
+        Me.picFrame3.TabStop = False
+        '
+        'picFrame2
+        '
+        Me.picFrame2.BackColor = System.Drawing.SystemColors.ControlDark
+        Me.picFrame2.Location = New System.Drawing.Point(58, 215)
+        Me.picFrame2.Name = "picFrame2"
+        Me.picFrame2.Size = New System.Drawing.Size(42, 33)
+        Me.picFrame2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
+        Me.picFrame2.TabIndex = 13
+        Me.picFrame2.TabStop = False
+        '
+        'picFrame1
+        '
+        Me.picFrame1.BackColor = System.Drawing.SystemColors.ControlDark
+        Me.picFrame1.Location = New System.Drawing.Point(12, 215)
+        Me.picFrame1.Name = "picFrame1"
+        Me.picFrame1.Size = New System.Drawing.Size(42, 33)
+        Me.picFrame1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
+        Me.picFrame1.TabIndex = 12
+        Me.picFrame1.TabStop = False
+        '
+        'picVideo
+        '
+        Me.picVideo.BackColor = System.Drawing.SystemColors.ControlDark
+        Me.picVideo.Location = New System.Drawing.Point(11, 52)
+        Me.picVideo.Name = "picVideo"
+        Me.picVideo.Size = New System.Drawing.Size(227, 157)
+        Me.picVideo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
+        Me.picVideo.TabIndex = 10
+        Me.picVideo.TabStop = False
+        '
         'SimpleVideoEditor
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(344, 260)
+        Me.ClientSize = New System.Drawing.Size(344, 261)
         Me.Controls.Add(Me.picFrame5)
         Me.Controls.Add(Me.btnいくよ)
         Me.Controls.Add(Me.grpSettings)
@@ -271,23 +271,25 @@ Partial Class SimpleVideoEditor
         Me.Controls.Add(Me.btnBrowse)
         Me.Controls.Add(Me.txtFileName)
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle
+        Me.HelpButton = True
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.KeyPreview = True
         Me.MaximizeBox = False
+        Me.MinimizeBox = False
         Me.Name = "SimpleVideoEditor"
         Me.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide
-        Me.Text = "SimpleVideoEditor"
+        Me.Text = "Simple Video Editor"
         Me.grpRotation.ResumeLayout(False)
         Me.grpRotation.PerformLayout()
-        CType(Me.picVideo, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.picRangeSlider, System.ComponentModel.ISupportInitialize).EndInit()
         Me.grpSettings.ResumeLayout(False)
         Me.grpSettings.PerformLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.picRangeSlider, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.picVideo, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
