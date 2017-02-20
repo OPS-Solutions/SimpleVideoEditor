@@ -92,23 +92,16 @@
         RangeMaxValue = mRangeMax
         mRangeValues(0) = RangeMinValue
         mRangeValues(1) = RangeMaxValue
-        picRangeSlider.Enabled = True
-        btnいくよ.Enabled = True
+        
         'Create a temporary directory to store images
         If (System.IO.Directory.Exists(TempFolderPath)) Then
             DeleteDirectory(TempFolderPath) 'Recursively delete directory
         End If
         System.IO.Directory.CreateDirectory(TempFolderPath)
-        'TODO Make this close the window while it grabs the images
-        'Use ffmpeg to grab images into a temporary folder
-        Dim tempImage As Bitmap = GetFfmpegFrame(0, False)
-        picVideo.Image = tempImage
-        mIntAspectWidth = GetHorizontalResolution(mStrVideoPath)
-        mIntAspectHeight = GetVerticalResolution(mStrVideoPath)
-        mDblScaleFactorX = mIntAspectWidth / picVideo.Width
-        mDblScaleFactorY = mIntAspectHeight / picVideo.Height
-        picFrame1.Image = tempImage
+
         'Clear images
+        picVideo.Image = Nothing
+        picFrame1.Image = Nothing
         picFrame2.Image = Nothing
         picFrame3.Image = Nothing
         picFrame4.Image = Nothing
@@ -139,17 +132,9 @@
             intermediateFilePath = FileNameAppend(outPutPath, "-tempCrop")
             RunFfmpeg(mStrVideoPath, intermediateFilePath, 0, mIntAspectWidth, mIntAspectHeight, chkMute.Checked, 0, 0, cmbDefinition.Items(0), mPtStartCrop, mPtEndCrop)
             mProFfmpegProcess.WaitForExit()
-            'Wait for the file to be created before using it
-            'Dim fileCheckWatch As New Stopwatch
-            'fileCheckWatch.Start()
-            'While (fileCheckWatch.ElapsedMilliseconds < 4000)
-            '    'If (System.IO.File.Exists(intermediateFilePath)) Then
-            '    '    Exit While
-            '    'End If
-            'End While
         End If
         'Now you can apply everything else
-        RunFfmpeg(intermediateFilePath, outPutPath, If(radUp.Checked, 0, If(radRight.Checked, 1, If(radDown.Checked, 2, If(radLeft.Checked, 3, 0)))), mIntAspectWidth, mIntAspectWidth, chkMute.Checked, If(ignoreTrim, 0, RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(cropAndRotate, New Point(0, 0), mPtStartCrop), If(cropAndRotate, New Point(0, 0), mPtEndCrop))
+        RunFfmpeg(intermediateFilePath, outPutPath, If(radUp.Checked, 0, If(radRight.Checked, 1, If(radDown.Checked, 2, If(radLeft.Checked, 3, 0)))), mIntAspectWidth, mIntAspectHeight, chkMute.Checked, If(ignoreTrim, 0, RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(cropAndRotate, New Point(0, 0), mPtStartCrop), If(cropAndRotate, New Point(0, 0), mPtEndCrop))
         mProFfmpegProcess.WaitForExit()
         If chkOverwriteOriginal.Checked Or cropAndRotate Then
             My.Computer.FileSystem.DeleteFile(intermediateFilePath)
@@ -161,6 +146,14 @@
     ''' Loads default frames when called.
     ''' </summary>
     Public Sub LoadDefaultFrames()
+        'Use ffmpeg to grab images into a temporary folder
+        Dim tempImage As Bitmap = GetFfmpegFrame(0, False)
+        picVideo.Image = tempImage
+        mIntAspectWidth = GetHorizontalResolution(mStrVideoPath)
+        mIntAspectHeight = GetVerticalResolution(mStrVideoPath)
+        mDblScaleFactorX = mIntAspectWidth / picVideo.Width
+        mDblScaleFactorY = mIntAspectHeight / picVideo.Height
+        GetFfmpegFrame(mDblVideoDurationSS * 0, True)
         GetFfmpegFrame(mDblVideoDurationSS * 0.25, False)
         GetFfmpegFrame(mDblVideoDurationSS * 0.5, False)
         GetFfmpegFrame(mDblVideoDurationSS * 0.75, False)
@@ -171,7 +164,22 @@
     ''' Backgroiund process for loading keyframe images
     ''' </summary>
     Public Sub tensClock_Tick() Handles tensClock.Tick
+        'Make sure the user is notified that the application is working
+        If Cursor = Cursors.Arrow Then
+            Cursor = Cursors.WaitCursor
+        End If
         'Check if the default frames are available
+        If picVideo.Image Is Nothing Then
+            picVideo.Image = GetFfmpegFrame(0, True)
+            'Now that the use can see things, they can go ahead and try to edit
+            If picVideo.Image IsNot Nothing Then
+                picRangeSlider.Enabled = True
+                btnいくよ.Enabled = True
+            End If
+        End If
+        If picFrame1.Image Is Nothing Then
+            picFrame1.Image = GetFfmpegFrame(0, True)
+        End If
         If picFrame2.Image Is Nothing Then
             picFrame2.Image = GetFfmpegFrame(mDblVideoDurationSS * 0.25, True)
         End If
@@ -184,8 +192,10 @@
         If picFrame5.Image Is Nothing Then
             picFrame5.Image = GetFfmpegFrame(mDblVideoDurationSS, True)
         End If
-        If picFrame2.Image IsNot Nothing AndAlso picFrame3.Image IsNot Nothing AndAlso picFrame4.Image IsNot Nothing AndAlso picFrame5.Image IsNot Nothing Then
+        If picVideo.Image IsNot Nothing AndAlso picFrame1.Image IsNot Nothing AndAlso picFrame2.Image IsNot Nothing AndAlso picFrame3.Image IsNot Nothing AndAlso picFrame4.Image IsNot Nothing AndAlso picFrame5.Image IsNot Nothing Then
             tensClock.Stop()
+            'Application is finished searching for images, reset cursor
+            Cursor = Cursors.Arrow
         End If
     End Sub
 
@@ -618,9 +628,14 @@
     ''' Returns an image from file without locking it from being deleted.
     ''' </summary>
     Public Shared Function GetImageNonLocking(ByVal fullPath As String) As Image
-        Using fileStream As New System.IO.FileStream(fullPath, IO.FileMode.Open, IO.FileAccess.Read)
-            Return Image.FromStream(fileStream)
-        End Using
+        Try
+            Using fileStream As New System.IO.FileStream(fullPath, IO.FileMode.Open, IO.FileAccess.Read)
+                Return Image.FromStream(fileStream)
+            End Using
+        Catch
+            'Failed to access image
+            Return Nothing
+        End Try
     End Function
 
     ''' <summary>
