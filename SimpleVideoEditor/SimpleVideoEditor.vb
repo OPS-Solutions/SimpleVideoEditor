@@ -92,7 +92,7 @@
         RangeMaxValue = mRangeMax
         mRangeValues(0) = RangeMinValue
         mRangeValues(1) = RangeMaxValue
-        
+
         'Create a temporary directory to store images
         If (System.IO.Directory.Exists(TempFolderPath)) Then
             DeleteDirectory(TempFolderPath) 'Recursively delete directory
@@ -235,11 +235,11 @@
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
                     If (folder.GetDetailsOf(strFileName, 300).ToString.Contains("Frames/Second")) Then
-                        Return Integer.Parse(folder.GetDetailsOf(strFileName, 300).ToString.Contains("Frames/Second").ToString.Split(" ")(0))
+                        Return Integer.Parse(folder.GetDetailsOf(strFileName, 300).ToString.Split(" ")(0))
                     End If
                     For index As Integer = 0 To 500
                         If (folder.GetDetailsOf(strFileName, index).ToString.Contains("Frames/Second")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Contains("Frames/Second").ToString.Split(" ")(0))
+                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0))
                         End If
                     Next
                     Exit For
@@ -259,7 +259,14 @@
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
-                    Return Integer.Parse(folder.GetDetailsOf(strFileName, 301).ToString)
+                    If (folder.GetDetailsOf(strFileName, 300).ToString.Contains("Frames/Second")) Then
+                        Return Integer.Parse(folder.GetDetailsOf(strFileName, 301).ToString.Split(" ")(0))
+                    End If
+                    For index As Integer = 0 To 500
+                        If (folder.GetDetailsOf(strFileName, index).ToString.Contains("Frames/Second")) Then
+                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index + 1).ToString.Split(" ")(0))
+                        End If
+                    Next
                     Exit For
                 End If
             Next
@@ -277,7 +284,14 @@
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
-                    Return Integer.Parse(folder.GetDetailsOf(strFileName, 299).ToString)
+                    If (folder.GetDetailsOf(strFileName, 300).ToString.Contains("Frames/Second")) Then
+                        Return Integer.Parse(folder.GetDetailsOf(strFileName, 299).ToString.Split(" ")(0))
+                    End If
+                    For index As Integer = 0 To 500
+                        If (folder.GetDetailsOf(strFileName, index).ToString.Contains("Frames/Second")) Then
+                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index - 1).ToString.Split(" ")(0))
+                        End If
+                    Next
                     Exit For
                 End If
             Next
@@ -357,7 +371,7 @@
         Dim processInfo As New ProcessStartInfo
         Dim targetFilePath As String = TempFolderPath & "\frame_" & FormatHHMMSSss(totalSS).Replace(":", "") & ".png"
         If Not skipGrab Then
-            processInfo.FileName = "ffmpeg.exe"
+            processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
             processInfo.Arguments = "-ss " & FormatHHMMSSss(totalSS) & " -i """ & mStrVideoPath & """"
             processInfo.Arguments += " -vf scale=800:-1 -vframes 1 " & """" & targetFilePath & """"
             processInfo.UseShellExecute = True
