@@ -43,6 +43,7 @@ Partial Class SimpleVideoEditor
         Me.picFrame2 = New System.Windows.Forms.PictureBox()
         Me.picFrame1 = New System.Windows.Forms.PictureBox()
         Me.picVideo = New System.Windows.Forms.PictureBox()
+        Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
         Me.grpRotation.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -166,7 +167,7 @@ Partial Class SimpleVideoEditor
         '
         Me.cmbDefinition.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cmbDefinition.FormattingEnabled = True
-        Me.cmbDefinition.Items.AddRange(New Object() {"Original", "240p", "360p", "480p", "720p", "1080p"})
+        Me.cmbDefinition.Items.AddRange(New Object() {"Original", "120p", "240p", "360p", "480p", "720p", "1080p"})
         Me.cmbDefinition.Location = New System.Drawing.Point(6, 140)
         Me.cmbDefinition.Name = "cmbDefinition"
         Me.cmbDefinition.Size = New System.Drawing.Size(75, 21)
@@ -254,6 +255,9 @@ Partial Class SimpleVideoEditor
         Me.picVideo.TabIndex = 10
         Me.picVideo.TabStop = False
         '
+        'sfdVideoOut
+        '
+        '
         'SimpleVideoEditor
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -314,5 +318,6 @@ Partial Class SimpleVideoEditor
     Friend WithEvents picRangeSlider As System.Windows.Forms.PictureBox
     Friend WithEvents grpSettings As System.Windows.Forms.GroupBox
     Friend WithEvents picFrame5 As System.Windows.Forms.PictureBox
+    Friend WithEvents sfdVideoOut As System.Windows.Forms.SaveFileDialog
 
 End Class
