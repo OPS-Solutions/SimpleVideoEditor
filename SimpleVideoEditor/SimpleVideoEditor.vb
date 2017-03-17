@@ -642,13 +642,13 @@
         genericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
         genericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video.")
         genericToolTip.SetToolTip(grpRotation, "Select a new orientation, where the selected dot is the new ""up"" direction after rendering.")
-        genericToolTip.SetToolTip(btnいくよ, "Lets Go!")
+        genericToolTip.SetToolTip(btnいくよ, "Save video.")
         genericToolTip.SetToolTip(picFrame1, "View first frame of video.")
         genericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
         genericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
         genericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
         genericToolTip.SetToolTip(picFrame5, "View last frame of video.")
-        genericToolTip.SetToolTip(chkMute, "Mute video audio track.")
+        genericToolTip.SetToolTip(chkMute, "Mute the videos audio track.")
         genericToolTip.SetToolTip(chkOverwriteOriginal, "Overwrites the original file with the newly rendered video.")
         genericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
         genericToolTip.SetToolTip(txtFileName, "Name of the currently loaded file.")
@@ -831,15 +831,6 @@
         End Select
         Return MyBase.ProcessCmdKey(message, keys)
     End Function
-
-
-    Private Sub btnClose_Click(sender As Object, e As EventArgs)
-        Application.Exit()
-    End Sub
-
-    Private Sub btnMinimize_Click(sender As Object, e As EventArgs)
-        Me.WindowState = FormWindowState.Minimized
-    End Sub
 
     ''' <summary>
     ''' Show company and development information
