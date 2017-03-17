@@ -39,7 +39,7 @@ Partial Class frmAbout
         Me.LabelCopyright = New System.Windows.Forms.Label()
         Me.LabelCompanyName = New System.Windows.Forms.Label()
         Me.TextBoxDescription = New System.Windows.Forms.TextBox()
-        Me.LinkLabel1 = New System.Windows.Forms.LinkLabel()
+        Me.lblGithubLink = New System.Windows.Forms.LinkLabel()
         Me.OKButton = New System.Windows.Forms.Button()
         Me.TableLayoutPanel.SuspendLayout()
         CType(Me.LogoPictureBox, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -56,7 +56,7 @@ Partial Class frmAbout
         Me.TableLayoutPanel.Controls.Add(Me.LabelCopyright, 1, 2)
         Me.TableLayoutPanel.Controls.Add(Me.LabelCompanyName, 1, 3)
         Me.TableLayoutPanel.Controls.Add(Me.TextBoxDescription, 0, 4)
-        Me.TableLayoutPanel.Controls.Add(Me.LinkLabel1, 0, 5)
+        Me.TableLayoutPanel.Controls.Add(Me.lblGithubLink, 0, 5)
         Me.TableLayoutPanel.Controls.Add(Me.OKButton, 1, 6)
         Me.TableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill
         Me.TableLayoutPanel.Location = New System.Drawing.Point(9, 9)
@@ -148,16 +148,16 @@ Partial Class frmAbout
         Me.TextBoxDescription.TabStop = False
         Me.TextBoxDescription.Text = resources.GetString("TextBoxDescription.Text")
         '
-        'LinkLabel1
+        'lblGithubLink
         '
-        Me.LinkLabel1.AutoSize = True
-        Me.TableLayoutPanel.SetColumnSpan(Me.LinkLabel1, 2)
-        Me.LinkLabel1.Location = New System.Drawing.Point(3, 185)
-        Me.LinkLabel1.Name = "LinkLabel1"
-        Me.LinkLabel1.Size = New System.Drawing.Size(258, 13)
-        Me.LinkLabel1.TabIndex = 1
-        Me.LinkLabel1.TabStop = True
-        Me.LinkLabel1.Text = "https://github.com/OPS-Solutions/SimpleVideoEditor"
+        Me.lblGithubLink.AutoSize = True
+        Me.TableLayoutPanel.SetColumnSpan(Me.lblGithubLink, 2)
+        Me.lblGithubLink.Location = New System.Drawing.Point(3, 185)
+        Me.lblGithubLink.Name = "lblGithubLink"
+        Me.lblGithubLink.Size = New System.Drawing.Size(258, 13)
+        Me.lblGithubLink.TabIndex = 1
+        Me.lblGithubLink.TabStop = True
+        Me.lblGithubLink.Text = "https://github.com/OPS-Solutions/SimpleVideoEditor"
         '
         'OKButton
         '
@@ -190,6 +190,6 @@ Partial Class frmAbout
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents LinkLabel1 As System.Windows.Forms.LinkLabel
+    Friend WithEvents lblGithubLink As System.Windows.Forms.LinkLabel
 
 End Class

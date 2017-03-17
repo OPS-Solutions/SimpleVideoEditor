@@ -841,10 +841,19 @@
         Me.WindowState = FormWindowState.Minimized
     End Sub
 
+    ''' <summary>
+    ''' Show company and development information
+    ''' </summary>
     Private Sub SimpleVideoEditor_HelpButtonClicked(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles MyBase.HelpButtonClicked
         frmAbout.Show()
         frmAbout.Focus()
         e.Cancel = True
     End Sub
 
+    ''' <summary>
+    ''' Shows to the user that the video will be muted or not
+    ''' </summary>
+    Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckedChanged
+        lblMute.Text = If(chkMute.Checked, "🔇", "🔊")
+    End Sub
 End Class

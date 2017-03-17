@@ -44,6 +44,8 @@ Partial Class SimpleVideoEditor
         Me.picFrame1 = New System.Windows.Forms.PictureBox()
         Me.picVideo = New System.Windows.Forms.PictureBox()
         Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
+        Me.lblRotationText = New System.Windows.Forms.Label()
+        Me.lblMute = New System.Windows.Forms.Label()
         Me.grpRotation.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -60,11 +62,11 @@ Partial Class SimpleVideoEditor
         Me.chkMute.AutoSize = True
         Me.chkMute.Checked = True
         Me.chkMute.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.chkMute.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.chkMute.Location = New System.Drawing.Point(13, 94)
         Me.chkMute.Name = "chkMute"
-        Me.chkMute.Size = New System.Drawing.Size(50, 17)
+        Me.chkMute.Size = New System.Drawing.Size(15, 14)
         Me.chkMute.TabIndex = 0
-        Me.chkMute.Text = "Mute"
         Me.chkMute.UseVisualStyleBackColor = True
         '
         'ofdVideoIn
@@ -84,7 +86,7 @@ Partial Class SimpleVideoEditor
         '
         Me.radUp.AutoSize = True
         Me.radUp.Checked = True
-        Me.radUp.Location = New System.Drawing.Point(23, 19)
+        Me.radUp.Location = New System.Drawing.Point(23, 15)
         Me.radUp.Name = "radUp"
         Me.radUp.Size = New System.Drawing.Size(14, 13)
         Me.radUp.TabIndex = 2
@@ -94,7 +96,7 @@ Partial Class SimpleVideoEditor
         'radRight
         '
         Me.radRight.AutoSize = True
-        Me.radRight.Location = New System.Drawing.Point(37, 33)
+        Me.radRight.Location = New System.Drawing.Point(41, 33)
         Me.radRight.Name = "radRight"
         Me.radRight.Size = New System.Drawing.Size(14, 13)
         Me.radRight.TabIndex = 3
@@ -103,7 +105,7 @@ Partial Class SimpleVideoEditor
         'radDown
         '
         Me.radDown.AutoSize = True
-        Me.radDown.Location = New System.Drawing.Point(23, 47)
+        Me.radDown.Location = New System.Drawing.Point(23, 51)
         Me.radDown.Name = "radDown"
         Me.radDown.Size = New System.Drawing.Size(14, 13)
         Me.radDown.TabIndex = 4
@@ -112,7 +114,7 @@ Partial Class SimpleVideoEditor
         'radLeft
         '
         Me.radLeft.AutoSize = True
-        Me.radLeft.Location = New System.Drawing.Point(10, 33)
+        Me.radLeft.Location = New System.Drawing.Point(6, 33)
         Me.radLeft.Name = "radLeft"
         Me.radLeft.Size = New System.Drawing.Size(14, 13)
         Me.radLeft.TabIndex = 5
@@ -120,25 +122,25 @@ Partial Class SimpleVideoEditor
         '
         'grpRotation
         '
-        Me.grpRotation.Controls.Add(Me.radLeft)
         Me.grpRotation.Controls.Add(Me.radRight)
-        Me.grpRotation.Controls.Add(Me.radDown)
         Me.grpRotation.Controls.Add(Me.radUp)
-        Me.grpRotation.Location = New System.Drawing.Point(13, 19)
+        Me.grpRotation.Controls.Add(Me.radLeft)
+        Me.grpRotation.Controls.Add(Me.radDown)
+        Me.grpRotation.Controls.Add(Me.lblRotationText)
+        Me.grpRotation.Location = New System.Drawing.Point(13, 13)
         Me.grpRotation.Name = "grpRotation"
         Me.grpRotation.Size = New System.Drawing.Size(61, 69)
         Me.grpRotation.TabIndex = 6
         Me.grpRotation.TabStop = False
-        Me.grpRotation.Text = "Rotation"
         '
         'btnBrowse
         '
-        Me.btnBrowse.Font = New System.Drawing.Font("Microsoft Sans Serif", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.btnBrowse.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnBrowse.Location = New System.Drawing.Point(244, 9)
         Me.btnBrowse.Name = "btnBrowse"
         Me.btnBrowse.Size = New System.Drawing.Size(88, 24)
         Me.btnBrowse.TabIndex = 7
-        Me.btnBrowse.Text = "Browse..."
+        Me.btnBrowse.Text = "📂..."
         Me.btnBrowse.UseVisualStyleBackColor = True
         '
         'chkOverwriteOriginal
@@ -155,12 +157,12 @@ Partial Class SimpleVideoEditor
         '
         Me.btnいくよ.BackColor = System.Drawing.SystemColors.Control
         Me.btnいくよ.Enabled = False
-        Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnいくよ.Location = New System.Drawing.Point(244, 214)
         Me.btnいくよ.Name = "btnいくよ"
         Me.btnいくよ.Size = New System.Drawing.Size(87, 35)
         Me.btnいくよ.TabIndex = 9
-        Me.btnいくよ.Text = "いくよ!!"
+        Me.btnいくよ.Text = "💾"
         Me.btnいくよ.UseVisualStyleBackColor = False
         '
         'cmbDefinition
@@ -175,13 +177,14 @@ Partial Class SimpleVideoEditor
         '
         'grpSettings
         '
+        Me.grpSettings.Controls.Add(Me.lblMute)
         Me.grpSettings.Controls.Add(Me.cmbDefinition)
         Me.grpSettings.Controls.Add(Me.chkOverwriteOriginal)
         Me.grpSettings.Controls.Add(Me.chkMute)
         Me.grpSettings.Controls.Add(Me.grpRotation)
-        Me.grpSettings.Location = New System.Drawing.Point(244, 34)
+        Me.grpSettings.Location = New System.Drawing.Point(244, 39)
         Me.grpSettings.Name = "grpSettings"
-        Me.grpSettings.Size = New System.Drawing.Size(87, 175)
+        Me.grpSettings.Size = New System.Drawing.Size(87, 170)
         Me.grpSettings.TabIndex = 19
         Me.grpSettings.TabStop = False
         Me.grpSettings.Text = "Settings"
@@ -258,6 +261,26 @@ Partial Class SimpleVideoEditor
         'sfdVideoOut
         '
         '
+        'lblRotationText
+        '
+        Me.lblRotationText.AutoSize = True
+        Me.lblRotationText.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblRotationText.Location = New System.Drawing.Point(14, 21)
+        Me.lblRotationText.Name = "lblRotationText"
+        Me.lblRotationText.Size = New System.Drawing.Size(34, 31)
+        Me.lblRotationText.TabIndex = 6
+        Me.lblRotationText.Text = "⟳"
+        '
+        'lblMute
+        '
+        Me.lblMute.AutoSize = True
+        Me.lblMute.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblMute.Location = New System.Drawing.Point(30, 83)
+        Me.lblMute.Name = "lblMute"
+        Me.lblMute.Size = New System.Drawing.Size(39, 31)
+        Me.lblMute.TabIndex = 18
+        Me.lblMute.Text = "🔇"
+        '
         'SimpleVideoEditor
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -282,7 +305,7 @@ Partial Class SimpleVideoEditor
         Me.MinimizeBox = False
         Me.Name = "SimpleVideoEditor"
         Me.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide
-        Me.Text = "Simple Video Editor"
+        Me.Text = "Simple Video Editor - Open Source"
         Me.grpRotation.ResumeLayout(False)
         Me.grpRotation.PerformLayout()
         Me.grpSettings.ResumeLayout(False)
@@ -319,5 +342,7 @@ Partial Class SimpleVideoEditor
     Friend WithEvents grpSettings As System.Windows.Forms.GroupBox
     Friend WithEvents picFrame5 As System.Windows.Forms.PictureBox
     Friend WithEvents sfdVideoOut As System.Windows.Forms.SaveFileDialog
+    Friend WithEvents lblRotationText As System.Windows.Forms.Label
+    Friend WithEvents lblMute As System.Windows.Forms.Label
 
 End Class
