@@ -390,7 +390,7 @@
         Dim duration As String = (endSS) - (startSS)
         Dim startHHMMSS As String = FormatHHMMSSss(startSS)
         Dim processInfo As New ProcessStartInfo
-        processInfo.FileName = "ffmpeg.exe"
+        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'Flip vertical
         '-vf "vflip,hflip"
         'Cropping
