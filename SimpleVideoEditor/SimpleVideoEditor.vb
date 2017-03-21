@@ -217,7 +217,12 @@
         mIntAspectWidth = GetHorizontalResolution(mStrVideoPath)
         mIntAspectHeight = GetVerticalResolution(mStrVideoPath)
         If picVideo.Image IsNot Nothing Then
-            'If the aspect ration was somehow saved wrong, fix it
+            'If the resolution failed to load, put in something
+            If mIntAspectWidth = 0 Or mIntAspectHeight = 0 Then
+                mIntAspectWidth = tempImage.Width
+                mIntAspectHeight = tempImage.Height
+            End If
+            'If the aspect ratio was somehow saved wrong, fix it
             'Try flipping the known aspect, if its closer to what was loaded, change it
             If Math.Abs((mIntAspectWidth / mIntAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mIntAspectHeight / mIntAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
                 SwapValues(mIntAspectWidth, mIntAspectHeight)
@@ -348,13 +353,15 @@
                     For index As Integer = 0 To 500
                         If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frames/second")) Then
                             Return Integer.Parse(folder.GetDetailsOf(strFileName, index + 1).ToString)
+                        ElseIf (folder.GetDetailsOf(strFileName, index).ToString.ToLower.StartsWith("{")) And (folder.GetDetailsOf(strFileName, index).ToString.ToLower.EndsWith("}")) Then
+                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index + 5).ToString)
                         End If
                     Next
                     Exit For
                 End If
             Next
         End If
-        Return 30
+        Return 0
     End Function
 
     ''' <summary>
@@ -371,8 +378,11 @@
                         Return Integer.Parse(folder.GetDetailsOf(strFileName, 299).ToString)
                     End If
                     For index As Integer = 0 To 500
+                        'Debug.Print(index & ":" & folder.GetDetailsOf(strFileName, index).ToString)
                         If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frames/second")) Then
                             Return Integer.Parse(folder.GetDetailsOf(strFileName, index - 1).ToString)
+                        ElseIf (folder.GetDetailsOf(strFileName, index).ToString.ToLower.StartsWith("{")) And (folder.GetDetailsOf(strFileName, index).ToString.ToLower.EndsWith("}")) Then
+                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index + 3).ToString)
                         End If
                     Next
                     Exit For
