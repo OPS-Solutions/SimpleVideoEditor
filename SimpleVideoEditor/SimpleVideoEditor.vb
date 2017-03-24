@@ -188,22 +188,17 @@
     ''' sets up neede information and runs ffmpeg.exe to render the final video.
     ''' </summary>
     Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
-        If chkOverwriteOriginal.Checked Then
-            SaveFile(mStrVideoPath, chkOverwriteOriginal.Checked)
-            ClearControls()
-        Else
-            sfdVideoOut.Filter = "WMV|*.wmv|AVI|*.avi|All files (*.*)|*.*"
-            Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
-            For index As Integer = 1 To validExtensions.Count - 1 Step 2
-                If System.IO.Path.GetExtension(mStrVideoPath).Contains(validExtensions(index).Replace("*", "")) Then
-                    sfdVideoOut.FilterIndex = ((index - 1) \ 2) + 1
-                    Exit For
-                End If
-            Next
-            sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mStrVideoPath, "-SHINY"))
-            sfdVideoOut.OverwritePrompt = True
-            sfdVideoOut.ShowDialog()
-        End If
+        sfdVideoOut.Filter = "WMV|*.wmv|AVI|*.avi|All files (*.*)|*.*"
+        Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
+        For index As Integer = 1 To validExtensions.Count - 1 Step 2
+            If System.IO.Path.GetExtension(mStrVideoPath).Contains(validExtensions(index).Replace("*", "")) Then
+                sfdVideoOut.FilterIndex = ((index - 1) \ 2) + 1
+                Exit For
+            End If
+        Next
+        sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mStrVideoPath, "-SHINY"))
+        sfdVideoOut.OverwritePrompt = True
+        sfdVideoOut.ShowDialog()
     End Sub
 #End Region
 
@@ -659,7 +654,7 @@
         genericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
         genericToolTip.SetToolTip(picFrame5, "View last frame of video.")
         genericToolTip.SetToolTip(chkMute, "Mute the videos audio track.")
-        genericToolTip.SetToolTip(chkOverwriteOriginal, "Overwrites the original file with the newly rendered video.")
+        'genericToolTip.SetToolTip(chkOverwriteOriginal, "Overwrites the original file with the newly rendered video.")
         genericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
         genericToolTip.SetToolTip(txtFileName, "Name of the currently loaded file.")
 
