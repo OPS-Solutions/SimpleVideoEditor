@@ -31,11 +31,12 @@ Partial Class SimpleVideoEditor
         Me.radDown = New System.Windows.Forms.RadioButton()
         Me.radLeft = New System.Windows.Forms.RadioButton()
         Me.grpRotation = New System.Windows.Forms.GroupBox()
+        Me.lblRotationText = New System.Windows.Forms.Label()
         Me.btnBrowse = New System.Windows.Forms.Button()
-        Me.chkOverwriteOriginal = New System.Windows.Forms.CheckBox()
         Me.btnいくよ = New System.Windows.Forms.Button()
         Me.cmbDefinition = New System.Windows.Forms.ComboBox()
         Me.grpSettings = New System.Windows.Forms.GroupBox()
+        Me.lblMute = New System.Windows.Forms.Label()
         Me.picFrame5 = New System.Windows.Forms.PictureBox()
         Me.picRangeSlider = New System.Windows.Forms.PictureBox()
         Me.picFrame4 = New System.Windows.Forms.PictureBox()
@@ -44,8 +45,6 @@ Partial Class SimpleVideoEditor
         Me.picFrame1 = New System.Windows.Forms.PictureBox()
         Me.picVideo = New System.Windows.Forms.PictureBox()
         Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
-        Me.lblRotationText = New System.Windows.Forms.Label()
-        Me.lblMute = New System.Windows.Forms.Label()
         Me.grpRotation.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -63,7 +62,7 @@ Partial Class SimpleVideoEditor
         Me.chkMute.Checked = True
         Me.chkMute.CheckState = System.Windows.Forms.CheckState.Checked
         Me.chkMute.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.chkMute.Location = New System.Drawing.Point(13, 94)
+        Me.chkMute.Location = New System.Drawing.Point(13, 106)
         Me.chkMute.Name = "chkMute"
         Me.chkMute.Size = New System.Drawing.Size(15, 14)
         Me.chkMute.TabIndex = 0
@@ -133,6 +132,16 @@ Partial Class SimpleVideoEditor
         Me.grpRotation.TabIndex = 6
         Me.grpRotation.TabStop = False
         '
+        'lblRotationText
+        '
+        Me.lblRotationText.AutoSize = True
+        Me.lblRotationText.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblRotationText.Location = New System.Drawing.Point(14, 21)
+        Me.lblRotationText.Name = "lblRotationText"
+        Me.lblRotationText.Size = New System.Drawing.Size(34, 31)
+        Me.lblRotationText.TabIndex = 6
+        Me.lblRotationText.Text = "⟳"
+        '
         'btnBrowse
         '
         Me.btnBrowse.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
@@ -142,16 +151,6 @@ Partial Class SimpleVideoEditor
         Me.btnBrowse.TabIndex = 7
         Me.btnBrowse.Text = "📂..."
         Me.btnBrowse.UseVisualStyleBackColor = True
-        '
-        'chkOverwriteOriginal
-        '
-        Me.chkOverwriteOriginal.AutoSize = True
-        Me.chkOverwriteOriginal.Location = New System.Drawing.Point(13, 117)
-        Me.chkOverwriteOriginal.Name = "chkOverwriteOriginal"
-        Me.chkOverwriteOriginal.Size = New System.Drawing.Size(71, 17)
-        Me.chkOverwriteOriginal.TabIndex = 8
-        Me.chkOverwriteOriginal.Text = "Overwrite"
-        Me.chkOverwriteOriginal.UseVisualStyleBackColor = True
         '
         'btnいくよ
         '
@@ -179,7 +178,6 @@ Partial Class SimpleVideoEditor
         '
         Me.grpSettings.Controls.Add(Me.lblMute)
         Me.grpSettings.Controls.Add(Me.cmbDefinition)
-        Me.grpSettings.Controls.Add(Me.chkOverwriteOriginal)
         Me.grpSettings.Controls.Add(Me.chkMute)
         Me.grpSettings.Controls.Add(Me.grpRotation)
         Me.grpSettings.Location = New System.Drawing.Point(244, 39)
@@ -188,6 +186,16 @@ Partial Class SimpleVideoEditor
         Me.grpSettings.TabIndex = 19
         Me.grpSettings.TabStop = False
         Me.grpSettings.Text = "Settings"
+        '
+        'lblMute
+        '
+        Me.lblMute.AutoSize = True
+        Me.lblMute.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblMute.Location = New System.Drawing.Point(30, 95)
+        Me.lblMute.Name = "lblMute"
+        Me.lblMute.Size = New System.Drawing.Size(39, 31)
+        Me.lblMute.TabIndex = 18
+        Me.lblMute.Text = "🔇"
         '
         'picFrame5
         '
@@ -261,26 +269,6 @@ Partial Class SimpleVideoEditor
         'sfdVideoOut
         '
         '
-        'lblRotationText
-        '
-        Me.lblRotationText.AutoSize = True
-        Me.lblRotationText.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblRotationText.Location = New System.Drawing.Point(14, 21)
-        Me.lblRotationText.Name = "lblRotationText"
-        Me.lblRotationText.Size = New System.Drawing.Size(34, 31)
-        Me.lblRotationText.TabIndex = 6
-        Me.lblRotationText.Text = "⟳"
-        '
-        'lblMute
-        '
-        Me.lblMute.AutoSize = True
-        Me.lblMute.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblMute.Location = New System.Drawing.Point(30, 83)
-        Me.lblMute.Name = "lblMute"
-        Me.lblMute.Size = New System.Drawing.Size(39, 31)
-        Me.lblMute.TabIndex = 18
-        Me.lblMute.Text = "🔇"
-        '
         'SimpleVideoEditor
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -330,7 +318,6 @@ Partial Class SimpleVideoEditor
     Friend WithEvents radLeft As System.Windows.Forms.RadioButton
     Friend WithEvents grpRotation As System.Windows.Forms.GroupBox
     Friend WithEvents btnBrowse As System.Windows.Forms.Button
-    Friend WithEvents chkOverwriteOriginal As System.Windows.Forms.CheckBox
     Friend WithEvents btnいくよ As System.Windows.Forms.Button
     Friend WithEvents picVideo As System.Windows.Forms.PictureBox
     Friend WithEvents picFrame1 As System.Windows.Forms.PictureBox
