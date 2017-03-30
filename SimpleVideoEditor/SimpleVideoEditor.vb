@@ -317,11 +317,8 @@
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
-                    If (folder.GetDetailsOf(strFileName, 300).ToString.ToLower.Contains("frames/second")) Then
-                        Return Integer.Parse(folder.GetDetailsOf(strFileName, 300).ToString.Split(" ")(0).Trim("‎")) 'Trim zero width space character(invisible space)
-                    End If
                     For index As Integer = 0 To 500
-                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frames/second")) Then
+                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frame rate")) Then
                             Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0).Trim("‎"))
                         End If
                     Next
@@ -336,20 +333,17 @@
     ''' Searches file details to find horizontal resolution of the video
     ''' </summary>
     Function GetHorizontalResolution(ByVal fullPath As String) As Integer
+        Dim attrib As FileAttribute = System.IO.File.GetAttributes(fullPath)
+
         'Loop through folder info for information that looks like frames/second
         If System.IO.File.Exists(mStrVideoPath) Then
             Dim shell As Object = CreateObject("Shell.Application")
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
-                    If (folder.GetDetailsOf(strFileName, 300).ToString.ToLower.Contains("frames/fecond")) Then
-                        Return Integer.Parse(folder.GetDetailsOf(strFileName, 301).ToString)
-                    End If
                     For index As Integer = 0 To 500
-                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frames/second")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index + 1).ToString)
-                        ElseIf (folder.GetDetailsOf(strFileName, index).ToString.ToLower.StartsWith("{")) And (folder.GetDetailsOf(strFileName, index).ToString.ToLower.EndsWith("}")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index + 5).ToString)
+                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frame width")) Then
+                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString)
                         End If
                     Next
                     Exit For
@@ -369,15 +363,10 @@
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
-                    If (folder.GetDetailsOf(strFileName, 300).ToString.ToLower.Contains("frames/second")) Then
-                        Return Integer.Parse(folder.GetDetailsOf(strFileName, 299).ToString)
-                    End If
                     For index As Integer = 0 To 500
                         'Debug.Print(index & ":" & folder.GetDetailsOf(strFileName, index).ToString)
-                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frames/second")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index - 1).ToString)
-                        ElseIf (folder.GetDetailsOf(strFileName, index).ToString.ToLower.StartsWith("{")) And (folder.GetDetailsOf(strFileName, index).ToString.ToLower.EndsWith("}")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index + 3).ToString)
+                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frame height")) Then
+                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString)
                         End If
                     Next
                     Exit For
