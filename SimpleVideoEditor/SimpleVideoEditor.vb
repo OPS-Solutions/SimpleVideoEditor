@@ -293,13 +293,11 @@
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(fullPath) Then
-                    If (folder.GetDetailsOf(strFileName, 21).ToString.Contains(":")) Then
-                        Return folder.GetDetailsOf(strFileName, 21).ToString
-                    ElseIf (folder.GetDetailsOf(strFileName, 27).ToString.Contains(":")) Then
-                        Return folder.GetDetailsOf(strFileName, 27).ToString
-                    ElseIf (folder.GetDetailsOf(strFileName, 36).ToString.Contains(":")) Then
-                        Return folder.GetDetailsOf(strFileName, 36).ToString
-                    End If
+                    For index As Integer = 0 To 500
+                        If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Equals("length")) Then
+                            Return folder.GetDetailsOf(strFileName, index).ToString
+                        End If
+                    Next
                     Exit For
                 End If
             Next
@@ -318,8 +316,8 @@
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
                     For index As Integer = 0 To 500
-                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frame rate")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0).Trim("‎"))
+                        If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame rate")) Then
+                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0).Trim("‎")) 'Trim is not empty, it contains zero width space
                         End If
                     Next
                     Exit For
@@ -342,7 +340,7 @@
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
                     For index As Integer = 0 To 500
-                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frame width")) Then
+                        If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame width")) Then
                             Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString)
                         End If
                     Next
@@ -364,8 +362,8 @@
             For Each strFileName In folder.Items
                 If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
                     For index As Integer = 0 To 500
-                        'Debug.Print(index & ":" & folder.GetDetailsOf(strFileName, index).ToString)
-                        If (folder.GetDetailsOf(strFileName, index).ToString.ToLower.Contains("frame height")) Then
+                        'Debug.Print(index & ":" & folder.GetDetailsOf(Nothing, index).ToString)
+                        If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame height")) Then
                             Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString)
                         End If
                     Next
