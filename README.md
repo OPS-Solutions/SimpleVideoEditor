@@ -1,5 +1,5 @@
 # SimpleVideoEditor
-A simple video editor that uses ffmpeg.exe to do pretty much everything. Licenced Under GPL v2.
+A simple video editor that uses ffmpeg.exe to do pretty much everything. Licensed Under GPL v2.
 
 To use this application, download the repository, and what you need is the folder named "Simple Video Editor". 
 It contains the licence, and the two executables needed to run the application.
