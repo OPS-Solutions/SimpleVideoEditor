@@ -76,6 +76,7 @@
     Private Sub btnBrowse_Click(sender As Object, e As EventArgs) Handles btnBrowse.Click
         ofdVideoIn.Filter = "Video Files (*.*)|*.*"
         ofdVideoIn.Title = "Select Video File"
+        ofdVideoIn.AddExtension = True
         ofdVideoIn.ShowDialog()
     End Sub
 
@@ -83,8 +84,12 @@
     ''' Load a file when a file is opened in the open file dialog.
     ''' </summary>
     Private Sub ofdVideoIn_FileOk(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles ofdVideoIn.FileOk
-        ClearControls()
-        LoadFile(ofdVideoIn.FileName)
+        Try
+            ClearControls()
+            LoadFile(ofdVideoIn.FileName)
+        Catch ex As Exception
+            MessageBox.Show(ex.StackTrace)
+        End Try
     End Sub
 
     ''' <summary>
@@ -292,7 +297,7 @@
             Dim shell As Object = CreateObject("Shell.Application")
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
             For Each strFileName In folder.Items
-                If strFileName.Name = System.IO.Path.GetFileName(fullPath) Then
+                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(fullPath) Then
                     For index As Integer = 0 To 500
                         If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Equals("length")) Then
                             Return folder.GetDetailsOf(strFileName, index).ToString
@@ -314,7 +319,7 @@
             Dim shell As Object = CreateObject("Shell.Application")
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
             For Each strFileName In folder.Items
-                If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
+                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(mStrVideoPath) Then
                     For index As Integer = 0 To 500
                         If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame rate")) Then
                             Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0).Trim("‎")) 'Trim is not empty, it contains zero width space
@@ -338,7 +343,7 @@
             Dim shell As Object = CreateObject("Shell.Application")
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
             For Each strFileName In folder.Items
-                If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
+                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(mStrVideoPath) Then
                     For index As Integer = 0 To 500
                         If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame width")) Then
                             Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString)
@@ -360,7 +365,7 @@
             Dim shell As Object = CreateObject("Shell.Application")
             Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
             For Each strFileName In folder.Items
-                If strFileName.Name = System.IO.Path.GetFileName(mStrVideoPath) Then
+                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(mStrVideoPath) Then
                     For index As Integer = 0 To 500
                         'Debug.Print(index & ":" & folder.GetDetailsOf(Nothing, index).ToString)
                         If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame height")) Then
