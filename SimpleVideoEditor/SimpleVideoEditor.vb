@@ -314,21 +314,27 @@
     ''' Searches file details to find frame rate information
     ''' </summary>
     Function GetFrameRate(ByVal fullPath As String) As Integer
-        'Loop through folder info for information that looks like frames/second
-        If System.IO.File.Exists(mStrVideoPath) Then
-            Dim shell As Object = CreateObject("Shell.Application")
-            Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
-            For Each strFileName In folder.Items
-                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(mStrVideoPath) Then
-                    For index As Integer = 0 To 500
-                        If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame rate")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0).Trim("‎")) 'Trim is not empty, it contains zero width space
-                        End If
-                    Next
-                    Exit For
-                End If
-            Next
-        End If
+        Try
+            'Loop through folder info for information that looks like frames/second
+            If System.IO.File.Exists(mStrVideoPath) Then
+                Dim shell As Object = CreateObject("Shell.Application")
+                Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
+                For Each strFileName In folder.Items
+                    If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(mStrVideoPath) Then
+                        For index As Integer = 0 To 500
+                            If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame rate")) Then
+                                Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0).Trim("‎")) 'Trim is not empty, it contains zero width space
+                            End If
+                        Next
+                        Exit For
+                    End If
+                Next
+            End If
+        Catch ex As Exception
+            'MessageBox.Show("No Framerate Detected... Defaulted to 30 FPS...")
+            'Error, default to 30 fps
+            Return 30
+        End Try
         Return 30
     End Function
 
