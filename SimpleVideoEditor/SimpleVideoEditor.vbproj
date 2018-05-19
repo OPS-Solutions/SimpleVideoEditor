@@ -181,6 +181,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Play Button Old.ico" />
+    <None Include="Resources\SpeakerOn.png" />
+    <None Include="Resources\SpeakerOff.png" />
+    <None Include="Resources\Save.png" />
+    <None Include="Resources\Rotate.png" />
+    <None Include="Resources\Folder.png" />
     <None Include="Resources\Play Button.ico" />
     <Content Include="Play Button.ico" />
   </ItemGroup>
