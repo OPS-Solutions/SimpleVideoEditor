@@ -9,13 +9,7 @@
     Private mPtStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle
     Private mPtEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle
 
-    'Values for hours, minutes, and seconds from the duration of the video(Doesn't give fractional seconds for some reason)
-    Private mShtVideoHH As UShort
-    Private mShtVideoMM As UShort
-    Private mShtVideoSS As UShort
-
     Private mDblVideoDurationSS As Double
-    Private mBlnVideoSubSecond As Boolean 'Remembers if the video is less than a second long or not
 
     Private mIntAspectWidth As Integer 'Holds onto the width of the video frame for aspect ration computation(Not correct width, but correct aspect)
     Private mIntAspectHeight As Integer 'Holds onto the height of the video frame for aspect ration computation(Not correct height, but correct aspect)
@@ -23,9 +17,12 @@
     Private mDblScaleFactorX As Double 'Keeps track of the width scale for the image display so that cropping can work with the right size
     Private mDblScaleFactorY As Double 'Keeps track of the height scale for the image display so that cropping can work with the right size
 
-    Private mIntFrameRate As Integer = 30 'Number of frames per second in the video
+    Private mIntFrameRate As Double = 30 'Number of frames per second in the video
+
+    Private mobjMetaData As MetaData 'Video metadata, including things like resolution, framerate, bitrate, etc.
 
     Private WithEvents tensClock As New Timer 'Timer that is to run at 10 Hz, for refreshing cross thread operations.
+
 #Region "RangeSlider"
     Event RangeChanged(ByVal newVal As Integer, ByVal ChangeMin As Boolean)
     Private pRangeMinValue As Integer = 0 'Value that should only be accessed by the property below
@@ -98,19 +95,16 @@
     Public Sub LoadFile(ByVal fullPath As String)
         mStrVideoPath = fullPath
         txtFileName.Text = System.IO.Path.GetFileName(mStrVideoPath)
+        mobjMetaData = GetMetaData(mStrVideoPath)
+
         'Set frame rate
-        mIntFrameRate = GetFrameRate(mStrVideoPath)
+        mIntFrameRate = mobjMetaData.Framerate
+
         'Get video duration
-        Dim duration As String() = GetHHMMSS(mStrVideoPath).Split(":")
-        mShtVideoHH = UShort.Parse(duration(0))
-        mShtVideoMM = UShort.Parse(duration(1))
-        mShtVideoSS = UShort.Parse(duration(2))
-        mDblVideoDurationSS = 0
-        mDblVideoDurationSS += mShtVideoHH * 60 * 60 + mShtVideoMM * 60 + mShtVideoSS
-        mBlnVideoSubSecond = mDblVideoDurationSS < 1
-        mDblVideoDurationSS = Math.Max(mDblVideoDurationSS, 1) 'If duration is lower than a second, default to one second
+        mDblVideoDurationSS = mobjMetaData.DurationSeconds
+
         'Set range of slider
-        mRangeMax = mDblVideoDurationSS * mIntFrameRate
+        mRangeMax = mobjMetaData.TotalFrames
         RangeMinValue = 0
         RangeMaxValue = mRangeMax
         mRangeValues(0) = RangeMinValue
@@ -214,8 +208,8 @@
         'Use ffmpeg to grab images into a temporary folder
         Dim tempImage As Bitmap = GetFfmpegFrame(0, False)
         picVideo.Image = tempImage
-        mIntAspectWidth = GetHorizontalResolution(mStrVideoPath)
-        mIntAspectHeight = GetVerticalResolution(mStrVideoPath)
+        mIntAspectWidth = mobjMetaData.Width
+        mIntAspectHeight = mobjMetaData.Height
         If picVideo.Image IsNot Nothing Then
             'If the resolution failed to load, put in something
             If mIntAspectWidth = 0 Or mIntAspectHeight = 0 Then
@@ -230,11 +224,11 @@
         End If
         mDblScaleFactorX = mIntAspectWidth / picVideo.Width
         mDblScaleFactorY = mIntAspectHeight / picVideo.Height
-        GetFfmpegFrame(mDblVideoDurationSS * 0, True)
-        GetFfmpegFrame(mDblVideoDurationSS * 0.25, False)
-        GetFfmpegFrame(mDblVideoDurationSS * 0.5, False)
-        GetFfmpegFrame(mDblVideoDurationSS * 0.75, False)
-        GetFfmpegFrame(mDblVideoDurationSS, False)
+        GetFfmpegFrame(mobjMetaData.TotalFrames * 0, True)
+        GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25, False)
+        GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5, False)
+        GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75, False)
+        GetFfmpegFrame(mobjMetaData.TotalFrames - 1, False)
     End Sub
 
     ''' <summary>
@@ -267,18 +261,18 @@
             picFrame1.Image = GetFfmpegFrame(0, True)
         End If
         If picFrame2.Image Is Nothing Then
-            picFrame2.Image = GetFfmpegFrame(mDblVideoDurationSS * 0.25, True)
+            picFrame2.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25, True)
         End If
         If picFrame3.Image Is Nothing Then
-            picFrame3.Image = GetFfmpegFrame(mDblVideoDurationSS * 0.5, True)
+            picFrame3.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5, True)
         End If
         If picFrame4.Image Is Nothing Then
-            picFrame4.Image = GetFfmpegFrame(mDblVideoDurationSS * 0.75, True)
+            picFrame4.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75, True)
         End If
         If picFrame5.Image Is Nothing Then
-            picFrame5.Image = GetFfmpegFrame(mDblVideoDurationSS, True)
+            picFrame5.Image = GetFfmpegFrame(mobjMetaData.TotalFrames - 1, True)
         End If
-        If (mthdDefaultLoadThread.ThreadState = Threading.ThreadState.Stopped AndAlso mBlnVideoSubSecond) Or (picVideo.Image IsNot Nothing AndAlso picFrame1.Image IsNot Nothing AndAlso picFrame2.Image IsNot Nothing AndAlso picFrame3.Image IsNot Nothing AndAlso picFrame4.Image IsNot Nothing AndAlso picFrame5.Image IsNot Nothing) Then
+        If mobjMetaData.TotalFrames < 5 OrElse (picVideo.Image IsNot Nothing AndAlso picFrame1.Image IsNot Nothing AndAlso picFrame2.Image IsNot Nothing AndAlso picFrame3.Image IsNot Nothing AndAlso picFrame4.Image IsNot Nothing AndAlso picFrame5.Image IsNot Nothing) Then
             tensClock.Stop()
             'Application is finished searching for images, reset cursor
             Cursor = Cursors.Arrow
@@ -311,17 +305,43 @@
     End Function
 
     ''' <summary>
+    ''' Gets metadata for video files using ffmpeg command line arguments, and parses it into an object
+    ''' </summary>
+    ''' <param name="fullPath"></param>
+    Function GetMetaData(ByVal fullPath As String) As MetaData
+        'Request metadata from ffmpeg vis -i command
+        Dim processInfo As New ProcessStartInfo
+        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+        processInfo.Arguments += "-i " & """" & fullPath & """" & " -c copy -f null null"
+        processInfo.UseShellExecute = False
+        processInfo.RedirectStandardError = True
+        processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        Dim tempProcess As Process = Process.Start(processInfo)
+
+        'Swap output to inside this application
+        Dim output As String
+        Using streamReader As System.IO.StreamReader = tempProcess.StandardError
+            output = streamReader.ReadToEnd()
+        End Using
+        tempProcess.WaitForExit(1000)
+        tempProcess.Close()
+
+        Return New MetaData(output)
+    End Function
+
+    ''' <summary>
     ''' Searches file details to find frame rate information
     ''' </summary>
     Function GetFrameRate(ByVal fullPath As String) As Integer
         Try
             'Loop through folder info for information that looks like frames/second
-            If System.IO.File.Exists(mStrVideoPath) Then
+            If System.IO.File.Exists(fullPath) Then
                 Dim shell As Object = CreateObject("Shell.Application")
-                Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
+                Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
                 For Each strFileName In folder.Items
-                    If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(mStrVideoPath) Then
+                    If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(fullPath) Then
                         For index As Integer = 0 To 500
+                            Debug.Print(folder.GetDetailsOf(Nothing, index).ToString & " | " & folder.GetDetailsOf(strFileName, index))
                             If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame rate")) Then
                                 Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0).Trim("‎")) 'Trim is not empty, it contains zero width space
                             End If
@@ -345,11 +365,11 @@
         Dim attrib As FileAttribute = System.IO.File.GetAttributes(fullPath)
 
         'Loop through folder info for information that looks like frames/second
-        If System.IO.File.Exists(mStrVideoPath) Then
+        If System.IO.File.Exists(fullPath) Then
             Dim shell As Object = CreateObject("Shell.Application")
-            Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
+            Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
             For Each strFileName In folder.Items
-                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(mStrVideoPath) Then
+                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(fullPath) Then
                     For index As Integer = 0 To 500
                         If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame width")) Then
                             Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString)
@@ -367,11 +387,11 @@
     ''' </summary>
     Function GetVerticalResolution(ByVal fullPath As String) As Integer
         'Loop through folder info for information that looks like frames/second
-        If System.IO.File.Exists(mStrVideoPath) Then
+        If System.IO.File.Exists(fullPath) Then
             Dim shell As Object = CreateObject("Shell.Application")
-            Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(mStrVideoPath))
+            Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
             For Each strFileName In folder.Items
-                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(mStrVideoPath) Then
+                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(fullPath) Then
                     For index As Integer = 0 To 500
                         'Debug.Print(index & ":" & folder.GetDetailsOf(Nothing, index).ToString)
                         If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame height")) Then
@@ -446,18 +466,18 @@
     ''' <summary>
     ''' Returns the corresponding file to the given seconds value, like 50.5 = "frame_000050.5.png".
     ''' </summary>
-    Public Function GetFfmpegFrame(ByVal totalSS As Double, ByVal skipGrab As Boolean) As Bitmap
-        'ffmpeg -ss 00:00:15 -i video.mp4 -vf scale=800:-1 -vframes 1 image.jpg
+    Public Function GetFfmpegFrame(ByVal frame As Integer, ByVal skipGrab As Boolean) As Bitmap
+        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         Dim processInfo As New ProcessStartInfo
-        Dim targetFilePath As String = TempFolderPath & "\frame_" & FormatHHMMSSss(totalSS).Replace(":", "") & ".png"
+        Dim targetFilePath As String = TempFolderPath & "\frame_" & frame.ToString & ".png"
         If Not skipGrab Then
             processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-            processInfo.Arguments = "-ss " & FormatHHMMSSss(totalSS) & " -i """ & mStrVideoPath & """"
-            processInfo.Arguments += " -vf scale=800:-1 -vframes 1 " & """" & targetFilePath & """"
+            processInfo.Arguments = " -i """ & mStrVideoPath & """"
+            processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
             processInfo.UseShellExecute = True
             processInfo.WindowStyle = ProcessWindowStyle.Hidden
             Dim tempProcess As Process = Process.Start(processInfo)
-            tempProcess.WaitForExit(1000) 'Wait up to 1 seconds for the process to finish
+            tempProcess.WaitForExit(5000) 'Wait up to 5 seconds for the process to finish
         End If
         If System.IO.File.Exists(targetFilePath) Then
             Return GetImageNonLocking(targetFilePath)
@@ -539,12 +559,12 @@
             Dim maxChanged As Boolean = Not RangeMaxValue = mRangeValues(1)
             mRangeValues(1) = RangeMaxValue
             If minChanged Or maxChanged Then
-                Dim targetFilePath As String = TempFolderPath & "\frame_" & FormatHHMMSSss(If(minChanged, RangeMinValue / mIntFrameRate, RangeMaxValue / mIntFrameRate)).Replace(":", "") & ".png"
+                Dim targetFilePath As String = TempFolderPath & "\frame_" & If(minChanged, RangeMinValue, RangeMaxValue).ToString & ".png"
                 'Run ffmpeg to find the corresponding image, display it
                 If System.IO.File.Exists(targetFilePath) Then
                     picVideo.Image = GetImageNonLocking(targetFilePath)
                 Else
-                    picVideo.Image = GetFfmpegFrame(If(minChanged, RangeMinValue / mIntFrameRate, RangeMaxValue / mIntFrameRate), False)
+                    picVideo.Image = GetFfmpegFrame(If(minChanged, RangeMinValue, RangeMaxValue), False)
                 End If
                 picRangeSlider.Refresh()
             End If

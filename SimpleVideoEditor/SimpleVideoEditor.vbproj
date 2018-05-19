@@ -125,6 +125,7 @@
     <Compile Include="frmAbout.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="MetaData.vb" />
     <Compile Include="SimpleVideoEditor.vb">
       <SubType>Form</SubType>
     </Compile>
