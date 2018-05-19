@@ -196,7 +196,7 @@ Partial Class SimpleVideoEditor
         Me.lblRotationText.AutoSize = True
         Me.lblRotationText.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.lblRotationText.Image = Global.SimpleVideoEditor.My.Resources.Resources.Rotate
-        Me.lblRotationText.Location = New System.Drawing.Point(21, 25)
+        Me.lblRotationText.Location = New System.Drawing.Point(22, 25)
         Me.lblRotationText.MinimumSize = New System.Drawing.Size(16, 16)
         Me.lblRotationText.Name = "lblRotationText"
         Me.lblRotationText.Size = New System.Drawing.Size(16, 31)

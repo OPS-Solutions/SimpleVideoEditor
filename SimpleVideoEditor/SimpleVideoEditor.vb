@@ -104,7 +104,7 @@
         mDblVideoDurationSS = mobjMetaData.DurationSeconds
 
         'Set range of slider
-        mRangeMax = mobjMetaData.TotalFrames
+        mRangeMax = mobjMetaData.TotalFrames - 1
         RangeMinValue = 0
         RangeMaxValue = mRangeMax
         mRangeValues(0) = RangeMinValue
@@ -475,8 +475,10 @@
         Dim targetFilePath As String = TempFolderPath & "\frame_" & frame.ToString & ".png"
         If Not skipGrab Then
             processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-            processInfo.Arguments = " -i """ & mStrVideoPath & """"
-            processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
+            processInfo.Arguments = " -ss " & FormatHHMMSSss((frame) / mobjMetaData.Framerate)
+            processInfo.Arguments += " -i """ & mStrVideoPath & """"
+            'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
+            processInfo.Arguments += " -vf scale=228:-1 -vframes 1 " & """" & targetFilePath & """"
             processInfo.UseShellExecute = True
             processInfo.WindowStyle = ProcessWindowStyle.Hidden
             Dim tempProcess As Process = Process.Start(processInfo)
@@ -787,10 +789,11 @@
     ''' Converts a double like 100.5 seconds to HHMMSSss... like "00:01:40.5"
     ''' </summary>
     Public Function FormatHHMMSSss(ByVal totalSS As Double) As String
-        Dim hours As Integer = ((totalSS \ 60) \ 60)
-        Dim minutes As Integer = ((totalSS - (hours * 60)) \ 60)
-        Dim seconds = ((totalSS - (hours * 60 * 60) - (minutes * 60)))
-        Return hours.ToString.PadLeft(2, "0") & ":" & minutes.ToString.PadLeft(2, "0") & ":" & seconds.ToString.PadLeft(2, "0")
+        Dim hours As Double = ((totalSS / 60) / 60)
+        Dim minutes As Double = (hours Mod 1) * 60
+        Dim seconds As Double = (minutes Mod 1) * 60
+        Dim millisecond As Integer = Math.Round(totalSS Mod 1, 2, MidpointRounding.AwayFromZero) * 100
+        Return Math.Truncate(hours).ToString.PadLeft(2, "0") & ":" & Math.Truncate(minutes).ToString.PadLeft(2, "0") & ":" & Math.Truncate(seconds).ToString.PadLeft(2, "0") & "." & millisecond.ToString.PadLeft(2, "0")
     End Function
 
     ''' <summary>
