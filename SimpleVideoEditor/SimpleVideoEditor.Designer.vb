@@ -31,20 +31,20 @@ Partial Class SimpleVideoEditor
         Me.radDown = New System.Windows.Forms.RadioButton()
         Me.radLeft = New System.Windows.Forms.RadioButton()
         Me.grpRotation = New System.Windows.Forms.GroupBox()
-        Me.lblRotationText = New System.Windows.Forms.Label()
-        Me.btnBrowse = New System.Windows.Forms.Button()
-        Me.btnいくよ = New System.Windows.Forms.Button()
         Me.cmbDefinition = New System.Windows.Forms.ComboBox()
         Me.grpSettings = New System.Windows.Forms.GroupBox()
-        Me.lblMute = New System.Windows.Forms.Label()
+        Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
         Me.picFrame5 = New System.Windows.Forms.PictureBox()
+        Me.btnいくよ = New System.Windows.Forms.Button()
+        Me.lblMute = New System.Windows.Forms.Label()
+        Me.lblRotationText = New System.Windows.Forms.Label()
         Me.picRangeSlider = New System.Windows.Forms.PictureBox()
         Me.picFrame4 = New System.Windows.Forms.PictureBox()
         Me.picFrame3 = New System.Windows.Forms.PictureBox()
         Me.picFrame2 = New System.Windows.Forms.PictureBox()
         Me.picFrame1 = New System.Windows.Forms.PictureBox()
         Me.picVideo = New System.Windows.Forms.PictureBox()
-        Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
+        Me.btnBrowse = New System.Windows.Forms.Button()
         Me.grpRotation.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -62,7 +62,7 @@ Partial Class SimpleVideoEditor
         Me.chkMute.Checked = True
         Me.chkMute.CheckState = System.Windows.Forms.CheckState.Checked
         Me.chkMute.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.chkMute.Location = New System.Drawing.Point(13, 106)
+        Me.chkMute.Location = New System.Drawing.Point(26, 106)
         Me.chkMute.Name = "chkMute"
         Me.chkMute.Size = New System.Drawing.Size(15, 14)
         Me.chkMute.TabIndex = 0
@@ -132,38 +132,6 @@ Partial Class SimpleVideoEditor
         Me.grpRotation.TabIndex = 6
         Me.grpRotation.TabStop = False
         '
-        'lblRotationText
-        '
-        Me.lblRotationText.AutoSize = True
-        Me.lblRotationText.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblRotationText.Location = New System.Drawing.Point(14, 21)
-        Me.lblRotationText.Name = "lblRotationText"
-        Me.lblRotationText.Size = New System.Drawing.Size(34, 31)
-        Me.lblRotationText.TabIndex = 6
-        Me.lblRotationText.Text = "⟳"
-        '
-        'btnBrowse
-        '
-        Me.btnBrowse.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.btnBrowse.Location = New System.Drawing.Point(244, 9)
-        Me.btnBrowse.Name = "btnBrowse"
-        Me.btnBrowse.Size = New System.Drawing.Size(88, 24)
-        Me.btnBrowse.TabIndex = 7
-        Me.btnBrowse.Text = "📂..."
-        Me.btnBrowse.UseVisualStyleBackColor = True
-        '
-        'btnいくよ
-        '
-        Me.btnいくよ.BackColor = System.Drawing.SystemColors.Control
-        Me.btnいくよ.Enabled = False
-        Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.btnいくよ.Location = New System.Drawing.Point(244, 214)
-        Me.btnいくよ.Name = "btnいくよ"
-        Me.btnいくよ.Size = New System.Drawing.Size(87, 35)
-        Me.btnいくよ.TabIndex = 9
-        Me.btnいくよ.Text = "💾"
-        Me.btnいくよ.UseVisualStyleBackColor = False
-        '
         'cmbDefinition
         '
         Me.cmbDefinition.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
@@ -187,15 +155,8 @@ Partial Class SimpleVideoEditor
         Me.grpSettings.TabStop = False
         Me.grpSettings.Text = "Settings"
         '
-        'lblMute
+        'sfdVideoOut
         '
-        Me.lblMute.AutoSize = True
-        Me.lblMute.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblMute.Location = New System.Drawing.Point(30, 95)
-        Me.lblMute.Name = "lblMute"
-        Me.lblMute.Size = New System.Drawing.Size(39, 31)
-        Me.lblMute.TabIndex = 18
-        Me.lblMute.Text = "🔇"
         '
         'picFrame5
         '
@@ -206,6 +167,40 @@ Partial Class SimpleVideoEditor
         Me.picFrame5.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
         Me.picFrame5.TabIndex = 20
         Me.picFrame5.TabStop = False
+        '
+        'btnいくよ
+        '
+        Me.btnいくよ.BackColor = System.Drawing.SystemColors.Control
+        Me.btnいくよ.Enabled = False
+        Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.btnいくよ.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
+        Me.btnいくよ.Location = New System.Drawing.Point(244, 214)
+        Me.btnいくよ.Name = "btnいくよ"
+        Me.btnいくよ.Size = New System.Drawing.Size(87, 35)
+        Me.btnいくよ.TabIndex = 9
+        Me.btnいくよ.UseVisualStyleBackColor = False
+        '
+        'lblMute
+        '
+        Me.lblMute.AutoSize = True
+        Me.lblMute.Font = New System.Drawing.Font("Segoe UI Symbol", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblMute.Image = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
+        Me.lblMute.Location = New System.Drawing.Point(43, 95)
+        Me.lblMute.MinimumSize = New System.Drawing.Size(16, 16)
+        Me.lblMute.Name = "lblMute"
+        Me.lblMute.Size = New System.Drawing.Size(16, 37)
+        Me.lblMute.TabIndex = 18
+        '
+        'lblRotationText
+        '
+        Me.lblRotationText.AutoSize = True
+        Me.lblRotationText.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblRotationText.Image = Global.SimpleVideoEditor.My.Resources.Resources.Rotate
+        Me.lblRotationText.Location = New System.Drawing.Point(21, 25)
+        Me.lblRotationText.MinimumSize = New System.Drawing.Size(16, 16)
+        Me.lblRotationText.Name = "lblRotationText"
+        Me.lblRotationText.Size = New System.Drawing.Size(16, 31)
+        Me.lblRotationText.TabIndex = 6
         '
         'picRangeSlider
         '
@@ -266,13 +261,19 @@ Partial Class SimpleVideoEditor
         Me.picVideo.TabIndex = 10
         Me.picVideo.TabStop = False
         '
-        'sfdVideoOut
+        'btnBrowse
         '
+        Me.btnBrowse.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.btnBrowse.Image = Global.SimpleVideoEditor.My.Resources.Resources.Folder
+        Me.btnBrowse.Location = New System.Drawing.Point(244, 9)
+        Me.btnBrowse.Name = "btnBrowse"
+        Me.btnBrowse.Size = New System.Drawing.Size(88, 24)
+        Me.btnBrowse.TabIndex = 7
+        Me.btnBrowse.UseVisualStyleBackColor = True
         '
         'SimpleVideoEditor
         '
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
         Me.ClientSize = New System.Drawing.Size(344, 261)
         Me.Controls.Add(Me.picFrame5)
         Me.Controls.Add(Me.btnいくよ)
@@ -285,6 +286,7 @@ Partial Class SimpleVideoEditor
         Me.Controls.Add(Me.picVideo)
         Me.Controls.Add(Me.btnBrowse)
         Me.Controls.Add(Me.txtFileName)
+        Me.ForeColor = System.Drawing.SystemColors.ControlText
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle
         Me.HelpButton = True
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)

@@ -41,8 +41,8 @@ Public Class MetaData
         Dim resolutionString As String = Regex.Match(streamString, "(?<=, )\d*x\d*").Groups(0).Value
         newVideoData.resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
         'Get framerate from "30.00 fps"
-        newVideoData.framerate = Double.Parse(Regex.Match(streamString, "\d*\.\d* fps").Groups(0).Value.Split(" ")(0))
-        Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)\d*")
+        newVideoData.framerate = Double.Parse(Regex.Match(streamString, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
+        Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
         mobjMetaData.totalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
         mobjMetaData.stream0 = newVideoData
     End Sub

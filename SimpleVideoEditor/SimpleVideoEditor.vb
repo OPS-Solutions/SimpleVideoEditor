@@ -179,7 +179,10 @@
     ''' Save file when the save file dialog is finished with an "ok" click
     ''' </summary>
     Private Sub sfdVideoOut_FileOk(sender As System.Windows.Forms.SaveFileDialog, e As EventArgs) Handles sfdVideoOut.FileOk
-        'If the file already exists, overwrite it
+        If IO.Path.GetExtension(sfdVideoOut.FileName).Length = 0 Then
+            'If the user failed to have a file extension, default to the one it already was
+            sfdVideoOut.FileName += IO.Path.GetExtension(mStrVideoPath)
+        End If
         SaveFile(sfdVideoOut.FileName, System.IO.File.Exists(sfdVideoOut.FileName))
     End Sub
 
@@ -868,6 +871,14 @@
     ''' Shows to the user that the video will be muted or not
     ''' </summary>
     Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckedChanged
-        lblMute.Text = If(chkMute.Checked, "🔇", "🔊")
+        lblMute.Image = If(chkMute.Checked, My.Resources.SpeakerOff, My.Resources.SpeakerOn)
+    End Sub
+
+    Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click
+
+    End Sub
+
+    Private Sub picRangeSlider_SlowValueChanged(sender As Object, e As MouseEventArgs) Handles picRangeSlider.MouseUp
+
     End Sub
 End Class
