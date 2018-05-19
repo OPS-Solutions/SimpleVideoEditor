@@ -37,7 +37,7 @@ Public Class MetaData
         'Get duration
         mobjMetaData.duration = Regex.Match(dataDump, "(?<=duration: )\d\d:\d\d:\d\d\.\d\d").Groups(0).Value
         'Find video stream line
-        Dim streamString As String = Regex.Match(dataDump, "stream.*").Groups(0).Value
+        Dim streamString As String = Regex.Match(dataDump, "stream.*video.*").Groups(0).Value
         Dim resolutionString As String = Regex.Match(streamString, "(?<=, )\d*x\d*").Groups(0).Value
         newVideoData.resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
         'Get framerate from "30.00 fps"
