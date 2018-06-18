@@ -187,7 +187,7 @@
     End Sub
 
     ''' <summary>
-    ''' sets up neede information and runs ffmpeg.exe to render the final video.
+    ''' sets up needed information and runs ffmpeg.exe to render the final video.
     ''' </summary>
     Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
         sfdVideoOut.Filter = "WMV|*.wmv|AVI|*.avi|All files (*.*)|*.*"
