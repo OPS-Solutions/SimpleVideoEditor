@@ -40,17 +40,21 @@ Public Class MetaData
         Dim streamString As String = Regex.Match(dataDump, "stream.*video.*").Groups(0).Value
         Dim resolutionString As String = Regex.Match(streamString, "(?<=, )\d*x\d*").Groups(0).Value
         newVideoData.resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
-        'Get framerate from "30.00 fps"
-        newVideoData.framerate = Double.Parse(Regex.Match(streamString, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
-        Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
-        mobjMetaData.totalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
-        mobjMetaData.stream0 = newVideoData
-    End Sub
+		'Get framerate from "30.00 fps"
+		newVideoData.framerate = Double.Parse(Regex.Match(streamString, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
+		Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
+		mobjMetaData.totalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
+		mobjMetaData.stream0 = newVideoData
+		'Failed to get duration, try getting it based on framerate and total frames
+		If mobjMetaData.duration.Length = 0 Then
+			mobjMetaData.duration = SimpleVideoEditor.FormatHHMMSSss(mobjMetaData.totalFrames / newVideoData.framerate)
+		End If
+	End Sub
 
-    ''' <summary>
-    ''' Width of the video, or horizontal resolution
-    ''' </summary>
-    Public ReadOnly Property Width As Integer
+	''' <summary>
+	''' Width of the video, or horizontal resolution
+	''' </summary>
+	Public ReadOnly Property Width As Integer
         Get
             Return mobjMetaData.stream0.resolution.Width
         End Get
