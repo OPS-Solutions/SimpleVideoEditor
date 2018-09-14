@@ -259,17 +259,17 @@ Public Class SimpleVideoEditor
 			picRangeSlider.Enabled = True
 			btnいくよ.Enabled = True
 		End If
-		picFrame1.Image = GetFfmpegFrame(0)
 		If picFrame1.Image Is Nothing Then
+			picFrame1.Image = GetFfmpegFrame(0)
 		End If
-		picFrame2.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25)
 		If picFrame2.Image Is Nothing Then
+			picFrame2.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25)
 		End If
-		picFrame3.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5)
 		If picFrame3.Image Is Nothing Then
+			picFrame3.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5)
 		End If
-		picFrame4.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75)
 		If picFrame4.Image Is Nothing Then
+			picFrame4.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75)
 		End If
 		If picFrame5.Image Is Nothing Then
 			picFrame5.Image = GetFfmpegFrame(mobjMetaData.TotalFrames - lastFrameCounter)
