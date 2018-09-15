@@ -188,7 +188,7 @@ Public Class SimpleVideoEditor
 	End Sub
 
 	''' <summary>
-	''' sets up neede information and runs ffmpeg.exe to render the final video.
+	''' sets up needed information and runs ffmpeg.exe to render the final video.
 	''' </summary>
 	Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
 		sfdVideoOut.Filter = "WMV|*.wmv|AVI|*.avi|All files (*.*)|*.*"
@@ -868,19 +868,19 @@ Public Class SimpleVideoEditor
 	''' </summary>
 	Protected Overrides Function ProcessCmdKey(ByRef message As Message, ByVal keys As Keys) As Boolean
 		Select Case keys
-			Case Keys.A
+			Case keys.A
 				RangeMinValue = RangeMinValue - 1
 				picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
-			Case Keys.D
+			Case keys.D
 				RangeMinValue = RangeMinValue + 1
 				picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
-			Case Keys.Left
+			Case keys.Left
 				RangeMaxValue = RangeMaxValue - 1
 				picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
-			Case Keys.Right
+			Case keys.Right
 				RangeMaxValue = RangeMaxValue + 1
 				picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
