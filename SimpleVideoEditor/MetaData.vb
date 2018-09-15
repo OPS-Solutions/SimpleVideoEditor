@@ -17,13 +17,14 @@ Public Class MetaData
         Dim totalFrames As Integer
     End Structure
 
-    Private Structure VideoStreamData
-        Dim video As String
-        Dim resolution As System.Drawing.Size
-        Dim framerate As Double
-    End Structure
+	Private Structure VideoStreamData
+		Dim raw As String
+		Dim video As String
+		Dim resolution As System.Drawing.Size
+		Dim framerate As Double
+	End Structure
 
-    Private mobjMetaData As New MetaData
+	Private mobjMetaData As New MetaData
 
     ''' <summary>
     ''' Parses metadata from a string. Generally given by "ffmpeg -i filename.ext"
@@ -42,6 +43,7 @@ Public Class MetaData
         newVideoData.resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
 		'Get framerate from "30.00 fps"
 		newVideoData.framerate = Double.Parse(Regex.Match(streamString, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
+		newVideoData.raw = streamString
 		Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
 		mobjMetaData.totalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
 		mobjMetaData.stream0 = newVideoData
@@ -98,14 +100,22 @@ Public Class MetaData
         End Get
     End Property
 
-    ''' <summary>
-    ''' The total number of frames in the video, ex: 60 for a 2 second 30fps video
-    ''' </summary>
-    Public ReadOnly Property TotalFrames As Double
-        Get
-            Return mobjMetaData.totalFrames
-        End Get
-    End Property
+	''' <summary>
+	''' The total number of frames in the video, ex: 60 for a 2 second 30fps video
+	''' </summary>
+	Public ReadOnly Property TotalFrames As Double
+		Get
+			Return mobjMetaData.totalFrames
+		End Get
+	End Property
 
-
+	''' <summary>
+	''' The raw stream data given by ffmpeg for stream 0
+	''' </summary>
+	''' <returns></returns>
+	Public ReadOnly Property StreamData As String
+		Get
+			Return mobjMetaData.stream0.raw
+		End Get
+	End Property
 End Class

@@ -8,6 +8,7 @@ Public Class SimpleVideoEditor
 	Private mStrVideoPath As String = "" 'Fullpath of the video file being edited
 	Private mProFfmpegProcess As Process 'TODO This doesn't really need to be module level
 	Private mthdDefaultLoadThread As System.Threading.Thread 'Thread for loading images upon open
+	Private mobjGenericToolTip As ToolTip = New ToolTip 'Tooltip object required for setting tootips on controls
 
 	Private mPtStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle
 	Private mPtEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle
@@ -21,10 +22,9 @@ Public Class SimpleVideoEditor
 	Private mDblScaleFactorY As Double 'Keeps track of the height scale for the image display so that cropping can work with the right size
 
 	Private mIntFrameRate As Double = 30 'Number of frames per second in the video
+	Private mIntCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
 
 	Private mobjMetaData As MetaData 'Video metadata, including things like resolution, framerate, bitrate, etc.
-
-	Private WithEvents tensClock As New Timer 'Timer that is to run at 10 Hz, for refreshing cross thread operations.
 
 #Region "RangeSlider"
 	Event RangeChanged(ByVal newVal As Integer, ByVal ChangeMin As Boolean)
@@ -97,9 +97,9 @@ Public Class SimpleVideoEditor
 	''' </summary>
 	Public Sub LoadFile(ByVal fullPath As String)
 		mStrVideoPath = fullPath
-		txtFileName.Text = System.IO.Path.GetFileName(mStrVideoPath)
+		lblFileName.Text = System.IO.Path.GetFileName(mStrVideoPath)
 		mobjMetaData = GetMetaData(mStrVideoPath)
-
+		mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file." & vbNewLine & mobjMetaData.StreamData)
 		'Set frame rate
 		mIntFrameRate = mobjMetaData.Framerate
 
@@ -128,9 +128,7 @@ Public Class SimpleVideoEditor
 		picFrame5.Image = Nothing
 		mthdDefaultLoadThread = New System.Threading.Thread(AddressOf LoadDefaultFrames)
 		mthdDefaultLoadThread.Start()
-		If Not tensClock.Enabled Then
-			tensClock.Start()
-		End If
+		PollPreviewFrames()
 	End Sub
 
 	''' <summary>
@@ -233,10 +231,9 @@ Public Class SimpleVideoEditor
 	End Sub
 
 	''' <summary>
-	''' Backgroiund process for loading keyframe images
+	''' Asynchronously polls for keyframe image data from ffmpeg, gives a loading cursor
 	''' </summary>
-	Public Sub tensClock_Tick() Handles tensClock.Tick
-		Static lastFrameCounter As Integer = 1
+	Private Async Sub PollPreviewFrames()
 		'Make sure the user is notified that the application is working
 		If Cursor = Cursors.Arrow Then
 			Cursor = Cursors.WaitCursor
@@ -259,29 +256,21 @@ Public Class SimpleVideoEditor
 			picRangeSlider.Enabled = True
 			btnいくよ.Enabled = True
 		End If
-		If picFrame1.Image Is Nothing Then
-			picFrame1.Image = GetFfmpegFrame(0)
-		End If
-		If picFrame2.Image Is Nothing Then
-			picFrame2.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25)
-		End If
-		If picFrame3.Image Is Nothing Then
-			picFrame3.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5)
-		End If
-		If picFrame4.Image Is Nothing Then
-			picFrame4.Image = GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75)
-		End If
+
+		'Grab keyframes
+		picFrame1.Image = Await GetFfmpegFrameAsync(0)
+		picFrame2.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.25)
+		picFrame3.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.5)
+		picFrame4.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.75)
+		picFrame5.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 1)
 		If picFrame5.Image Is Nothing Then
-			picFrame5.Image = GetFfmpegFrame(mobjMetaData.TotalFrames - lastFrameCounter)
+			picFrame5.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 2)
 		End If
 		If mobjMetaData.TotalFrames < 5 OrElse (picVideo.Image IsNot Nothing AndAlso picFrame1.Image IsNot Nothing AndAlso picFrame2.Image IsNot Nothing AndAlso picFrame3.Image IsNot Nothing AndAlso picFrame4.Image IsNot Nothing AndAlso picFrame5.Image IsNot Nothing) Then
-			tensClock.Stop()
 			'Application is finished searching for images, reset cursor
 			Cursor = Cursors.Arrow
 			picRangeSlider.Enabled = True
 			btnいくよ.Enabled = True
-		Else
-			lastFrameCounter += 1
 		End If
 	End Sub
 
@@ -319,7 +308,7 @@ Public Class SimpleVideoEditor
 		processInfo.Arguments += "-i " & """" & fullPath & """" & " -c copy -f null null"
 		processInfo.UseShellExecute = False
 		processInfo.RedirectStandardError = True
-		processInfo.WindowStyle = ProcessWindowStyle.Hidden
+		processInfo.CreateNoWindow = True
 		Dim tempProcess As Process = Process.Start(processInfo)
 
 		'Swap output to inside this application
@@ -500,17 +489,48 @@ Public Class SimpleVideoEditor
 	End Function
 
 	''' <summary>
-	''' Tells ffmpeg to make a file and returns the corresponding file path to the given seconds value, like 50.5 = "frame_000050.5.png".
+	''' Immediately polls ffmpeg for the given frame
 	''' </summary>
-	Public Function ExportFfmpegFrame(ByVal frame As Integer) As String
+	Public Async Function GetFfmpegFrameAsync(ByVal frame As Integer) As Task(Of Bitmap)
 		'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
 		Dim processInfo As New ProcessStartInfo
-		Dim targetFilePath As String = TempFolderPath & "\frame_" & frame.ToString & ".png"
+		processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+		processInfo.Arguments = " -ss " & FormatHHMMSSss((frame) / mobjMetaData.Framerate)
+		processInfo.Arguments += " -i """ & mStrVideoPath & """"
+		processInfo.Arguments += " -vf scale=228:-1 -vframes 1 -f image2pipe -vcodec bmp -"
+		processInfo.UseShellExecute = False
+		processInfo.CreateNoWindow = True
+		processInfo.RedirectStandardOutput = True
+		processInfo.WindowStyle = ProcessWindowStyle.Hidden
+		Dim tempProcess As Process = Process.Start(processInfo)
+
+		Using recievedStream As New System.IO.MemoryStream
+			Dim dataRead As String = Await tempProcess.StandardOutput.ReadToEndAsync()
+			Dim byteBuffer() As Byte = System.Text.Encoding.Default.GetBytes(dataRead)
+			recievedStream.Write(byteBuffer, 0, byteBuffer.Length)
+			If byteBuffer.Length > 0 Then
+				Return New Bitmap(recievedStream)
+			Else
+				Return Nothing
+			End If
+		End Using
+		'If System.IO.File.Exists(targetFilePath) Then
+		'	Return GetImageNonLocking(targetFilePath)
+		'End If
+		Return Nothing
+	End Function
+
+	''' <summary>
+	''' Tells ffmpeg to make a file and returns the corresponding file path to the given seconds value, like 50.5 = "frame_000050.5.png".
+	''' </summary>
+	Public Function ExportFfmpegFrame(ByVal frame As Integer, targetFilePath As String) As String
+		'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
+		Dim processInfo As New ProcessStartInfo
 		processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
 		processInfo.Arguments = " -ss " & FormatHHMMSSss((frame) / mobjMetaData.Framerate)
 		processInfo.Arguments += " -i """ & mStrVideoPath & """"
 		'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
-		processInfo.Arguments += " -vf scale=228:-1 -vframes 1 " & """" & targetFilePath & """"
+		processInfo.Arguments += " -vframes 1 " & """" & targetFilePath & """"
 		processInfo.UseShellExecute = True
 		processInfo.WindowStyle = ProcessWindowStyle.Hidden
 		Dim tempProcess As Process = Process.Start(processInfo)
@@ -580,11 +600,10 @@ Public Class SimpleVideoEditor
 	End Sub
 
 	''' <summary>
-	''' Updates the image only when mouse up occurs so your hard drive doesn't get burned up with too many reads/writes.
+	''' Updates the image only when mouse up occurs so your CPU doesn't get burned up with too many reads/writes.
 	''' </summary>
 	Private Sub picRangeSlider_SlowValueChanged(sender As Object, e As EventArgs) Handles picRangeSlider.MouseUp
 		If picRangeSlider.Enabled Then
-			'Check temp folder for that second image "frame_HHMMSS.png", if it exists, display it, else...
 			RangeSliderMinSelected = False
 			RangeSliderMaxSelected = False
 			Dim minChanged As Boolean = Not RangeMinValue = mRangeValues(0)
@@ -592,32 +611,11 @@ Public Class SimpleVideoEditor
 			Dim maxChanged As Boolean = Not RangeMaxValue = mRangeValues(1)
 			mRangeValues(1) = RangeMaxValue
 			If minChanged Or maxChanged Then
-				Dim targetFilePath As String = TempFolderPath & "\frame_" & If(minChanged, RangeMinValue, RangeMaxValue).ToString & ".png"
-				'Run ffmpeg to find the corresponding image, display it
-				If System.IO.File.Exists(targetFilePath) Then
-					picVideo.Image = GetImageNonLocking(targetFilePath)
-				Else
-					picVideo.Image = GetFfmpegFrame(If(minChanged, RangeMinValue, RangeMaxValue))
-				End If
+				mIntCurrentFrame = If(minChanged, RangeMinValue, RangeMaxValue)
+				picVideo.Image = GetFfmpegFrame(mIntCurrentFrame)
 				picRangeSlider.Refresh()
 			End If
 		End If
-	End Sub
-
-	''' <summary>
-	''' Checks if a frame file exists already to display and displays it if so, otherwise does nothing.
-	''' </summary>
-	Private Sub picRangeSlider_ValueChanged(ByVal newValue As Integer, ByVal ChangedMin As Boolean) Handles Me.RangeChanged
-		'Check temp folder for that second image "frame_HHMMSS.png", if it exists, display it, else...
-		Dim targetFilePath As String = TempFolderPath & "\frame_" & FormatHHMMSSss(If(ChangedMin, RangeMinValue / mIntFrameRate, RangeMaxValue / mIntFrameRate)).Replace(":", "") & ".png"
-		'Run ffmpeg to find the corresponding image, display it
-		If System.IO.File.Exists(targetFilePath) Then
-			picVideo.Image = GetImageNonLocking(targetFilePath)
-			mRangeValues(0) = RangeMinValue
-			mRangeValues(1) = RangeMaxValue
-			picVideo.Refresh()
-		End If
-		picRangeSlider.Refresh()
 	End Sub
 #End Region
 
@@ -629,6 +627,18 @@ Public Class SimpleVideoEditor
 		If sender.Image IsNot Nothing Then
 			picVideo.Image = sender.Image.Clone
 		End If
+		Select Case True
+			Case sender Is picFrame1
+				mIntCurrentFrame = 0
+			Case sender Is picFrame2
+				mIntCurrentFrame = mobjMetaData.TotalFrames * 0.25
+			Case sender Is picFrame3
+				mIntCurrentFrame = mobjMetaData.TotalFrames * 0.5
+			Case sender Is picFrame4
+				mIntCurrentFrame = mobjMetaData.TotalFrames * 0.75
+			Case sender Is picFrame5
+				mIntCurrentFrame = mobjMetaData.TotalFrames - 1
+		End Select
 	End Sub
 
 	''' <summary>
@@ -653,10 +663,6 @@ Public Class SimpleVideoEditor
 		If e.Button = Windows.Forms.MouseButtons.Left Then
 			mPtStartCrop = New Point(e.X, e.Y)
 			mPtEndCrop = New Point(e.X, e.Y)
-		End If
-		If e.Button = Windows.Forms.MouseButtons.Right Then
-			mPtStartCrop = New Point(0, 0)
-			mPtEndCrop = New Point(0, 0)
 		End If
 		picVideo.Refresh()
 	End Sub
@@ -693,24 +699,19 @@ Public Class SimpleVideoEditor
 		System.IO.Directory.CreateDirectory(TempFolderPath)
 
 		'Setup Tooltips
-		Dim genericToolTip As ToolTip = New ToolTip
-		genericToolTip.SetToolTip(picRangeSlider, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
-		genericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
-		genericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video.")
-		genericToolTip.SetToolTip(grpRotation, "Select a new orientation, where the selected dot is the new ""up"" direction after rendering.")
-		genericToolTip.SetToolTip(btnいくよ, "Save video.")
-		genericToolTip.SetToolTip(picFrame1, "View first frame of video.")
-		genericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
-		genericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
-		genericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
-		genericToolTip.SetToolTip(picFrame5, "View last frame of video.")
-		genericToolTip.SetToolTip(chkMute, "Mute the videos audio track.")
-		'genericToolTip.SetToolTip(chkOverwriteOriginal, "Overwrites the original file with the newly rendered video.")
-		genericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
-		genericToolTip.SetToolTip(txtFileName, "Name of the currently loaded file.")
-
-		'Start clock
-		tensClock.Interval = 100
+		mobjGenericToolTip.SetToolTip(picRangeSlider, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
+		mobjGenericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
+		mobjGenericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video.")
+		mobjGenericToolTip.SetToolTip(grpRotation, "Select a new orientation, where the selected dot is the new ""up"" direction after rendering.")
+		mobjGenericToolTip.SetToolTip(btnいくよ, "Save video.")
+		mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
+		mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
+		mobjGenericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
+		mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
+		mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
+		mobjGenericToolTip.SetToolTip(chkMute, "Mute the videos audio track.")
+		mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
+		mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
 
 		'Check if the program was started with a dragdrop exe
 		Dim args() As String = Environment.GetCommandLineArgs()
@@ -740,7 +741,7 @@ Public Class SimpleVideoEditor
 		picFrame5.Image = Nothing
 		picRangeSlider.Enabled = False
 		btnいくよ.Enabled = False
-		txtFileName.Text = ""
+		lblFileName.Text = ""
 		radUp.Checked = True
 	End Sub
 
@@ -748,8 +749,6 @@ Public Class SimpleVideoEditor
 	''' Clears up unneeded images from temporary directory
 	''' </summary>
 	Private Sub SimpleVideoEditor_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
-		tensClock.Stop()
-		tensClock.Dispose()
 		'Create a temporary directory to store images
 		If (System.IO.Directory.Exists(TempFolderPath)) Then
 			DeleteDirectory(TempFolderPath) 'Recursively delete directory
@@ -903,6 +902,36 @@ Public Class SimpleVideoEditor
 	''' </summary>
 	Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckedChanged
 		lblMute.Image = If(chkMute.Checked, My.Resources.SpeakerOff, My.Resources.SpeakerOn)
+	End Sub
+
+	''' <summary>
+	''' Clears the crop settings from the main picVideo control
+	''' </summary>
+	''' <param name="sender"></param>
+	''' <param name="e"></param>
+	Private Sub cmsPicVideoClear_Click(sender As Object, e As EventArgs) Handles cmsPicVideoClear.Click
+		mPtStartCrop = New Point(0, 0)
+		mPtEndCrop = New Point(0, 0)
+		picVideo.Refresh()
+	End Sub
+
+	''' <summary>
+	''' User right clicked on the big image and wants to export that frame
+	''' </summary>
+	Private Sub cmsPicVideoExportFrame_Click(sender As Object, e As EventArgs) Handles cmsPicVideoExportFrame.Click
+		Using sfdExportFrame As New SaveFileDialog
+			sfdExportFrame.Title = "Select Frame Save Location"
+			sfdExportFrame.Filter = "PNG|*.png|BMP|*.bmp|All files (*.*)|*.*"
+			Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
+			sfdExportFrame.FileName = "frame_" & mIntCurrentFrame.ToString & ".png"
+			sfdExportFrame.OverwritePrompt = True
+			Select Case sfdExportFrame.ShowDialog()
+				Case DialogResult.OK
+					ExportFfmpegFrame(mIntCurrentFrame, sfdExportFrame.FileName)
+				Case Else
+					'Do nothing
+			End Select
+		End Using
 	End Sub
 
 	Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click
