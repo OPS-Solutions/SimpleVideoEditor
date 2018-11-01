@@ -1,7 +1,8 @@
 ﻿Imports System.IO
 Imports System.IO.Pipes
+Imports System.Text.RegularExpressions
 
-Public Class SimpleVideoEditor
+Public Class MainForm
 	'FFMPEG Usefull Commands
 	'https://www.labnol.org/internet/useful-ffmpeg-commands/28490/
 
@@ -25,49 +26,8 @@ Public Class SimpleVideoEditor
 	Private mIntCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
 
 	Private mobjMetaData As MetaData 'Video metadata, including things like resolution, framerate, bitrate, etc.
-
-#Region "RangeSlider"
-	Event RangeChanged(ByVal newVal As Integer, ByVal ChangeMin As Boolean)
-	Private pRangeMinValue As Integer = 0 'Value that should only be accessed by the property below
-	Property RangeMinValue As Integer 'Current value of the leftmost slider on the picRangeSlider control
-		Get
-			Return pRangeMinValue
-		End Get
-		Set(value As Integer)
-			pRangeMinValue = Math.Max(value, mRangeMin)
-			If pRangeMinValue >= RangeMaxValue Then
-				RangeMaxValue = pRangeMinValue + 1
-				If RangeMaxValue = pRangeMinValue Then
-					pRangeMinValue = RangeMaxValue - 1
-				End If
-			End If
-			RaiseEvent RangeChanged(pRangeMinValue, True)
-		End Set
-	End Property
-
-	Private pRangeMaxValue As Integer = 100 'Value that should only be accessed by the property below
-	Property RangeMaxValue As Integer 'Current value of the rightmost slider on the picRangeSlider control
-		Get
-			Return pRangeMaxValue
-		End Get
-		Set(value As Integer)
-			pRangeMaxValue = Math.Min(value, mRangeMax)
-			If pRangeMaxValue <= RangeMinValue Then
-				RangeMinValue = pRangeMaxValue - 1
-				If RangeMinValue = pRangeMaxValue Then
-					pRangeMaxValue = RangeMinValue + 1
-				End If
-			End If
-			RaiseEvent RangeChanged(pRangeMaxValue, False)
-		End Set
-	End Property
-
-	Private mRangeMin As Integer = 0 'Minimum limit for picRangeSlider control
-	Private mRangeMax As Integer = 100 'Maximum limit for picRangeSlider control
-	Private mRangeValues As Integer() = {0, 100} 'Storage for the last range values for the picRangeSlider control
-#End Region
-
-
+	Private mobjRotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
+	Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
 
 #Region "File Events"
 	''' <summary>
@@ -107,11 +67,11 @@ Public Class SimpleVideoEditor
 		mDblVideoDurationSS = mobjMetaData.DurationSeconds
 
 		'Set range of slider
-		mRangeMax = mobjMetaData.TotalFrames - 1
-		RangeMinValue = 0
-		RangeMaxValue = mRangeMax
-		mRangeValues(0) = RangeMinValue
-		mRangeValues(1) = RangeMaxValue
+		ctlVideoSeeker.RangeMax = mobjMetaData.TotalFrames - 1
+		ctlVideoSeeker.RangeMinValue = 0
+		ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMax
+		ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMinValue
+		ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMaxValue
 
 		'Create a temporary directory to store images
 		If (System.IO.Directory.Exists(TempFolderPath)) Then
@@ -147,9 +107,9 @@ Public Class SimpleVideoEditor
 				My.Computer.FileSystem.DeleteFile(outputPath)
 			End If
 		End If
-		Dim ignoreTrim As Boolean = mRangeMin = RangeMinValue And mRangeMax = RangeMaxValue
+		Dim ignoreTrim As Boolean = ctlVideoSeeker.RangeMin = ctlVideoSeeker.RangeMinValue And ctlVideoSeeker.RangeMax = ctlVideoSeeker.RangeMaxValue
 		'First check if rotation would conflict with cropping, if it will, just crop it first
-		Dim cropAndRotateOrChangeRes As Boolean = cmbDefinition.SelectedIndex > 0 OrElse (Not radUp.Checked AndAlso mPtStartCrop.X <> mPtEndCrop.X AndAlso mPtStartCrop.Y <> mPtEndCrop.Y)
+		Dim cropAndRotateOrChangeRes As Boolean = cmbDefinition.SelectedIndex > 0 OrElse ((Not mobjRotation = RotateFlipType.RotateNoneFlipNone) AndAlso mPtStartCrop.X <> mPtEndCrop.X AndAlso mPtStartCrop.Y <> mPtEndCrop.Y)
 		Dim intermediateFilePath As String = mStrVideoPath
 		If cropAndRotateOrChangeRes Then
 			intermediateFilePath = FileNameAppend(outputPath, "-tempCrop")
@@ -165,11 +125,11 @@ Public Class SimpleVideoEditor
 			realwidth = realBottomRightCrop.X - realTopLeftCrop.X
 			realheight = realBottomRightCrop.Y - realTopLeftCrop.Y
 		End If
-		If Not radUp.Checked And Not radDown.Checked Then
+		If (Not mobjRotation = RotateFlipType.RotateNoneFlipNone) And (Not mobjRotation = RotateFlipType.Rotate180FlipNone) Then
 			SwapValues(realwidth, realheight)
 		End If
 		'Now you can apply everything else
-		RunFfmpeg(intermediateFilePath, outputPath, If(radUp.Checked, 0, If(radRight.Checked, 1, If(radDown.Checked, 2, If(radLeft.Checked, 3, 0)))), realwidth, realheight, chkMute.Checked, If(ignoreTrim, 0, RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtStartCrop), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtEndCrop))
+		RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, chkMute.Checked, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, ctlVideoSeeker.RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtStartCrop), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtEndCrop))
 		mProFfmpegProcess.WaitForExit()
 		If overwriteOriginal Or cropAndRotateOrChangeRes Then
 			My.Computer.FileSystem.DeleteFile(intermediateFilePath)
@@ -191,6 +151,7 @@ Public Class SimpleVideoEditor
 	''' sets up needed information and runs ffmpeg.exe to render the final video.
 	''' </summary>
 	Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
+		mblnUserInjection = My.Computer.Keyboard.CtrlKeyDown
 		sfdVideoOut.Filter = "WMV|*.wmv|AVI|*.avi|All files (*.*)|*.*"
 		Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
 		For index As Integer = 1 To validExtensions.Count - 1 Step 2
@@ -253,7 +214,7 @@ Public Class SimpleVideoEditor
 					mIntAspectWidth = tempHeight
 				End If
 			End If
-			picRangeSlider.Enabled = True
+			ctlVideoSeeker.Enabled = True
 			btnいくよ.Enabled = True
 		End If
 
@@ -269,9 +230,10 @@ Public Class SimpleVideoEditor
 		If mobjMetaData.TotalFrames < 5 OrElse (picVideo.Image IsNot Nothing AndAlso picFrame1.Image IsNot Nothing AndAlso picFrame2.Image IsNot Nothing AndAlso picFrame3.Image IsNot Nothing AndAlso picFrame4.Image IsNot Nothing AndAlso picFrame5.Image IsNot Nothing) Then
 			'Application is finished searching for images, reset cursor
 			Cursor = Cursors.Arrow
-			picRangeSlider.Enabled = True
+			ctlVideoSeeker.Enabled = True
 			btnいくよ.Enabled = True
 		End If
+		ctlVideoSeeker.SceneFrames = CompressSceneChanges(Await ExtractSceneChanges(mStrVideoPath), ctlVideoSeeker.Width)
 	End Sub
 
 #Region "Get File Attributes"
@@ -402,7 +364,7 @@ Public Class SimpleVideoEditor
 	''' <summary>
 	''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
 	''' </summary>
-	Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As Short, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal mute As Boolean, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
+	Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal mute As Boolean, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
 		Dim duration As String = (endSS) - (startSS)
 		Dim startHHMMSS As String = FormatHHMMSSss(startSS)
 		Dim processInfo As New ProcessStartInfo
@@ -446,11 +408,17 @@ Public Class SimpleVideoEditor
 			processInfo.Arguments += " -s " & ForceEven(Math.Floor(cropWidth * scale)) & "x" & ForceEven(Math.Floor(cropHeight * scale)) & " -threads 4"
 		End If
 		'ROTATE VIDEO
-		processInfo.Arguments += If(flip = 0, "", If(flip = 1, " -vf transpose=1", If(flip = 2, " -vf ""transpose=2,transpose=2""", If(flip = 3, " -vf transpose=2", ""))))
+		processInfo.Arguments += If(flip = RotateFlipType.Rotate90FlipNone, " -vf transpose=1", If(flip = RotateFlipType.Rotate180FlipNone, " -vf ""transpose=2,transpose=2""", If(flip = RotateFlipType.Rotate270FlipNone, " -vf transpose=2", "")))
 		'MUTE VIDEO
 		processInfo.Arguments += If(mute, " -an", " -c:a copy")
 		'OUTPUT TO FILE
 		processInfo.Arguments += " """ & outPutFile & """"
+		If mblnUserInjection Then
+			'Show a form where the user can modify the arguments manually
+			Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)
+			manualEntryForm.ShowDialog()
+			processInfo.Arguments = manualEntryForm.ModifiedText
+		End If
 		processInfo.UseShellExecute = True
 		processInfo.WindowStyle = ProcessWindowStyle.Normal
 		mProFfmpegProcess = Process.Start(processInfo)
@@ -538,86 +506,7 @@ Public Class SimpleVideoEditor
 		Return targetFilePath
 	End Function
 
-#Region "Range Slider Events"
-	''' <summary>
-	''' Paints over the picRangeSlider control with custom dual trackbar looking graphics.
-	''' </summary>
-	Private Sub picRangeSlider_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles picRangeSlider.Paint
-		Using pen As New Pen(Color.Black, 1)
-			'Draw ticks
-			Dim numberOfTicks As Integer = Math.Min(picRangeSlider.Width \ 2, mRangeMax - mRangeMin)
-			Dim distanceBetweenPoints As Double = picRangeSlider.Width / numberOfTicks
-			'Draw background
-			Dim fullrange As Integer = mRangeMax - mRangeMin
-			e.Graphics.DrawRectangle(New Pen(If(picRangeSlider.Enabled, Color.Green, Color.Gray), 6), CType((RangeMinValue * ((picRangeSlider.Width - 1) / fullrange)) + 3, Integer), 6, CType(((RangeMaxValue - RangeMinValue) * ((picRangeSlider.Width - 1) / fullrange)) - 6, Integer), picRangeSlider.Height - 12)
-			For index As Integer = 0 To numberOfTicks - 1
-				e.Graphics.DrawLine(pen, New Point(index * distanceBetweenPoints, picRangeSlider.Height), New Point(index * distanceBetweenPoints, picRangeSlider.Height - 2))
-			Next
-			'Draw current points
-			e.Graphics.DrawLine(pen, New Point((RangeMinValue * ((picRangeSlider.Width - 1) / fullrange)), picRangeSlider.Height - 3), New Point((RangeMinValue * ((picRangeSlider.Width - 1) / fullrange)), 0))
-			e.Graphics.DrawLine(pen, New Point((RangeMaxValue * ((picRangeSlider.Width - 1) / fullrange)), picRangeSlider.Height - 3), New Point((RangeMaxValue * ((picRangeSlider.Width - 1) / fullrange)), 0))
-		End Using
-	End Sub
 
-	''' <summary>
-	''' Searches for the nearest slider in the picRangeSlider control, and selects it for use.
-	''' </summary>
-	''' <param name="sender"></param>
-	''' <param name="e"></param>
-	''' <remarks></remarks>
-	Private Sub picRangeSlider_MouseDown(sender As Object, e As MouseEventArgs) Handles picRangeSlider.MouseDown
-		'Convert mouse coordinates to increments, Grab closest slider
-		If picRangeSlider.Enabled Then
-			Dim newValue As Integer = ((mRangeMax - mRangeMin) / picRangeSlider.Width) * e.X
-			If Math.Abs(newValue - RangeMinValue) < Math.Abs(newValue - RangeMaxValue) Then
-				RangeSliderMinSelected = True
-			Else
-				RangeSliderMaxSelected = True
-			End If
-			picRangeSlider_MouseMove(sender, e)
-			picRangeSlider.Refresh()
-		End If
-	End Sub
-
-	Private RangeSliderMinSelected As Boolean = False
-	Private RangeSliderMaxSelected As Boolean = False
-	''' <summary>
-	''' Changes the corresponding range values for the sliders in the control.
-	''' </summary>
-	Private Sub picRangeSlider_MouseMove(sender As Object, e As MouseEventArgs) Handles picRangeSlider.MouseMove
-		If picRangeSlider.Enabled Then
-			If e.Button = Windows.Forms.MouseButtons.Left Then
-				'Move range sliders
-				Dim newValue As Integer = ((mRangeMax - mRangeMin) / picRangeSlider.Width) * e.X
-				If RangeSliderMinSelected Then
-					RangeMinValue = newValue
-				ElseIf RangeSliderMaxSelected Then
-					RangeMaxValue = newValue
-				End If
-				picRangeSlider.Refresh()
-			End If
-		End If
-	End Sub
-
-	''' <summary>
-	''' Updates the image only when mouse up occurs so your CPU doesn't get burned up with too many reads/writes.
-	''' </summary>
-	Private Sub picRangeSlider_SlowValueChanged(sender As Object, e As EventArgs) Handles picRangeSlider.MouseUp
-		If picRangeSlider.Enabled Then
-			RangeSliderMinSelected = False
-			RangeSliderMaxSelected = False
-			Dim minChanged As Boolean = Not RangeMinValue = mRangeValues(0)
-			mRangeValues(0) = RangeMinValue
-			Dim maxChanged As Boolean = Not RangeMaxValue = mRangeValues(1)
-			mRangeValues(1) = RangeMaxValue
-			If minChanged Or maxChanged Then
-				mIntCurrentFrame = If(minChanged, RangeMinValue, RangeMaxValue)
-				picVideo.Image = GetFfmpegFrame(mIntCurrentFrame)
-				picRangeSlider.Refresh()
-			End If
-		End If
-	End Sub
-#End Region
 
 #Region "CROPPING CLICK AND DRAG"
 	''' <summary>
@@ -699,17 +588,17 @@ Public Class SimpleVideoEditor
 		System.IO.Directory.CreateDirectory(TempFolderPath)
 
 		'Setup Tooltips
-		mobjGenericToolTip.SetToolTip(picRangeSlider, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
+		mobjGenericToolTip.SetToolTip(ctlVideoSeeker, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
 		mobjGenericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
 		mobjGenericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video.")
-		mobjGenericToolTip.SetToolTip(grpRotation, "Select a new orientation, where the selected dot is the new ""up"" direction after rendering.")
-		mobjGenericToolTip.SetToolTip(btnいくよ, "Save video.")
+		mobjGenericToolTip.SetToolTip(btnいくよ, "Save video. Hold ctrl to manually modify ffmpeg arguments.")
 		mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
 		mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
 		mobjGenericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
 		mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
 		mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
-		mobjGenericToolTip.SetToolTip(chkMute, "Mute the videos audio track.")
+		mobjGenericToolTip.SetToolTip(chkMute, "Unmute the videos audio track. Currently Muted.")
+		mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
 		mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
 		mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
 
@@ -731,18 +620,17 @@ Public Class SimpleVideoEditor
 	Private Sub ClearControls()
 		mPtStartCrop = New Point(0, 0)
 		mPtEndCrop = New Point(0, 0)
-		mRangeValues(0) = mRangeMin
-		mRangeValues(1) = mRangeMax
+		ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMin
+		ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMax
 		picVideo.Image = Nothing
 		picFrame1.Image = Nothing
 		picFrame2.Image = Nothing
 		picFrame3.Image = Nothing
 		picFrame4.Image = Nothing
 		picFrame5.Image = Nothing
-		picRangeSlider.Enabled = False
+		ctlVideoSeeker.Enabled = False
 		btnいくよ.Enabled = False
 		lblFileName.Text = ""
-		radUp.Checked = True
 	End Sub
 
 	''' <summary>
@@ -824,6 +712,20 @@ Public Class SimpleVideoEditor
 	End Function
 
 	''' <summary>
+	''' Converts a time like "00:01:40.5" to the total number of seconds
+	''' </summary>
+	''' <param name="duration"></param>
+	''' <returns></returns>
+	Public Shared Function HHMMSSssToSeconds(ByVal duration As String) As Double
+		Dim totalSeconds As Double = 0
+		totalSeconds += Integer.Parse(duration.Substring(0, 2)) * 60 * 60 'Hours
+		totalSeconds += Integer.Parse(duration.Substring(3, 2)) * 60 'Minutes
+		totalSeconds += Integer.Parse(duration.Substring(6, 2)) 'Seconds
+		totalSeconds += Integer.Parse(duration.Substring(9, 2)) / 100.0 'Milliseconds
+		Return totalSeconds
+	End Function
+
+	''' <summary>
 	''' Takes a number like 123 and forces it to be divisible by 2, either by returning 122 or 124
 	''' </summary>
 	Public Function ForceEven(ByVal number As Integer, Optional ByVal forceDown As Boolean = True) As String
@@ -868,21 +770,21 @@ Public Class SimpleVideoEditor
 	''' </summary>
 	Protected Overrides Function ProcessCmdKey(ByRef message As Message, ByVal keys As Keys) As Boolean
 		Select Case keys
-			Case keys.A
-				RangeMinValue = RangeMinValue - 1
-				picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
+			Case Keys.A
+				ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
+				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
-			Case keys.D
-				RangeMinValue = RangeMinValue + 1
-				picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
+			Case Keys.D
+				ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
+				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
-			Case keys.Left
-				RangeMaxValue = RangeMaxValue - 1
-				picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
+			Case Keys.Left
+				ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
+				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
-			Case keys.Right
-				RangeMaxValue = RangeMaxValue + 1
-				picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
+			Case Keys.Right
+				ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
+				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
 		End Select
 		Return MyBase.ProcessCmdKey(message, keys)
@@ -898,10 +800,36 @@ Public Class SimpleVideoEditor
 	End Sub
 
 	''' <summary>
-	''' Shows to the user that the video will be muted or not
+	''' Toggles whether the video will be muted or not, and changes the image to make it obvious
 	''' </summary>
-	Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckedChanged
-		lblMute.Image = If(chkMute.Checked, My.Resources.SpeakerOff, My.Resources.SpeakerOn)
+	Private Sub imgMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckChanged
+		mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & " the videos audio track. Currently " & If(chkMute.Checked, "muted.", "unmuted."))
+	End Sub
+
+	''' <summary>
+	''' Rotates the final video by 90 degrees per click, and updates the graphic
+	''' </summary>
+	Private Sub imgRotate_Click(sender As Object, e As EventArgs) Handles imgRotate.Click
+		Select Case mobjRotation
+			Case RotateFlipType.RotateNoneFlipNone
+				mobjRotation = RotateFlipType.Rotate90FlipNone
+				mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 180°. Currently 90°.")
+			Case RotateFlipType.Rotate90FlipNone
+				mobjRotation = RotateFlipType.Rotate180FlipNone
+				mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 270°. Currently 180°.")
+			Case RotateFlipType.Rotate180FlipNone
+				mobjRotation = RotateFlipType.Rotate270FlipNone
+				mobjGenericToolTip.SetToolTip(imgRotate, "Do not rotate. Currently will rotate 270°.")
+			Case RotateFlipType.Rotate270FlipNone
+				mobjRotation = RotateFlipType.RotateNoneFlipNone
+				mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
+			Case Else
+				mobjRotation = RotateFlipType.RotateNoneFlipNone
+		End Select
+		Dim rotatedIcon As Image = New Bitmap(My.Resources.Rotate)
+		rotatedIcon.RotateFlip(mobjRotation)
+		imgRotate.Image = rotatedIcon
+		imgRotate.Refresh()
 	End Sub
 
 	''' <summary>
@@ -934,11 +862,61 @@ Public Class SimpleVideoEditor
 		End Using
 	End Sub
 
-	Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click
 
-	End Sub
+	''' <summary>
+	''' Gets a list of frames where a scene has changed
+	''' </summary>
+	Private Async Function ExtractSceneChanges(ByVal strVideoPath As String) As Task(Of Double())
+		'ffmpeg -i GEVideo.wmv -vf select=gt(scene\,0.2),showinfo -f null -
+		'ffmpeg -i GEVideo.wmv -vf select='gte(scene,0)',metadata=print -an -f null -
+		Dim processInfo As New ProcessStartInfo
+		processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+		processInfo.Arguments += " -i """ & strVideoPath & """"
+		processInfo.Arguments += " -vf select='gte(scene,0)',metadata=print -an -f null -"
+		processInfo.UseShellExecute = False 'Must be false to redirect standard output
+		processInfo.CreateNoWindow = True
+		processInfo.RedirectStandardOutput = True
+		processInfo.RedirectStandardError = True
+		Dim tempProcess As Process = Process.Start(processInfo)
 
-	Private Sub picRangeSlider_SlowValueChanged(sender As Object, e As MouseEventArgs) Handles picRangeSlider.MouseUp
+		Dim sceneValues(mobjMetaData.TotalFrames - 1) As Double
+		Using recievedStream As New System.IO.MemoryStream
+			Dim dataRead As String = Await tempProcess.StandardError.ReadToEndAsync()
+			Dim matches As MatchCollection = Regex.Matches(dataRead, "(?<=.scene_score=)\d+\.\d+")
+			Dim frameIndex As Integer = 0
+			For Each sceneString As Match In matches
+				sceneValues(frameIndex) = Double.Parse(sceneString.Value)
+				frameIndex += 1
+			Next
+			'Dim matches As Match = Regex.Match(dataRead, "(?m)Parsed_showinfo.*pts_time.*(?!$)")
+			'For Each sceneString As String In matches.Groups(0).Captures(0).Value.Split(vbNewLine)
+			'	frameList.Add(Double.Parse(Regex.Match(sceneString, "(?<=time:).*(?= pos)").Value) * mobjMetaData.Framerate)
+			'Next
+			'Dim matches As Match = Regex.Match(dataRead, "(?m)frame=.*(?!$)")
+			'For Each sceneString As String In matches.Groups(0).Captures(0).Value.Split(vbNewLine)
+			'	frameList.Add(HHMMSSssToSeconds(Regex.Match(sceneString, "(?<=time=).*(?=bitrate)").Groups(0).Captures(0).Value) * mobjMetaData.Framerate)
+			'Next
+		End Using
+		Return sceneValues
+	End Function
 
+	''' <summary>
+	''' Given an array of scene change values, compress the array into a new array of given size
+	''' </summary>
+	Public Function CompressSceneChanges(ByRef sceneChanges As Double(), ByVal newTotalFrames As Integer) As Double()
+		Dim compressedSceneChanges(newTotalFrames - 1) As Double
+		'Local Maximums
+		For frameIndex As Integer = 0 To sceneChanges.Count - 1
+			Dim compressedIndex As Integer = Math.Floor(frameIndex * newTotalFrames / sceneChanges.Count)
+			compressedSceneChanges(compressedIndex) = Math.Max(compressedSceneChanges(compressedIndex), sceneChanges(frameIndex))
+		Next
+		Return compressedSceneChanges
+	End Function
+
+	Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer, ChangeMin As Boolean) Handles ctlVideoSeeker.RangeChanged
+		If mStrVideoPath IsNot Nothing AndAlso mStrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
+			mIntCurrentFrame = newVal
+			picVideo.Image = GetFfmpegFrame(mIntCurrentFrame)
+		End If
 	End Sub
 End Class

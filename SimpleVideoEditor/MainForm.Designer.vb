@@ -1,77 +1,59 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class SimpleVideoEditor
-    Inherits System.Windows.Forms.Form
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+Partial Class MainForm
+	Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
-    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
-        Try
-            If disposing AndAlso components IsNot Nothing Then
-                components.Dispose()
-            End If
-        Finally
-            MyBase.Dispose(disposing)
-        End Try
-    End Sub
+	'Form overrides dispose to clean up the component list.
+	<System.Diagnostics.DebuggerNonUserCode()>
+	Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+		Try
+			If disposing AndAlso components IsNot Nothing Then
+				components.Dispose()
+			End If
+		Finally
+			MyBase.Dispose(disposing)
+		End Try
+	End Sub
 
-    'Required by the Windows Form Designer
-    Private components As System.ComponentModel.IContainer
+	'Required by the Windows Form Designer
+	Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
-    <System.Diagnostics.DebuggerStepThrough()> _
-    Private Sub InitializeComponent()
+	'NOTE: The following procedure is required by the Windows Form Designer
+	'It can be modified using the Windows Form Designer.  
+	'Do not modify it using the code editor.
+	<System.Diagnostics.DebuggerStepThrough()>
+	Private Sub InitializeComponent()
 		Me.components = New System.ComponentModel.Container()
-		Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(SimpleVideoEditor))
-		Me.chkMute = New System.Windows.Forms.CheckBox()
+		Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(MainForm))
 		Me.ofdVideoIn = New System.Windows.Forms.OpenFileDialog()
 		Me.lblFileName = New System.Windows.Forms.Label()
-		Me.radUp = New System.Windows.Forms.RadioButton()
-		Me.radRight = New System.Windows.Forms.RadioButton()
-		Me.radDown = New System.Windows.Forms.RadioButton()
-		Me.radLeft = New System.Windows.Forms.RadioButton()
-		Me.grpRotation = New System.Windows.Forms.GroupBox()
 		Me.cmbDefinition = New System.Windows.Forms.ComboBox()
 		Me.grpSettings = New System.Windows.Forms.GroupBox()
+		Me.chkMute = New SimpleVideoEditor.ImageSwitch()
+		Me.imgRotate = New System.Windows.Forms.PictureBox()
 		Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
 		Me.cmsPicVideo = New System.Windows.Forms.ContextMenuStrip(Me.components)
 		Me.cmsPicVideoClear = New System.Windows.Forms.ToolStripMenuItem()
+		Me.cmsPicVideoExportFrame = New System.Windows.Forms.ToolStripMenuItem()
 		Me.picFrame5 = New System.Windows.Forms.PictureBox()
 		Me.btnいくよ = New System.Windows.Forms.Button()
-		Me.lblMute = New System.Windows.Forms.Label()
-		Me.lblRotationText = New System.Windows.Forms.Label()
-		Me.picRangeSlider = New System.Windows.Forms.PictureBox()
 		Me.picFrame4 = New System.Windows.Forms.PictureBox()
 		Me.picFrame3 = New System.Windows.Forms.PictureBox()
 		Me.picFrame2 = New System.Windows.Forms.PictureBox()
 		Me.picFrame1 = New System.Windows.Forms.PictureBox()
 		Me.picVideo = New System.Windows.Forms.PictureBox()
 		Me.btnBrowse = New System.Windows.Forms.Button()
-		Me.cmsPicVideoExportFrame = New System.Windows.Forms.ToolStripMenuItem()
-		Me.grpRotation.SuspendLayout()
+		Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
 		Me.grpSettings.SuspendLayout()
+		CType(Me.chkMute, System.ComponentModel.ISupportInitialize).BeginInit()
+		CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).BeginInit()
 		Me.cmsPicVideo.SuspendLayout()
 		CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
-		CType(Me.picRangeSlider, System.ComponentModel.ISupportInitialize).BeginInit()
 		CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).BeginInit()
 		CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).BeginInit()
 		CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).BeginInit()
 		CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).BeginInit()
 		CType(Me.picVideo, System.ComponentModel.ISupportInitialize).BeginInit()
 		Me.SuspendLayout()
-		'
-		'chkMute
-		'
-		Me.chkMute.AutoSize = True
-		Me.chkMute.Checked = True
-		Me.chkMute.CheckState = System.Windows.Forms.CheckState.Checked
-		Me.chkMute.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-		Me.chkMute.Location = New System.Drawing.Point(26, 106)
-		Me.chkMute.Name = "chkMute"
-		Me.chkMute.Size = New System.Drawing.Size(15, 14)
-		Me.chkMute.TabIndex = 0
-		Me.chkMute.UseVisualStyleBackColor = True
 		'
 		'ofdVideoIn
 		'
@@ -86,57 +68,6 @@ Partial Class SimpleVideoEditor
 		Me.lblFileName.Size = New System.Drawing.Size(227, 22)
 		Me.lblFileName.TabIndex = 1
 		'
-		'radUp
-		'
-		Me.radUp.AutoSize = True
-		Me.radUp.Checked = True
-		Me.radUp.Location = New System.Drawing.Point(23, 15)
-		Me.radUp.Name = "radUp"
-		Me.radUp.Size = New System.Drawing.Size(14, 13)
-		Me.radUp.TabIndex = 2
-		Me.radUp.TabStop = True
-		Me.radUp.UseVisualStyleBackColor = True
-		'
-		'radRight
-		'
-		Me.radRight.AutoSize = True
-		Me.radRight.Location = New System.Drawing.Point(41, 33)
-		Me.radRight.Name = "radRight"
-		Me.radRight.Size = New System.Drawing.Size(14, 13)
-		Me.radRight.TabIndex = 3
-		Me.radRight.UseVisualStyleBackColor = True
-		'
-		'radDown
-		'
-		Me.radDown.AutoSize = True
-		Me.radDown.Location = New System.Drawing.Point(23, 51)
-		Me.radDown.Name = "radDown"
-		Me.radDown.Size = New System.Drawing.Size(14, 13)
-		Me.radDown.TabIndex = 4
-		Me.radDown.UseVisualStyleBackColor = True
-		'
-		'radLeft
-		'
-		Me.radLeft.AutoSize = True
-		Me.radLeft.Location = New System.Drawing.Point(6, 33)
-		Me.radLeft.Name = "radLeft"
-		Me.radLeft.Size = New System.Drawing.Size(14, 13)
-		Me.radLeft.TabIndex = 5
-		Me.radLeft.UseVisualStyleBackColor = True
-		'
-		'grpRotation
-		'
-		Me.grpRotation.Controls.Add(Me.radRight)
-		Me.grpRotation.Controls.Add(Me.radUp)
-		Me.grpRotation.Controls.Add(Me.radLeft)
-		Me.grpRotation.Controls.Add(Me.radDown)
-		Me.grpRotation.Controls.Add(Me.lblRotationText)
-		Me.grpRotation.Location = New System.Drawing.Point(13, 13)
-		Me.grpRotation.Name = "grpRotation"
-		Me.grpRotation.Size = New System.Drawing.Size(61, 69)
-		Me.grpRotation.TabIndex = 6
-		Me.grpRotation.TabStop = False
-		'
 		'cmbDefinition
 		'
 		Me.cmbDefinition.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
@@ -149,16 +80,40 @@ Partial Class SimpleVideoEditor
 		'
 		'grpSettings
 		'
-		Me.grpSettings.Controls.Add(Me.lblMute)
-		Me.grpSettings.Controls.Add(Me.cmbDefinition)
 		Me.grpSettings.Controls.Add(Me.chkMute)
-		Me.grpSettings.Controls.Add(Me.grpRotation)
+		Me.grpSettings.Controls.Add(Me.imgRotate)
+		Me.grpSettings.Controls.Add(Me.cmbDefinition)
 		Me.grpSettings.Location = New System.Drawing.Point(244, 39)
 		Me.grpSettings.Name = "grpSettings"
 		Me.grpSettings.Size = New System.Drawing.Size(87, 170)
 		Me.grpSettings.TabIndex = 19
 		Me.grpSettings.TabStop = False
 		Me.grpSettings.Text = "Settings"
+		'
+		'chkMute
+		'
+		Me.chkMute.Checked = True
+		Me.chkMute.Cursor = System.Windows.Forms.Cursors.Hand
+		Me.chkMute.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOn
+		Me.chkMute.Image = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
+		Me.chkMute.Location = New System.Drawing.Point(52, 28)
+		Me.chkMute.Name = "chkMute"
+		Me.chkMute.Size = New System.Drawing.Size(18, 18)
+		Me.chkMute.TabIndex = 21
+		Me.chkMute.TabStop = False
+		Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
+		'
+		'imgRotate
+		'
+		Me.imgRotate.Cursor = System.Windows.Forms.Cursors.Hand
+		Me.imgRotate.Image = Global.SimpleVideoEditor.My.Resources.Resources.Rotate
+		Me.imgRotate.Location = New System.Drawing.Point(17, 28)
+		Me.imgRotate.Margin = New System.Windows.Forms.Padding(0)
+		Me.imgRotate.Name = "imgRotate"
+		Me.imgRotate.Size = New System.Drawing.Size(18, 18)
+		Me.imgRotate.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
+		Me.imgRotate.TabIndex = 20
+		Me.imgRotate.TabStop = False
 		'
 		'sfdVideoOut
 		'
@@ -176,9 +131,17 @@ Partial Class SimpleVideoEditor
 		Me.cmsPicVideoClear.Size = New System.Drawing.Size(143, 22)
 		Me.cmsPicVideoClear.Text = "Clear"
 		'
+		'cmsPicVideoExportFrame
+		'
+		Me.cmsPicVideoExportFrame.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
+		Me.cmsPicVideoExportFrame.Name = "cmsPicVideoExportFrame"
+		Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(143, 22)
+		Me.cmsPicVideoExportFrame.Text = "Export Frame"
+		'
 		'picFrame5
 		'
 		Me.picFrame5.BackColor = System.Drawing.SystemColors.ControlDark
+		Me.picFrame5.Cursor = System.Windows.Forms.Cursors.Hand
 		Me.picFrame5.Location = New System.Drawing.Point(196, 215)
 		Me.picFrame5.Name = "picFrame5"
 		Me.picFrame5.Size = New System.Drawing.Size(42, 33)
@@ -194,44 +157,14 @@ Partial Class SimpleVideoEditor
 		Me.btnいくよ.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
 		Me.btnいくよ.Location = New System.Drawing.Point(244, 214)
 		Me.btnいくよ.Name = "btnいくよ"
-		Me.btnいくよ.Size = New System.Drawing.Size(87, 35)
+		Me.btnいくよ.Size = New System.Drawing.Size(88, 35)
 		Me.btnいくよ.TabIndex = 9
 		Me.btnいくよ.UseVisualStyleBackColor = False
-		'
-		'lblMute
-		'
-		Me.lblMute.AutoSize = True
-		Me.lblMute.Font = New System.Drawing.Font("Segoe UI Symbol", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-		Me.lblMute.Image = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
-		Me.lblMute.Location = New System.Drawing.Point(43, 95)
-		Me.lblMute.MinimumSize = New System.Drawing.Size(16, 16)
-		Me.lblMute.Name = "lblMute"
-		Me.lblMute.Size = New System.Drawing.Size(16, 37)
-		Me.lblMute.TabIndex = 18
-		'
-		'lblRotationText
-		'
-		Me.lblRotationText.AutoSize = True
-		Me.lblRotationText.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-		Me.lblRotationText.Image = Global.SimpleVideoEditor.My.Resources.Resources.Rotate
-		Me.lblRotationText.Location = New System.Drawing.Point(22, 25)
-		Me.lblRotationText.MinimumSize = New System.Drawing.Size(16, 16)
-		Me.lblRotationText.Name = "lblRotationText"
-		Me.lblRotationText.Size = New System.Drawing.Size(16, 31)
-		Me.lblRotationText.TabIndex = 6
-		'
-		'picRangeSlider
-		'
-		Me.picRangeSlider.Enabled = False
-		Me.picRangeSlider.Location = New System.Drawing.Point(11, 34)
-		Me.picRangeSlider.Name = "picRangeSlider"
-		Me.picRangeSlider.Size = New System.Drawing.Size(227, 17)
-		Me.picRangeSlider.TabIndex = 18
-		Me.picRangeSlider.TabStop = False
 		'
 		'picFrame4
 		'
 		Me.picFrame4.BackColor = System.Drawing.SystemColors.ControlDark
+		Me.picFrame4.Cursor = System.Windows.Forms.Cursors.Hand
 		Me.picFrame4.Location = New System.Drawing.Point(150, 215)
 		Me.picFrame4.Name = "picFrame4"
 		Me.picFrame4.Size = New System.Drawing.Size(42, 33)
@@ -242,6 +175,7 @@ Partial Class SimpleVideoEditor
 		'picFrame3
 		'
 		Me.picFrame3.BackColor = System.Drawing.SystemColors.ControlDark
+		Me.picFrame3.Cursor = System.Windows.Forms.Cursors.Hand
 		Me.picFrame3.Location = New System.Drawing.Point(104, 215)
 		Me.picFrame3.Name = "picFrame3"
 		Me.picFrame3.Size = New System.Drawing.Size(42, 33)
@@ -252,6 +186,7 @@ Partial Class SimpleVideoEditor
 		'picFrame2
 		'
 		Me.picFrame2.BackColor = System.Drawing.SystemColors.ControlDark
+		Me.picFrame2.Cursor = System.Windows.Forms.Cursors.Hand
 		Me.picFrame2.Location = New System.Drawing.Point(58, 215)
 		Me.picFrame2.Name = "picFrame2"
 		Me.picFrame2.Size = New System.Drawing.Size(42, 33)
@@ -262,6 +197,7 @@ Partial Class SimpleVideoEditor
 		'picFrame1
 		'
 		Me.picFrame1.BackColor = System.Drawing.SystemColors.ControlDark
+		Me.picFrame1.Cursor = System.Windows.Forms.Cursors.Hand
 		Me.picFrame1.Location = New System.Drawing.Point(12, 215)
 		Me.picFrame1.Name = "picFrame1"
 		Me.picFrame1.Size = New System.Drawing.Size(42, 33)
@@ -273,6 +209,7 @@ Partial Class SimpleVideoEditor
 		'
 		Me.picVideo.BackColor = System.Drawing.SystemColors.ControlDark
 		Me.picVideo.ContextMenuStrip = Me.cmsPicVideo
+		Me.picVideo.Cursor = System.Windows.Forms.Cursors.Cross
 		Me.picVideo.Location = New System.Drawing.Point(11, 52)
 		Me.picVideo.Name = "picVideo"
 		Me.picVideo.Size = New System.Drawing.Size(227, 157)
@@ -290,21 +227,29 @@ Partial Class SimpleVideoEditor
 		Me.btnBrowse.TabIndex = 7
 		Me.btnBrowse.UseVisualStyleBackColor = True
 		'
-		'cmsPicVideoExportFrame
+		'ctlVideoSeeker
 		'
-		Me.cmsPicVideoExportFrame.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
-		Me.cmsPicVideoExportFrame.Name = "cmsPicVideoExportFrame"
-		Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(143, 22)
-		Me.cmsPicVideoExportFrame.Text = "Export Frame"
+		Me.ctlVideoSeeker.Cursor = System.Windows.Forms.Cursors.Arrow
+		Me.ctlVideoSeeker.Enabled = False
+		Me.ctlVideoSeeker.Location = New System.Drawing.Point(11, 33)
+		Me.ctlVideoSeeker.Name = "ctlVideoSeeker"
+		Me.ctlVideoSeeker.RangeMax = 100
+		Me.ctlVideoSeeker.RangeMaxValue = 100
+		Me.ctlVideoSeeker.RangeMin = 0
+		Me.ctlVideoSeeker.RangeMinValue = 0
+		Me.ctlVideoSeeker.RangeValues = New Integer() {0, 100}
+		Me.ctlVideoSeeker.SceneFrames = Nothing
+		Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 18)
+		Me.ctlVideoSeeker.TabIndex = 21
 		'
-		'SimpleVideoEditor
+		'MainForm
 		'
 		Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
 		Me.ClientSize = New System.Drawing.Size(344, 261)
+		Me.Controls.Add(Me.ctlVideoSeeker)
 		Me.Controls.Add(Me.picFrame5)
 		Me.Controls.Add(Me.btnいくよ)
 		Me.Controls.Add(Me.grpSettings)
-		Me.Controls.Add(Me.picRangeSlider)
 		Me.Controls.Add(Me.picFrame4)
 		Me.Controls.Add(Me.picFrame3)
 		Me.Controls.Add(Me.picFrame2)
@@ -319,16 +264,14 @@ Partial Class SimpleVideoEditor
 		Me.KeyPreview = True
 		Me.MaximizeBox = False
 		Me.MinimizeBox = False
-		Me.Name = "SimpleVideoEditor"
+		Me.Name = "MainForm"
 		Me.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide
 		Me.Text = "Simple Video Editor - Open Source"
-		Me.grpRotation.ResumeLayout(False)
-		Me.grpRotation.PerformLayout()
 		Me.grpSettings.ResumeLayout(False)
-		Me.grpSettings.PerformLayout()
+		CType(Me.chkMute, System.ComponentModel.ISupportInitialize).EndInit()
+		CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).EndInit()
 		Me.cmsPicVideo.ResumeLayout(False)
 		CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).EndInit()
-		CType(Me.picRangeSlider, System.ComponentModel.ISupportInitialize).EndInit()
 		CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).EndInit()
 		CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).EndInit()
 		CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).EndInit()
@@ -337,29 +280,23 @@ Partial Class SimpleVideoEditor
 		Me.ResumeLayout(False)
 
 	End Sub
-	Friend WithEvents chkMute As System.Windows.Forms.CheckBox
 	Friend WithEvents ofdVideoIn As System.Windows.Forms.OpenFileDialog
 	Friend WithEvents lblFileName As System.Windows.Forms.Label
-	Friend WithEvents radUp As System.Windows.Forms.RadioButton
-    Friend WithEvents radRight As System.Windows.Forms.RadioButton
-    Friend WithEvents radDown As System.Windows.Forms.RadioButton
-    Friend WithEvents radLeft As System.Windows.Forms.RadioButton
-    Friend WithEvents grpRotation As System.Windows.Forms.GroupBox
-    Friend WithEvents btnBrowse As System.Windows.Forms.Button
-    Friend WithEvents btnいくよ As System.Windows.Forms.Button
-    Friend WithEvents picVideo As System.Windows.Forms.PictureBox
-    Friend WithEvents picFrame1 As System.Windows.Forms.PictureBox
-    Friend WithEvents picFrame2 As System.Windows.Forms.PictureBox
-    Friend WithEvents picFrame3 As System.Windows.Forms.PictureBox
-    Friend WithEvents picFrame4 As System.Windows.Forms.PictureBox
-    Friend WithEvents cmbDefinition As System.Windows.Forms.ComboBox
-    Friend WithEvents picRangeSlider As System.Windows.Forms.PictureBox
-    Friend WithEvents grpSettings As System.Windows.Forms.GroupBox
-    Friend WithEvents picFrame5 As System.Windows.Forms.PictureBox
-    Friend WithEvents sfdVideoOut As System.Windows.Forms.SaveFileDialog
-    Friend WithEvents lblRotationText As System.Windows.Forms.Label
-    Friend WithEvents lblMute As System.Windows.Forms.Label
+	Friend WithEvents btnBrowse As System.Windows.Forms.Button
+	Friend WithEvents btnいくよ As System.Windows.Forms.Button
+	Friend WithEvents picVideo As System.Windows.Forms.PictureBox
+	Friend WithEvents picFrame1 As System.Windows.Forms.PictureBox
+	Friend WithEvents picFrame2 As System.Windows.Forms.PictureBox
+	Friend WithEvents picFrame3 As System.Windows.Forms.PictureBox
+	Friend WithEvents picFrame4 As System.Windows.Forms.PictureBox
+	Friend WithEvents cmbDefinition As System.Windows.Forms.ComboBox
+	Friend WithEvents grpSettings As System.Windows.Forms.GroupBox
+	Friend WithEvents picFrame5 As System.Windows.Forms.PictureBox
+	Friend WithEvents sfdVideoOut As System.Windows.Forms.SaveFileDialog
 	Friend WithEvents cmsPicVideo As ContextMenuStrip
 	Friend WithEvents cmsPicVideoClear As ToolStripMenuItem
 	Friend WithEvents cmsPicVideoExportFrame As ToolStripMenuItem
+	Friend WithEvents ctlVideoSeeker As VideoSeeker
+	Friend WithEvents imgRotate As PictureBox
+	Friend WithEvents chkMute As ImageSwitch
 End Class
