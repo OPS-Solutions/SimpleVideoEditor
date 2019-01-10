@@ -29,6 +29,11 @@ Public Class MainForm
 	Private mobjRotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
 	Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
 
+	Private Structure SpecialOutputProperties
+		Public Mute As Boolean
+		Public Decimate As Boolean
+	End Structure
+
 #Region "File Events"
 	''' <summary>
 	''' Opens the file dialog to search for a video.
@@ -73,12 +78,6 @@ Public Class MainForm
 		ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMinValue
 		ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMaxValue
 
-		'Create a temporary directory to store images
-		If (System.IO.Directory.Exists(TempFolderPath)) Then
-			DeleteDirectory(TempFolderPath) 'Recursively delete directory
-		End If
-		System.IO.Directory.CreateDirectory(TempFolderPath)
-
 		'Clear images
 		picVideo.Image = Nothing
 		picFrame1.Image = Nothing
@@ -89,6 +88,7 @@ Public Class MainForm
 		mthdDefaultLoadThread = New System.Threading.Thread(AddressOf LoadDefaultFrames)
 		mthdDefaultLoadThread.Start()
 		PollPreviewFrames()
+		cmsPicVideoExportFrame.Enabled = True
 	End Sub
 
 	''' <summary>
@@ -107,13 +107,14 @@ Public Class MainForm
 				My.Computer.FileSystem.DeleteFile(outputPath)
 			End If
 		End If
+		Dim sProperties As New SpecialOutputProperties With {.Mute = chkMute.Checked, .Decimate = chkDeleteDuplicates.Checked}
 		Dim ignoreTrim As Boolean = ctlVideoSeeker.RangeMin = ctlVideoSeeker.RangeMinValue And ctlVideoSeeker.RangeMax = ctlVideoSeeker.RangeMaxValue
 		'First check if rotation would conflict with cropping, if it will, just crop it first
 		Dim cropAndRotateOrChangeRes As Boolean = cmbDefinition.SelectedIndex > 0 OrElse ((Not mobjRotation = RotateFlipType.RotateNoneFlipNone) AndAlso mPtStartCrop.X <> mPtEndCrop.X AndAlso mPtStartCrop.Y <> mPtEndCrop.Y)
 		Dim intermediateFilePath As String = mStrVideoPath
 		If cropAndRotateOrChangeRes Then
 			intermediateFilePath = FileNameAppend(outputPath, "-tempCrop")
-			RunFfmpeg(mStrVideoPath, intermediateFilePath, 0, mIntAspectWidth, mIntAspectHeight, chkMute.Checked, 0, 0, cmbDefinition.Items(0), mPtStartCrop, mPtEndCrop)
+			RunFfmpeg(mStrVideoPath, intermediateFilePath, 0, mIntAspectWidth, mIntAspectHeight, sProperties, 0, 0, cmbDefinition.Items(0), mPtStartCrop, mPtEndCrop)
 			mProFfmpegProcess.WaitForExit()
 		End If
 		Dim realTopLeftCrop As Point = mPtStartCrop
@@ -129,7 +130,7 @@ Public Class MainForm
 			SwapValues(realwidth, realheight)
 		End If
 		'Now you can apply everything else
-		RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, chkMute.Checked, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, ctlVideoSeeker.RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtStartCrop), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtEndCrop))
+		RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, ctlVideoSeeker.RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtStartCrop), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtEndCrop))
 		mProFfmpegProcess.WaitForExit()
 		If overwriteOriginal Or cropAndRotateOrChangeRes Then
 			My.Computer.FileSystem.DeleteFile(intermediateFilePath)
@@ -364,7 +365,7 @@ Public Class MainForm
 	''' <summary>
 	''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
 	''' </summary>
-	Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal mute As Boolean, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
+	Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
 		Dim duration As String = (endSS) - (startSS)
 		Dim startHHMMSS As String = FormatHHMMSSss(startSS)
 		Dim processInfo As New ProcessStartInfo
@@ -407,10 +408,30 @@ Public Class MainForm
 		If scale <> 1 Then
 			processInfo.Arguments += " -s " & ForceEven(Math.Floor(cropWidth * scale)) & "x" & ForceEven(Math.Floor(cropHeight * scale)) & " -threads 4"
 		End If
+
+		'GET VF PARAMETERS
+		Dim vfParams As New List(Of String)
 		'ROTATE VIDEO
-		processInfo.Arguments += If(flip = RotateFlipType.Rotate90FlipNone, " -vf transpose=1", If(flip = RotateFlipType.Rotate180FlipNone, " -vf ""transpose=2,transpose=2""", If(flip = RotateFlipType.Rotate270FlipNone, " -vf transpose=2", "")))
+		Dim rotateString As String = If(flip = RotateFlipType.Rotate90FlipNone, "transpose=1", If(flip = RotateFlipType.Rotate180FlipNone, """transpose=2,transpose=2""", If(flip = RotateFlipType.Rotate270FlipNone, "transpose=2", "")))
+		If rotateString.Length > 0 Then
+			vfParams.Add(rotateString)
+		End If
+		'DELETE DUPLICATE FRAMES
+		Dim decimateString As String = If(specProperties.Decimate, "mpdecimate,setpts=N/FRAME_RATE/TB", "")
+		If decimateString.Length > 0 Then
+			vfParams.Add(decimateString)
+		End If
+		'ASSEMBLE VF PARAMETERS
+		For paramIndex As Integer = 0 To vfParams.Count - 1
+			If paramIndex = 0 Then
+				processInfo.Arguments += " -vf " & vfParams(paramIndex)
+			Else
+				processInfo.Arguments += "," & vfParams(paramIndex)
+			End If
+		Next
+
 		'MUTE VIDEO
-		processInfo.Arguments += If(mute, " -an", " -c:a copy")
+		processInfo.Arguments += If(specProperties.Mute, " -an", " -c:a copy")
 		'OUTPUT TO FILE
 		processInfo.Arguments += " """ & outPutFile & """"
 		If mblnUserInjection Then
@@ -581,11 +602,6 @@ Public Class MainForm
 	''' </summary>
 	Private Sub SimpleVideoEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 		cmbDefinition.SelectedIndex = 0
-		'Create a temporary directory to store images
-		If (System.IO.Directory.Exists(TempFolderPath)) Then
-			DeleteDirectory(TempFolderPath) 'Recursively delete directory
-		End If
-		System.IO.Directory.CreateDirectory(TempFolderPath)
 
 		'Setup Tooltips
 		mobjGenericToolTip.SetToolTip(ctlVideoSeeker, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
@@ -598,6 +614,7 @@ Public Class MainForm
 		mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
 		mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
 		mobjGenericToolTip.SetToolTip(chkMute, "Unmute the videos audio track. Currently Muted.")
+		mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, "Delete Duplicate Frames. Currently allowing them.")
 		mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
 		mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
 		mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
@@ -631,17 +648,6 @@ Public Class MainForm
 		ctlVideoSeeker.Enabled = False
 		btnいくよ.Enabled = False
 		lblFileName.Text = ""
-	End Sub
-
-	''' <summary>
-	''' Clears up unneeded images from temporary directory
-	''' </summary>
-	Private Sub SimpleVideoEditor_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
-		'Create a temporary directory to store images
-		If (System.IO.Directory.Exists(TempFolderPath)) Then
-			DeleteDirectory(TempFolderPath) 'Recursively delete directory
-		End If
-		System.IO.Directory.CreateDirectory(TempFolderPath)
 	End Sub
 #End Region
 
@@ -800,10 +806,17 @@ Public Class MainForm
 	End Sub
 
 	''' <summary>
-	''' Toggles whether the video will be muted or not, and changes the image to make it obvious
+	''' Changes the display text when muting/unmuting a video
 	''' </summary>
-	Private Sub imgMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckChanged
+	Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckChanged
 		mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & " the videos audio track. Currently " & If(chkMute.Checked, "muted.", "unmuted."))
+	End Sub
+
+	''' <summary>
+	''' Toggles whether the video will be decimated or not, and changes the image to make it obvious
+	''' </summary>
+	Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
+		mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
 	End Sub
 
 	''' <summary>
@@ -918,5 +931,9 @@ Public Class MainForm
 			mIntCurrentFrame = newVal
 			picVideo.Image = GetFfmpegFrame(mIntCurrentFrame)
 		End If
+	End Sub
+
+	Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click
+
 	End Sub
 End Class

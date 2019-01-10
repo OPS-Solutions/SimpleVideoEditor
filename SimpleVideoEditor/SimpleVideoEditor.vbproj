@@ -208,6 +208,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Play Button Old.ico" />
+    <None Include="Resources\DuplicatesOff.png" />
+    <None Include="Resources\DuplicatesOn.png" />
     <None Include="Resources\Picture.png" />
     <None Include="Resources\Eraser.png" />
     <None Include="Resources\SpeakerOn.png" />

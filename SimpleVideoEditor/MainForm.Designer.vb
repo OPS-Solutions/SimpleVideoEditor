@@ -28,12 +28,14 @@ Partial Class MainForm
 		Me.lblFileName = New System.Windows.Forms.Label()
 		Me.cmbDefinition = New System.Windows.Forms.ComboBox()
 		Me.grpSettings = New System.Windows.Forms.GroupBox()
+		Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
 		Me.chkMute = New SimpleVideoEditor.ImageSwitch()
 		Me.imgRotate = New System.Windows.Forms.PictureBox()
 		Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
 		Me.cmsPicVideo = New System.Windows.Forms.ContextMenuStrip(Me.components)
 		Me.cmsPicVideoClear = New System.Windows.Forms.ToolStripMenuItem()
 		Me.cmsPicVideoExportFrame = New System.Windows.Forms.ToolStripMenuItem()
+		Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
 		Me.picFrame5 = New System.Windows.Forms.PictureBox()
 		Me.btnいくよ = New System.Windows.Forms.Button()
 		Me.picFrame4 = New System.Windows.Forms.PictureBox()
@@ -42,8 +44,8 @@ Partial Class MainForm
 		Me.picFrame1 = New System.Windows.Forms.PictureBox()
 		Me.picVideo = New System.Windows.Forms.PictureBox()
 		Me.btnBrowse = New System.Windows.Forms.Button()
-		Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
 		Me.grpSettings.SuspendLayout()
+		CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).BeginInit()
 		CType(Me.chkMute, System.ComponentModel.ISupportInitialize).BeginInit()
 		CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).BeginInit()
 		Me.cmsPicVideo.SuspendLayout()
@@ -80,6 +82,7 @@ Partial Class MainForm
 		'
 		'grpSettings
 		'
+		Me.grpSettings.Controls.Add(Me.chkDeleteDuplicates)
 		Me.grpSettings.Controls.Add(Me.chkMute)
 		Me.grpSettings.Controls.Add(Me.imgRotate)
 		Me.grpSettings.Controls.Add(Me.cmbDefinition)
@@ -89,6 +92,19 @@ Partial Class MainForm
 		Me.grpSettings.TabIndex = 19
 		Me.grpSettings.TabStop = False
 		Me.grpSettings.Text = "Settings"
+		'
+		'chkDeleteDuplicates
+		'
+		Me.chkDeleteDuplicates.Checked = False
+		Me.chkDeleteDuplicates.Cursor = System.Windows.Forms.Cursors.Hand
+		Me.chkDeleteDuplicates.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
+		Me.chkDeleteDuplicates.Image = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
+		Me.chkDeleteDuplicates.Location = New System.Drawing.Point(17, 65)
+		Me.chkDeleteDuplicates.Name = "chkDeleteDuplicates"
+		Me.chkDeleteDuplicates.Size = New System.Drawing.Size(18, 18)
+		Me.chkDeleteDuplicates.TabIndex = 22
+		Me.chkDeleteDuplicates.TabStop = False
+		Me.chkDeleteDuplicates.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOff
 		'
 		'chkMute
 		'
@@ -122,21 +138,37 @@ Partial Class MainForm
 		'
 		Me.cmsPicVideo.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.cmsPicVideoClear, Me.cmsPicVideoExportFrame})
 		Me.cmsPicVideo.Name = "cmsPicVideo"
-		Me.cmsPicVideo.Size = New System.Drawing.Size(144, 48)
+		Me.cmsPicVideo.Size = New System.Drawing.Size(181, 70)
 		'
 		'cmsPicVideoClear
 		'
 		Me.cmsPicVideoClear.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
 		Me.cmsPicVideoClear.Name = "cmsPicVideoClear"
-		Me.cmsPicVideoClear.Size = New System.Drawing.Size(143, 22)
+		Me.cmsPicVideoClear.Size = New System.Drawing.Size(180, 22)
 		Me.cmsPicVideoClear.Text = "Clear"
 		'
 		'cmsPicVideoExportFrame
 		'
+		Me.cmsPicVideoExportFrame.Enabled = False
 		Me.cmsPicVideoExportFrame.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
 		Me.cmsPicVideoExportFrame.Name = "cmsPicVideoExportFrame"
-		Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(143, 22)
+		Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(180, 22)
 		Me.cmsPicVideoExportFrame.Text = "Export Frame"
+		'
+		'ctlVideoSeeker
+		'
+		Me.ctlVideoSeeker.Cursor = System.Windows.Forms.Cursors.Arrow
+		Me.ctlVideoSeeker.Enabled = False
+		Me.ctlVideoSeeker.Location = New System.Drawing.Point(11, 33)
+		Me.ctlVideoSeeker.Name = "ctlVideoSeeker"
+		Me.ctlVideoSeeker.RangeMax = 100
+		Me.ctlVideoSeeker.RangeMaxValue = 100
+		Me.ctlVideoSeeker.RangeMin = 0
+		Me.ctlVideoSeeker.RangeMinValue = 0
+		Me.ctlVideoSeeker.RangeValues = New Integer() {0, 100}
+		Me.ctlVideoSeeker.SceneFrames = Nothing
+		Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 18)
+		Me.ctlVideoSeeker.TabIndex = 21
 		'
 		'picFrame5
 		'
@@ -227,21 +259,6 @@ Partial Class MainForm
 		Me.btnBrowse.TabIndex = 7
 		Me.btnBrowse.UseVisualStyleBackColor = True
 		'
-		'ctlVideoSeeker
-		'
-		Me.ctlVideoSeeker.Cursor = System.Windows.Forms.Cursors.Arrow
-		Me.ctlVideoSeeker.Enabled = False
-		Me.ctlVideoSeeker.Location = New System.Drawing.Point(11, 33)
-		Me.ctlVideoSeeker.Name = "ctlVideoSeeker"
-		Me.ctlVideoSeeker.RangeMax = 100
-		Me.ctlVideoSeeker.RangeMaxValue = 100
-		Me.ctlVideoSeeker.RangeMin = 0
-		Me.ctlVideoSeeker.RangeMinValue = 0
-		Me.ctlVideoSeeker.RangeValues = New Integer() {0, 100}
-		Me.ctlVideoSeeker.SceneFrames = Nothing
-		Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 18)
-		Me.ctlVideoSeeker.TabIndex = 21
-		'
 		'MainForm
 		'
 		Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
@@ -268,6 +285,7 @@ Partial Class MainForm
 		Me.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide
 		Me.Text = "Simple Video Editor - Open Source"
 		Me.grpSettings.ResumeLayout(False)
+		CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).EndInit()
 		CType(Me.chkMute, System.ComponentModel.ISupportInitialize).EndInit()
 		CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).EndInit()
 		Me.cmsPicVideo.ResumeLayout(False)
@@ -299,4 +317,5 @@ Partial Class MainForm
 	Friend WithEvents ctlVideoSeeker As VideoSeeker
 	Friend WithEvents imgRotate As PictureBox
 	Friend WithEvents chkMute As ImageSwitch
+	Friend WithEvents chkDeleteDuplicates As ImageSwitch
 End Class
