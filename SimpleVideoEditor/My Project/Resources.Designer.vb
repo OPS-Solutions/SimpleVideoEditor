@@ -63,6 +63,26 @@ Namespace My.Resources
         '''<summary>
         '''  Looks up a localized resource of type System.Drawing.Bitmap.
         '''</summary>
+        Friend ReadOnly Property DuplicatesOff() As System.Drawing.Bitmap
+            Get
+                Dim obj As Object = ResourceManager.GetObject("DuplicatesOff", resourceCulture)
+                Return CType(obj,System.Drawing.Bitmap)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized resource of type System.Drawing.Bitmap.
+        '''</summary>
+        Friend ReadOnly Property DuplicatesOn() As System.Drawing.Bitmap
+            Get
+                Dim obj As Object = ResourceManager.GetObject("DuplicatesOn", resourceCulture)
+                Return CType(obj,System.Drawing.Bitmap)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized resource of type System.Drawing.Bitmap.
+        '''</summary>
         Friend ReadOnly Property Eraser() As System.Drawing.Bitmap
             Get
                 Dim obj As Object = ResourceManager.GetObject("Eraser", resourceCulture)
