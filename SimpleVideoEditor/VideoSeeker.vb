@@ -115,7 +115,9 @@
         End Get
         Set(value As VideoData)
             mobjMetaData = value
-            Me.RangeMax = mobjMetaData.TotalFrames - 1
+            If mobjMetaData IsNot Nothing Then
+                Me.RangeMax = mobjMetaData.TotalFrames - 1
+            End If
             Me.RangeMinValue = 0
             Me.RangeMaxValue = Me.RangeMax
             Me.RangeValues(0) = Me.RangeMinValue

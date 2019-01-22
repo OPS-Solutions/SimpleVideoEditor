@@ -22,6 +22,7 @@ Public Class MainForm
     Private mDblScaleFactorX As Double 'Keeps track of the width scale for the image display so that cropping can work with the right size
     Private mDblScaleFactorY As Double 'Keeps track of the height scale for the image display so that cropping can work with the right size
 
+    Private mintFrameRate As Integer = 30 'Number of frames per second in the video
     Private mIntCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
 
     Private mobjMetaData As VideoData 'Video metadata, including things like resolution, framerate, bitrate, etc.
@@ -636,11 +637,6 @@ Public Class MainForm
     ''' </summary>
     Private Sub SimpleVideoEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         cmbDefinition.SelectedIndex = 0
-    ''' <summary>
-    ''' Prepares temporary directory and sets up tool tips for controls.
-    ''' </summary>
-    Private Sub SimpleVideoEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        cmbDefinition.SelectedIndex = 0
 
         'Setup Tooltips
         mobjGenericToolTip.SetToolTip(ctlVideoSeeker, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
@@ -656,22 +652,8 @@ Public Class MainForm
         mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
         mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
         mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
-        mobjGenericToolTip.SetToolTip(btnHolePuncher, "Detect similar frame sequences in a set of videos, and remove them.")
-        'Setup Tooltips
-        mobjGenericToolTip.SetToolTip(ctlVideoSeeker, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
-        mobjGenericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
-        mobjGenericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video.")
-        mobjGenericToolTip.SetToolTip(btnいくよ, "Save video. Hold ctrl to manually modify ffmpeg arguments.")
-        mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
-        mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
-        mobjGenericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
-        mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
-        mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
-        mobjGenericToolTip.SetToolTip(chkMute, "Unmute the videos audio track. Currently Muted.")
         mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, "Delete Duplicate Frames. Currently allowing them.")
-        mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
-        mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
-        mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
+        mobjGenericToolTip.SetToolTip(btnHolePuncher, "Detect similar frame sequences in a set of videos, and remove them.")
 
         'Check if the program was started with a dragdrop exe
         Dim args() As String = Environment.GetCommandLineArgs()
@@ -684,32 +666,6 @@ Public Class MainForm
         End If
     End Sub
 
-
-    ''' <summary>
-    ''' Resets controls to an empty state as if no file has been loaded
-    ''' </summary>
-    Private Sub ClearControls()
-        mPtStartCrop = New Point(0, 0)
-        mPtEndCrop = New Point(0, 0)
-        ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMin
-        ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMax
-        picVideo.Image = Nothing
-        picFrame1.Image = Nothing
-        picFrame2.Image = Nothing
-        picFrame3.Image = Nothing
-        picFrame4.Image = Nothing
-        picFrame5.Image = Nothing
-        ctlVideoSeeker.Enabled = False
-        btnいくよ.Enabled = False
-        lblFileName.Text = ""
-    End Sub
-
-    ''' <summary>
-    ''' Clears up unneeded images from temporary directory
-    ''' </summary>
-    Private Sub SimpleVideoEditor_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
-
-    End Sub
     ''' <summary>
     ''' Resets controls to an empty state as if no file has been loaded
     ''' </summary>
@@ -760,15 +716,15 @@ Public Class MainForm
     ''' <summary>
     ''' Add a little bit of text to the end of a file name string between its extension like "-temp" or "-SHINY".
     ''' </summary>
-    Public Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
-        Return System.IO.Path.GetDirectoryName(mStrVideoPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(mStrVideoPath) & newEnd & System.IO.Path.GetExtension(mStrVideoPath)
+    Public Shared Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
+        Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
     End Function
 
     ''' <summary>
     ''' Changes the extension of a filepath string
     ''' </summary>
     Public Function FileNameChangeExtension(ByVal fullPath As String, ByVal newExtension As String)
-        Return System.IO.Path.GetDirectoryName(mStrVideoPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(mStrVideoPath) & newExtension
+        Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newExtension
     End Function
 
     ''' <summary>
@@ -973,19 +929,13 @@ Public Class MainForm
         Return compressedSceneChanges
     End Function
 
-    Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer, ChangeMin As Boolean) Handles ctlVideoSeeker.RangeChanged
-        If mStrVideoPath IsNot Nothing AndAlso mStrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
-            mIntCurrentFrame = newVal
-            picVideo.Image = GetFfmpegFrame(mIntCurrentFrame)
-        End If
-    End Sub
-
     ''' <summary>
     ''' Opens a new window for the hole punching tool
     ''' </summary>
     Private Sub btnHolePuncher_Click(sender As Object, e As EventArgs) Handles btnHolePuncher.Click
         HolePuncherForm.ShowDialog()
     End Sub
+
     Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer, ChangeMin As Boolean) Handles ctlVideoSeeker.RangeChanged
         If mStrVideoPath IsNot Nothing AndAlso mStrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
             mIntCurrentFrame = newVal
