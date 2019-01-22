@@ -12,13 +12,10 @@
 		End Get
 		Set(value As Integer)
 			pRangeMinValue = Math.Max(value, mRangeMin)
-			If pRangeMinValue >= RangeMaxValue Then
-				RangeMaxValue = pRangeMinValue + 1
-				If RangeMaxValue = pRangeMinValue Then
-					pRangeMinValue = RangeMaxValue - 1
-				End If
-			End If
-			RaiseEvent RangeChanged(pRangeMinValue, True)
+            If pRangeMinValue > RangeMaxValue Then
+                pRangeMinValue = RangeMaxValue
+            End If
+            RaiseEvent RangeChanged(pRangeMinValue, True)
 		End Set
 	End Property
 
@@ -33,13 +30,10 @@
 		End Get
 		Set(value As Integer)
 			pRangeMaxValue = Math.Min(value, mRangeMax)
-			If pRangeMaxValue <= RangeMinValue Then
-				RangeMinValue = pRangeMaxValue - 1
-				If RangeMinValue = pRangeMaxValue Then
-					pRangeMaxValue = RangeMinValue + 1
-				End If
-			End If
-			RaiseEvent RangeChanged(pRangeMaxValue, False)
+            If pRangeMaxValue < RangeMinValue Then
+                pRangeMaxValue = RangeMinValue
+            End If
+            RaiseEvent RangeChanged(pRangeMaxValue, False)
 		End Set
 	End Property
 
@@ -83,43 +77,95 @@
 
 	Private mRangeValues As Integer() = {0, 100}
 
-	Private marySceneChanges() As Double
-	''' <summary>
-	''' Special marks will be shown for each of these frames
-	''' </summary>\
-	Public Property SceneFrames As Double()
-		Get
-			Return marySceneChanges
-		End Get
-		Set(value As Double())
-			marySceneChanges = value
-			Me.Refresh()
-		End Set
-	End Property
+    Private mdblSceneChanges() As Double
 
-	''' <summary>
-	''' Paints over the control with custom dual trackbar looking graphics.
-	''' </summary>
-	Protected Overrides Sub OnPaint(e As PaintEventArgs)
-		'MyBase.OnPaint(e)
-		Dim numberOfTicks As Integer = Math.Min(Me.Width \ 2, mRangeMax - mRangeMin)
-		Dim distanceBetweenPoints As Double = Me.Width / numberOfTicks
-		Dim fullrange As Integer = mRangeMax - mRangeMin
-		'Draw background
-		e.Graphics.DrawRectangle(New Pen(If(Me.Enabled, Color.Green, Color.Gray), 6), CType((RangeMinValue * ((Me.Width - 1) / fullrange)) + 3, Integer), 6, CType(((RangeMaxValue - RangeMinValue) * ((Me.Width - 1) / fullrange)) - 6, Integer), Me.Height - 12)
-		Dim colorHeight As Integer = 12
-		'Draw scene changes
-		Using pen As New Pen(Color.DarkSeaGreen, 1)
-			If marySceneChanges IsNot Nothing Then
-				Dim frameIndex As Integer = 0
-				For Each sceneChange As Single In marySceneChanges
-					e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (sceneChange * colorHeight)))
-					frameIndex += 1
-				Next
-			End If
-		End Using
+    ''' <summary>
+    ''' Special marks will be shown for each of these frames
+    ''' </summary>\
+    Public Property SceneFrames As Double()
+        Get
+            Return mdblSceneChanges
+        End Get
+        Set(value As Double())
+            mdblSceneChanges = value
+            Me.Invalidate()
+        End Set
+    End Property
 
-		Using pen As New Pen(Color.Black, 1)
+    Private mdblHolePunches() As Double
+
+    ''' <summary>
+    ''' Each of these frames is shown as things to be cut out
+    ''' </summary>\
+    Public Property HolePunches As Double()
+        Get
+            Return mdblHolePunches
+        End Get
+        Set(value As Double())
+            mdblHolePunches = value
+            Me.Invalidate()
+        End Set
+    End Property
+
+    Private mobjMetaData As VideoData
+
+    Public Property MetaData As VideoData
+        Get
+            Return mobjMetaData
+        End Get
+        Set(value As VideoData)
+            mobjMetaData = value
+            Me.RangeMax = mobjMetaData.TotalFrames - 1
+            Me.RangeMinValue = 0
+            Me.RangeMaxValue = Me.RangeMax
+            Me.RangeValues(0) = Me.RangeMinValue
+            Me.RangeValues(1) = Me.RangeMaxValue
+        End Set
+    End Property
+
+    Public Sub New()
+    End Sub
+
+    Public Sub New(metaData As VideoData)
+        Me.MetaData = metaData
+    End Sub
+
+    ''' <summary>
+    ''' Paints over the control with custom dual trackbar looking graphics.
+    ''' </summary>
+    Protected Overrides Sub OnPaint(e As PaintEventArgs)
+        'MyBase.OnPaint(e)
+        Dim numberOfTicks As Integer = Math.Min(Me.Width \ 2, mRangeMax - mRangeMin)
+        Dim distanceBetweenPoints As Double = Me.Width / numberOfTicks
+        Dim fullrange As Integer = mRangeMax - mRangeMin
+        'Draw background
+        Dim colorHeight As Integer = Me.Height - 8
+        Using backgroundBrush As New SolidBrush(If(Me.Enabled, Color.Green, Color.Gray))
+            e.Graphics.FillRectangle(backgroundBrush, CType((RangeMinValue * ((Me.Width - 1) / fullrange)), Integer), 3, CType(((RangeMaxValue - RangeMinValue) * ((Me.Width - 1) / fullrange)), Integer), Me.Height - 8)
+        End Using
+        'Draw scene changes
+        Using pen As New Pen(Color.DarkSeaGreen, 1)
+            If mdblSceneChanges IsNot Nothing Then
+                Dim frameIndex As Integer = 0
+                For Each sceneChange As Single In mdblSceneChanges
+                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (sceneChange * colorHeight)))
+                    frameIndex += 1
+                Next
+            End If
+        End Using
+
+        'Draw hole punches
+        Using pen As New Pen(Color.Gold, 1)
+            If mdblHolePunches IsNot Nothing Then
+                Dim frameIndex As Integer = 0
+                For Each holePunch As Single In mdblHolePunches
+                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (holePunch * colorHeight)))
+                    frameIndex += 1
+                Next
+            End If
+        End Using
+
+        Using pen As New Pen(Color.Black, 1)
 			'Draw ticks
 			For index As Integer = 0 To numberOfTicks - 1
 				e.Graphics.DrawLine(pen, New Point(index * distanceBetweenPoints, Me.Height), New Point(index * distanceBetweenPoints, Me.Height - 2))
