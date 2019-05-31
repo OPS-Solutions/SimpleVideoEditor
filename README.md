@@ -12,3 +12,4 @@ Then run the SimpleVideoEditor.exe to open the main GUI.
 - Change resolution
 - Convert file type
 - Mute
+- Delete duplicate frames
