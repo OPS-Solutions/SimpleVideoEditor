@@ -28,10 +28,14 @@ Public Class MainForm
 	Private mobjMetaData As MetaData 'Video metadata, including things like resolution, framerate, bitrate, etc.
 	Private mobjRotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
 	Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
+	Private mdblPlaybackSpeed As Double = 1
 
 	Private Structure SpecialOutputProperties
 		Public Mute As Boolean
 		Public Decimate As Boolean
+		Public FPS As Integer
+		Public ChromaKey As Color
+		Public PlaybackSpeed As Double
 	End Structure
 
 #Region "File Events"
@@ -78,6 +82,22 @@ Public Class MainForm
 		ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMinValue
 		ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMaxValue
 
+		'Remove irrelevant resolutions
+		cmbDefinition.Items.Clear()
+		cmbDefinition.Items.AddRange(New Object() {"Original", "120p", "240p", "360p", "480p", "720p", "1080p"})
+		cmbDefinition.SelectedIndex = 0
+		Dim removeStart As Integer = 0
+		For definitionIndex As Integer = 1 To cmbDefinition.Items.Count - 1
+			If Integer.Parse(Regex.Match(cmbDefinition.Items(definitionIndex), "\d*").Value) > mobjMetaData.Height Then
+				removeStart = definitionIndex
+				Exit For
+			End If
+		Next
+		While removeStart < cmbDefinition.Items.Count
+			cmbDefinition.Items.RemoveAt(removeStart)
+		End While
+
+
 		'Clear images
 		picVideo.Image = Nothing
 		picFrame1.Image = Nothing
@@ -107,14 +127,20 @@ Public Class MainForm
 				My.Computer.FileSystem.DeleteFile(outputPath)
 			End If
 		End If
-		Dim sProperties As New SpecialOutputProperties With {.Mute = chkMute.Checked, .Decimate = chkDeleteDuplicates.Checked}
+		Dim sProperties As New SpecialOutputProperties With {
+			.Mute = chkMute.Checked,
+			.Decimate = chkDeleteDuplicates.Checked,
+			.FPS = Me.TargetFPS,
+			.PlaybackSpeed = mdblPlaybackSpeed
+		}
 		Dim ignoreTrim As Boolean = ctlVideoSeeker.RangeMin = ctlVideoSeeker.RangeMinValue And ctlVideoSeeker.RangeMax = ctlVideoSeeker.RangeMaxValue
-		'First check if rotation would conflict with cropping, if it will, just crop it first
-		Dim cropAndRotateOrChangeRes As Boolean = cmbDefinition.SelectedIndex > 0 OrElse ((Not mobjRotation = RotateFlipType.RotateNoneFlipNone) AndAlso mPtStartCrop.X <> mPtEndCrop.X AndAlso mPtStartCrop.Y <> mPtEndCrop.Y)
+		'First check if something would conflict with cropping, if it will, just crop it first
+		Dim postCropOperation As Boolean = cmbDefinition.SelectedIndex > 0 OrElse ((Not mobjRotation = RotateFlipType.RotateNoneFlipNone) AndAlso mPtStartCrop.X <> mPtEndCrop.X AndAlso mPtStartCrop.Y <> mPtEndCrop.Y) OrElse sProperties.Decimate
 		Dim intermediateFilePath As String = mStrVideoPath
-		If cropAndRotateOrChangeRes Then
+		If postCropOperation Then
 			intermediateFilePath = FileNameAppend(outputPath, "-tempCrop")
-			RunFfmpeg(mStrVideoPath, intermediateFilePath, 0, mIntAspectWidth, mIntAspectHeight, sProperties, 0, 0, cmbDefinition.Items(0), mPtStartCrop, mPtEndCrop)
+			'Don't pass in special properties yet, it would be better to decimate after cropping
+			RunFfmpeg(mStrVideoPath, intermediateFilePath, 0, mIntAspectWidth, mIntAspectHeight, Nothing, 0, 0, cmbDefinition.Items(0), mPtStartCrop, mPtEndCrop)
 			mProFfmpegProcess.WaitForExit()
 		End If
 		Dim realTopLeftCrop As Point = mPtStartCrop
@@ -130,9 +156,9 @@ Public Class MainForm
 			SwapValues(realwidth, realheight)
 		End If
 		'Now you can apply everything else
-		RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, ctlVideoSeeker.RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtStartCrop), If(cropAndRotateOrChangeRes, New Point(0, 0), mPtEndCrop))
+		RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, ctlVideoSeeker.RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(postCropOperation, New Point(0, 0), mPtStartCrop), If(postCropOperation, New Point(0, 0), mPtEndCrop))
 		mProFfmpegProcess.WaitForExit()
-		If overwriteOriginal Or cropAndRotateOrChangeRes Then
+		If overwriteOriginal Or postCropOperation Then
 			My.Computer.FileSystem.DeleteFile(intermediateFilePath)
 		End If
 	End Sub
@@ -421,6 +447,16 @@ Public Class MainForm
 		If decimateString.Length > 0 Then
 			vfParams.Add(decimateString)
 		End If
+		'CHROMAKEY
+		'If Not specProperties.ChromaKey = Nothing Then
+		'	With specProperties.ChromaKey
+		'		vfParams.Add("chromakey=" & String.Format("0x{0:X2}{1:X2}{2:X2}", .R, .G, .B))
+		'	End With
+		'End If
+		'PLAYBACK SPEED
+		If specProperties.PlaybackSpeed <> 1 AndAlso specProperties.PlaybackSpeed > 0 AndAlso specProperties.PlaybackSpeed < 3 Then
+			vfParams.Add($"setpts={1 / specProperties.PlaybackSpeed}*PTS")
+		End If
 		'ASSEMBLE VF PARAMETERS
 		For paramIndex As Integer = 0 To vfParams.Count - 1
 			If paramIndex = 0 Then
@@ -432,6 +468,10 @@ Public Class MainForm
 
 		'MUTE VIDEO
 		processInfo.Arguments += If(specProperties.Mute, " -an", " -c:a copy")
+
+		'LIMIT FRAMERATE
+		processInfo.Arguments += If(specProperties.FPS > 0, $" -r {specProperties.FPS}", "")
+
 		'OUTPUT TO FILE
 		processInfo.Arguments += " """ & outPutFile & """"
 		If mblnUserInjection Then
@@ -606,7 +646,7 @@ Public Class MainForm
 		'Setup Tooltips
 		mobjGenericToolTip.SetToolTip(ctlVideoSeeker, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
 		mobjGenericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
-		mobjGenericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video.")
+		mobjGenericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video. Right click for FPS options.")
 		mobjGenericToolTip.SetToolTip(btnいくよ, "Save video. Hold ctrl to manually modify ffmpeg arguments.")
 		mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
 		mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
@@ -618,6 +658,8 @@ Public Class MainForm
 		mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
 		mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
 		mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
+		mobjGenericToolTip.SetToolTip(picChromaKey, "Color that will be made transparent if the output file type supports it.")
+		mobjGenericToolTip.SetToolTip(picPlaybackSpeed, "Playback speed multiplier.")
 
 		'Check if the program was started with a dragdrop exe
 		Dim args() As String = Environment.GetCommandLineArgs()
@@ -769,6 +811,32 @@ Public Class MainForm
 		object1 = object2
 		object2 = tempObject
 	End Sub
+
+	Private ReadOnly Property TargetFPS As Integer
+		Get
+			Dim checkedItem As ToolStripMenuItem = DefaultToolStripMenuItem
+			For Each objItem As ToolStripMenuItem In cmsFrameRate.Items
+				If objItem.Checked Then
+					checkedItem = objItem
+					Exit For
+				End If
+			Next
+			Select Case True
+				Case checkedItem Is TenFPSToolStripMenuItem
+					Return 10
+				Case checkedItem Is FifteenFPSToolStripMenuItem
+					Return 15
+				Case checkedItem Is TwentyFPSToolStripMenuItem
+					Return 20
+				Case checkedItem Is ThirtyFPSToolStripMenuItem
+					Return 30
+				Case checkedItem Is SixtyFPSToolStripMenuItem
+					Return 60
+				Case Else
+					Return 0
+			End Select
+		End Get
+	End Property
 #End Region
 
 	''' <summary>
@@ -778,18 +846,26 @@ Public Class MainForm
 		Select Case keys
 			Case Keys.A
 				ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
+				ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMinValue
+				ctlVideoSeeker.Refresh()
 				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
 			Case Keys.D
 				ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
+				ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMinValue
+				ctlVideoSeeker.Refresh()
 				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
 			Case Keys.Left
 				ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
+				ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMaxValue
+				ctlVideoSeeker.Refresh()
 				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
 			Case Keys.Right
 				ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
+				ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMaxValue
+				ctlVideoSeeker.Refresh()
 				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
 				Return True
 		End Select
@@ -935,5 +1011,42 @@ Public Class MainForm
 
 	Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click
 
+	End Sub
+
+	Private Sub cmsFrameRate_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsFrameRate.ItemClicked
+		For Each objItem As ToolStripMenuItem In cmsFrameRate.Items
+			objItem.Checked = False
+		Next
+		CType(e.ClickedItem, ToolStripMenuItem).Checked = True
+	End Sub
+
+	Private Sub picChromaKey_Click(sender As Object, e As EventArgs) Handles picChromaKey.Click
+		Select Case dlgChromaColor.ShowDialog
+			Case DialogResult.OK
+				picChromaKey.BackColor = dlgChromaColor.Color
+		End Select
+	End Sub
+
+	Private Sub picPlaybackSpeed_Click(sender As Object, e As MouseEventArgs) Handles picPlaybackSpeed.Click
+		cmsPlaybackSpeed.Show(picPlaybackSpeed.PointToScreen(e.Location))
+	End Sub
+
+	Private Sub cmsPlaybackSpeed_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsPlaybackSpeed.ItemClicked
+		For Each objItem As ToolStripMenuItem In cmsPlaybackSpeed.Items
+			objItem.Checked = False
+		Next
+		'Sets the target playback speed global based on the text in the context menu
+		Dim resultValue As Double = 0
+		If Double.TryParse(Regex.Match(CType(e.ClickedItem, ToolStripMenuItem).Text, "\d*.?\d*").Value, resultValue) Then
+			CType(e.ClickedItem, ToolStripMenuItem).Checked = True
+			mdblPlaybackSpeed = resultValue
+			'If resultValue < 1 Then
+			'	picPlaybackSpeed.BackColor = Color.Cyan
+			'ElseIf resultValue = 1 Then
+			'	picPlaybackSpeed.BackColor = grpSettings.BackColor
+			'ElseIf resultValue > 1 Then
+			'	picPlaybackSpeed.BackColor = Color.Red
+			'End If
+		End If
 	End Sub
 End Class

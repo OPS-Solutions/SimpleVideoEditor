@@ -63,6 +63,16 @@ Namespace My.Resources
         '''<summary>
         '''  Looks up a localized resource of type System.Drawing.Bitmap.
         '''</summary>
+        Friend ReadOnly Property ChromaKey() As System.Drawing.Bitmap
+            Get
+                Dim obj As Object = ResourceManager.GetObject("ChromaKey", resourceCulture)
+                Return CType(obj,System.Drawing.Bitmap)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized resource of type System.Drawing.Bitmap.
+        '''</summary>
         Friend ReadOnly Property DuplicatesOff() As System.Drawing.Bitmap
             Get
                 Dim obj As Object = ResourceManager.GetObject("DuplicatesOff", resourceCulture)
@@ -156,6 +166,16 @@ Namespace My.Resources
         Friend ReadOnly Property SpeakerOn() As System.Drawing.Bitmap
             Get
                 Dim obj As Object = ResourceManager.GetObject("SpeakerOn", resourceCulture)
+                Return CType(obj,System.Drawing.Bitmap)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized resource of type System.Drawing.Bitmap.
+        '''</summary>
+        Friend ReadOnly Property StopWatch() As System.Drawing.Bitmap
+            Get
+                Dim obj As Object = ResourceManager.GetObject("StopWatch", resourceCulture)
                 Return CType(obj,System.Drawing.Bitmap)
             End Get
         End Property

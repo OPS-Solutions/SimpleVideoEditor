@@ -83,16 +83,28 @@
 
 	Private mRangeValues As Integer() = {0, 100}
 
-	Private marySceneChanges() As Double
+	Private mdblSceneChanges() As Double
 	''' <summary>
 	''' Special marks will be shown for each of these frames
 	''' </summary>\
 	Public Property SceneFrames As Double()
 		Get
-			Return marySceneChanges
+			Return mdblSceneChanges
 		End Get
 		Set(value As Double())
-			marySceneChanges = value
+			mdblSceneChanges = value
+			If mdblSceneChanges?.Count > 0 Then
+				Dim scale As Double = 1
+				Dim max As Double = mdblSceneChanges.Max()
+				If max > 0 Then
+					scale = 1 / mdblSceneChanges.Max()
+					'Scale so that we always try to show something
+					For index As Integer = 0 To mdblSceneChanges.Count - 1
+						mdblSceneChanges(index) *= scale
+					Next
+				End If
+			End If
+
 			Me.Refresh()
 		End Set
 	End Property
@@ -110,9 +122,9 @@
 		Dim colorHeight As Integer = 12
 		'Draw scene changes
 		Using pen As New Pen(Color.DarkSeaGreen, 1)
-			If marySceneChanges IsNot Nothing Then
+			If mdblSceneChanges IsNot Nothing Then
 				Dim frameIndex As Integer = 0
-				For Each sceneChange As Single In marySceneChanges
+				For Each sceneChange As Single In mdblSceneChanges
 					e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (sceneChange * colorHeight)))
 					frameIndex += 1
 				Next

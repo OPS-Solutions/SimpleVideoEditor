@@ -63,7 +63,7 @@ Public Class MetaData
 	End Property
 
 	''' <summary>
-	''' Height of the video, or horizontal resolution
+	''' Height of the video, or vertical resolution
 	''' </summary>
 	Public ReadOnly Property Height As Integer
 		Get
