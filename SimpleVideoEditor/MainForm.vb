@@ -29,14 +29,16 @@ Public Class MainForm
 	Private mobjRotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
 	Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
 	Private mdblPlaybackSpeed As Double = 1
+	Private mdblPlaybackVolume As Double = 1
 
-	Private Structure SpecialOutputProperties
-		Public Mute As Boolean
+	Private Class SpecialOutputProperties
 		Public Decimate As Boolean
 		Public FPS As Integer
 		Public ChromaKey As Color
 		Public PlaybackSpeed As Double
-	End Structure
+		Public PlaybackVolume As Double
+		Public QScale As Double
+	End Class
 
 #Region "File Events"
 	''' <summary>
@@ -86,7 +88,7 @@ Public Class MainForm
 		cmbDefinition.Items.Clear()
 		cmbDefinition.Items.AddRange(New Object() {"Original", "120p", "240p", "360p", "480p", "720p", "1080p"})
 		cmbDefinition.SelectedIndex = 0
-		Dim removeStart As Integer = 0
+		Dim removeStart As Integer = cmbDefinition.Items.Count
 		For definitionIndex As Integer = 1 To cmbDefinition.Items.Count - 1
 			If Integer.Parse(Regex.Match(cmbDefinition.Items(definitionIndex), "\d*").Value) > mobjMetaData.Height Then
 				removeStart = definitionIndex
@@ -128,16 +130,18 @@ Public Class MainForm
 			End If
 		End If
 		Dim sProperties As New SpecialOutputProperties With {
-			.Mute = chkMute.Checked,
 			.Decimate = chkDeleteDuplicates.Checked,
 			.FPS = Me.TargetFPS,
-			.PlaybackSpeed = mdblPlaybackSpeed
+			.PlaybackSpeed = mdblPlaybackSpeed,
+			.PlaybackVolume = mdblPlaybackVolume,
+			.QScale = If(chkQuality.Checked, 0, -1)
 		}
 		Dim ignoreTrim As Boolean = ctlVideoSeeker.RangeMin = ctlVideoSeeker.RangeMinValue And ctlVideoSeeker.RangeMax = ctlVideoSeeker.RangeMaxValue
 		'First check if something would conflict with cropping, if it will, just crop it first
-		Dim postCropOperation As Boolean = cmbDefinition.SelectedIndex > 0 OrElse ((Not mobjRotation = RotateFlipType.RotateNoneFlipNone) AndAlso mPtStartCrop.X <> mPtEndCrop.X AndAlso mPtStartCrop.Y <> mPtEndCrop.Y) OrElse sProperties.Decimate
+		Dim willCrop As Boolean = mPtStartCrop.X <> mPtEndCrop.X AndAlso mPtStartCrop.Y <> mPtEndCrop.Y
+		Dim postCropOperation As Boolean = sProperties.Decimate
 		Dim intermediateFilePath As String = mStrVideoPath
-		If postCropOperation Then
+		If postCropOperation AndAlso willCrop Then
 			intermediateFilePath = FileNameAppend(outputPath, "-tempCrop")
 			'Don't pass in special properties yet, it would be better to decimate after cropping
 			RunFfmpeg(mStrVideoPath, intermediateFilePath, 0, mIntAspectWidth, mIntAspectHeight, Nothing, 0, 0, cmbDefinition.Items(0), mPtStartCrop, mPtEndCrop)
@@ -158,7 +162,7 @@ Public Class MainForm
 		'Now you can apply everything else
 		RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mIntFrameRate), If(ignoreTrim, 0, ctlVideoSeeker.RangeMaxValue / mIntFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(postCropOperation, New Point(0, 0), mPtStartCrop), If(postCropOperation, New Point(0, 0), mPtEndCrop))
 		mProFfmpegProcess.WaitForExit()
-		If overwriteOriginal Or postCropOperation Then
+		If overwriteOriginal Or (postCropOperation AndAlso willCrop) Then
 			My.Computer.FileSystem.DeleteFile(intermediateFilePath)
 		End If
 	End Sub
@@ -393,6 +397,9 @@ Public Class MainForm
 	''' </summary>
 	Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
 		Dim duration As String = (endSS) - (startSS)
+		If specProperties?.PlaybackSpeed <> 0 Then
+			duration /= specProperties.PlaybackSpeed
+		End If
 		Dim startHHMMSS As String = FormatHHMMSSss(startSS)
 		Dim processInfo As New ProcessStartInfo
 		processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
@@ -404,6 +411,11 @@ Public Class MainForm
 		If duration > 0 Then
 			processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
 		End If
+
+		'CREATE LIST OF PARAMETERS FOR EACH FILTER
+		Dim videoFilterParams As New List(Of String)
+		Dim audioFilterParams As New List(Of String)
+
 		'CROP VIDEO(Can not be done with a rotate, must run twice)
 		Dim cropWidth As Integer = newWidth
 		Dim cropHeight As Integer = newHeight
@@ -411,7 +423,7 @@ Public Class MainForm
 			SetCalculateRealCropPoints(cropTopLeft, cropBottomRight)
 			cropWidth = (cropBottomRight.X - cropTopLeft.X)
 			cropHeight = (cropBottomRight.Y - cropTopLeft.Y)
-			processInfo.Arguments += " -filter:v ""crop=" & cropWidth & ":" & cropHeight & ":" & cropTopLeft.X & ":" & cropTopLeft.Y & """"
+			videoFilterParams.Add($"crop={cropWidth}:{cropHeight}:{cropTopLeft.X}:{cropTopLeft.Y}")
 		End If
 		'SCALE VIDEO
 		Dim scale As Double = newHeight
@@ -432,20 +444,24 @@ Public Class MainForm
 		End Select
 		scale /= newHeight
 		If scale <> 1 Then
-			processInfo.Arguments += " -s " & ForceEven(Math.Floor(cropWidth * scale)) & "x" & ForceEven(Math.Floor(cropHeight * scale)) & " -threads 4"
+			Dim scaleX As Integer = ForceEven(Math.Floor(cropWidth * scale))
+			Dim scaleY As Integer = ForceEven(Math.Floor(cropHeight * scale))
+			If flip = RotateFlipType.Rotate90FlipNone OrElse flip = RotateFlipType.Rotate270FlipNone Then
+				processInfo.Arguments += $" -s {scaleY}x{scaleX} -threads 4"
+			Else
+				processInfo.Arguments += $" -s {scaleX}x{scaleY} -threads 4"
+			End If
 		End If
 
-		'GET VF PARAMETERS
-		Dim vfParams As New List(Of String)
 		'ROTATE VIDEO
 		Dim rotateString As String = If(flip = RotateFlipType.Rotate90FlipNone, "transpose=1", If(flip = RotateFlipType.Rotate180FlipNone, """transpose=2,transpose=2""", If(flip = RotateFlipType.Rotate270FlipNone, "transpose=2", "")))
 		If rotateString.Length > 0 Then
-			vfParams.Add(rotateString)
+			videoFilterParams.Add(rotateString)
 		End If
 		'DELETE DUPLICATE FRAMES
-		Dim decimateString As String = If(specProperties.Decimate, "mpdecimate,setpts=N/FRAME_RATE/TB", "")
+		Dim decimateString As String = If(specProperties?.Decimate, "mpdecimate,setpts=N/FRAME_RATE/TB", "")
 		If decimateString.Length > 0 Then
-			vfParams.Add(decimateString)
+			videoFilterParams.Add(decimateString)
 		End If
 		'CHROMAKEY
 		'If Not specProperties.ChromaKey = Nothing Then
@@ -454,30 +470,57 @@ Public Class MainForm
 		'	End With
 		'End If
 		'PLAYBACK SPEED
-		If specProperties.PlaybackSpeed <> 1 AndAlso specProperties.PlaybackSpeed > 0 AndAlso specProperties.PlaybackSpeed < 3 Then
-			vfParams.Add($"setpts={1 / specProperties.PlaybackSpeed}*PTS")
+		If specProperties?.PlaybackSpeed <> 1 AndAlso specProperties?.PlaybackSpeed > 0 AndAlso specProperties?.PlaybackSpeed < 3 Then
+			videoFilterParams.Add($"setpts={1 / specProperties.PlaybackSpeed}*PTS")
+			Dim audioPlaybackSpeed As String = $"atempo={specProperties.PlaybackSpeed}"
+			If specProperties.PlaybackSpeed = 0.25 Then
+				'atempo has a limit of between 0.5 and 2.0
+				audioPlaybackSpeed = $"atempo=0.5,atempo=0.5"
+			End If
+			audioFilterParams.Add(audioPlaybackSpeed)
 		End If
-		'ASSEMBLE VF PARAMETERS
-		For paramIndex As Integer = 0 To vfParams.Count - 1
+		'ASSEMBLE VIDEO PARAMETERS
+		For paramIndex As Integer = 0 To videoFilterParams.Count - 1
 			If paramIndex = 0 Then
-				processInfo.Arguments += " -vf " & vfParams(paramIndex)
+				processInfo.Arguments += " -filter:v " & videoFilterParams(paramIndex)
 			Else
-				processInfo.Arguments += "," & vfParams(paramIndex)
+				processInfo.Arguments += "," & videoFilterParams(paramIndex)
 			End If
 		Next
 
-		'MUTE VIDEO
-		processInfo.Arguments += If(specProperties.Mute, " -an", " -c:a copy")
+		'ADJUST VOLUME
+		If specProperties?.PlaybackVolume <> 1 Then
+			If specProperties.PlaybackVolume = 0 Then
+				processInfo.Arguments += " -an"
+			Else
+				audioFilterParams.Add($"volume={specProperties.PlaybackVolume}")
+			End If
+		End If
+
+		'ASSEMBLE AUDIO PARAMETERS
+		For paramIndex As Integer = 0 To audioFilterParams.Count - 1
+			If paramIndex = 0 Then
+				processInfo.Arguments += " -filter:a " & audioFilterParams(paramIndex)
+			Else
+				processInfo.Arguments += "," & audioFilterParams(paramIndex)
+			End If
+		Next
+
+		'SET QUALITY
+		processInfo.Arguments += If(specProperties?.QScale <> -1, $" -q:v {specProperties.QScale}", "")
 
 		'LIMIT FRAMERATE
-		processInfo.Arguments += If(specProperties.FPS > 0, $" -r {specProperties.FPS}", "")
+		processInfo.Arguments += If(specProperties?.FPS > 0, $" -r {specProperties.FPS}", "")
 
 		'OUTPUT TO FILE
 		processInfo.Arguments += " """ & outPutFile & """"
 		If mblnUserInjection Then
 			'Show a form where the user can modify the arguments manually
 			Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)
-			manualEntryForm.ShowDialog()
+			Select Case manualEntryForm.ShowDialog()
+				Case DialogResult.Cancel
+					Exit Sub
+			End Select
 			processInfo.Arguments = manualEntryForm.ModifiedText
 		End If
 		processInfo.UseShellExecute = True
@@ -654,7 +697,8 @@ Public Class MainForm
 		mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
 		mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
 		mobjGenericToolTip.SetToolTip(chkMute, "Unmute the videos audio track. Currently Muted.")
-		mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, "Delete Duplicate Frames. Currently allowing them.")
+		mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, "Delete Duplicate Frames. Audio may go out of sync. Currently allowing them.")
+		mobjGenericToolTip.SetToolTip(chkQuality, "Force equivalent quality. WARNING: Slow processing and large file size may occur. Currently automatic (fast and small).")
 		mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
 		mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
 		mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
@@ -885,14 +929,33 @@ Public Class MainForm
 	''' Changes the display text when muting/unmuting a video
 	''' </summary>
 	Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckChanged
-		mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & " the videos audio track. Currently " & If(chkMute.Checked, "muted.", "unmuted."))
+		For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
+			objItem.Checked = False
+		Next
+		If chkMute.Checked Then
+			mdblPlaybackVolume = 0
+			MuteToolStripMenuItem.Checked = True
+		Else
+			mdblPlaybackVolume = 1
+			UnmuteToolStripMenuItem.Checked = True
+		End If
+		Dim volumeString As String = If(mdblPlaybackVolume = 0, "muted.", If(mdblPlaybackVolume = 1, "unmuted.", $"{mdblPlaybackVolume}%"))
+		mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & " the videos audio track. Currently " & If(chkMute.Checked, "muted.", volumeString))
+	End Sub
+
+
+	''' <summary>
+	''' Changes the display text when changing quality check control
+	''' </summary>
+	Private Sub chkQuality_CheckedChanged(sender As Object, e As EventArgs) Handles chkQuality.CheckChanged
+		mobjGenericToolTip.SetToolTip(chkQuality, If(chkQuality.Checked, "Automatic quality.", "Force equivalent quality. WARNING: Slow processing and large file size may occur.") & " Currently " & If(chkQuality.Checked, "forced equivalent (slow and large).", "automatic (fast and small)."))
 	End Sub
 
 	''' <summary>
 	''' Toggles whether the video will be decimated or not, and changes the image to make it obvious
 	''' </summary>
 	Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
-		mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
+		mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
 	End Sub
 
 	''' <summary>
@@ -1036,17 +1099,29 @@ Public Class MainForm
 			objItem.Checked = False
 		Next
 		'Sets the target playback speed global based on the text in the context menu
-		Dim resultValue As Double = 0
+		Dim resultValue As Double = 1
 		If Double.TryParse(Regex.Match(CType(e.ClickedItem, ToolStripMenuItem).Text, "\d*.?\d*").Value, resultValue) Then
 			CType(e.ClickedItem, ToolStripMenuItem).Checked = True
 			mdblPlaybackSpeed = resultValue
-			'If resultValue < 1 Then
-			'	picPlaybackSpeed.BackColor = Color.Cyan
-			'ElseIf resultValue = 1 Then
-			'	picPlaybackSpeed.BackColor = grpSettings.BackColor
-			'ElseIf resultValue > 1 Then
-			'	picPlaybackSpeed.BackColor = Color.Red
-			'End If
+		End If
+	End Sub
+
+	Private Sub cmsPlaybackVolume_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsPlaybackVolume.ItemClicked
+		For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
+			objItem.Checked = False
+		Next
+		'Sets the target playback speed global based on the text in the context menu
+		Dim resultValue As Double = 1
+		If Double.TryParse(Regex.Match(CType(e.ClickedItem, ToolStripMenuItem).Text, "\d*.?\d*").Value, resultValue) Then
+			CType(e.ClickedItem, ToolStripMenuItem).Checked = True
+		End If
+		Me.chkMute.Checked = (resultValue = 0)
+		mdblPlaybackVolume = resultValue
+		For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
+			objItem.Checked = False
+		Next
+		If Double.TryParse(Regex.Match(CType(e.ClickedItem, ToolStripMenuItem).Text, "\d*.?\d*").Value, resultValue) Then
+			CType(e.ClickedItem, ToolStripMenuItem).Checked = True
 		End If
 	End Sub
 End Class
