@@ -49,7 +49,7 @@ Public Class MetaData
 		mobjMetaData.stream0 = newVideoData
 		'Failed to get duration, try getting it based on framerate and total frames
 		If mobjMetaData.duration.Length = 0 Then
-			mobjMetaData.duration = MainForm.FormatHHMMSSss(mobjMetaData.totalFrames / newVideoData.framerate)
+			mobjMetaData.duration = MainForm.FormatHHMMSSm(mobjMetaData.totalFrames / newVideoData.framerate)
 		End If
 	End Sub
 
