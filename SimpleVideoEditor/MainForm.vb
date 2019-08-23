@@ -700,10 +700,12 @@ Public Class MainForm
 	''' </summary>
 	Private Sub picVideo_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles picVideo.Paint
 		Using pen As New Pen(Color.White, 1)
-			e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, picVideo.Height))
-			e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(picVideo.Width, mptStartCrop.Y))
-			e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, picVideo.Height))
-			e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(picVideo.Width, mptEndCrop.Y - 1))
+			If Not (mptStartCrop.X = 0 AndAlso mptStartCrop.X = mptEndCrop.X) Then
+				e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, picVideo.Height))
+				e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(picVideo.Width, mptStartCrop.Y))
+				e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, picVideo.Height))
+				e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(picVideo.Width, mptEndCrop.Y - 1))
+			End If
 			If mintDisplayInfo <> 0 Then
 				e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
 				e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
@@ -1151,9 +1153,11 @@ Public Class MainForm
 
 	Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer, ChangeMin As Boolean) Handles ctlVideoSeeker.RangeChanged
 		If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
-			mintCurrentFrame = newVal
+			If Not mintCurrentFrame = newVal Then
+				mintCurrentFrame = newVal
+				picVideo.Image = GetFfmpegFrame(mintCurrentFrame)
+			End If
 			mintDisplayInfo = RENDER_DECAY_TIME
-			picVideo.Image = GetFfmpegFrame(mintCurrentFrame)
 		End If
 	End Sub
 

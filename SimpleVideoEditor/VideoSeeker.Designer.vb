@@ -28,6 +28,7 @@ Partial Class VideoSeeker
 		'
 		Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
 		Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+		Me.DoubleBuffered = True
 		Me.Name = "VideoSeeker"
 		Me.Size = New System.Drawing.Size(197, 22)
 		Me.ResumeLayout(False)

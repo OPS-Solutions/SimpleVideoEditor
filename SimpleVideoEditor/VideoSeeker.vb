@@ -12,11 +12,8 @@
 		End Get
 		Set(value As Integer)
 			pRangeMinValue = Math.Max(value, mRangeMin)
-			If pRangeMinValue >= RangeMaxValue Then
-				RangeMaxValue = pRangeMinValue + 1
-				If RangeMaxValue = pRangeMinValue Then
-					pRangeMinValue = RangeMaxValue - 1
-				End If
+			If pRangeMinValue > RangeMaxValue Then
+				RangeMaxValue = pRangeMinValue
 			End If
 			RaiseEvent RangeChanged(pRangeMinValue, True)
 		End Set
@@ -33,11 +30,8 @@
 		End Get
 		Set(value As Integer)
 			pRangeMaxValue = Math.Min(value, mRangeMax)
-			If pRangeMaxValue <= RangeMinValue Then
-				RangeMinValue = pRangeMaxValue - 1
-				If RangeMinValue = pRangeMaxValue Then
-					pRangeMaxValue = RangeMinValue + 1
-				End If
+			If pRangeMaxValue < RangeMinValue Then
+				RangeMinValue = pRangeMaxValue
 			End If
 			RaiseEvent RangeChanged(pRangeMaxValue, False)
 		End Set
@@ -105,7 +99,7 @@
 				End If
 			End If
 
-			Me.Refresh()
+			Me.Invalidate()
 		End Set
 	End Property
 
@@ -114,11 +108,15 @@
 	''' </summary>
 	Protected Overrides Sub OnPaint(e As PaintEventArgs)
 		'MyBase.OnPaint(e)
-		Dim numberOfTicks As Integer = Math.Min(Me.Width \ 2, mRangeMax - mRangeMin)
-		Dim distanceBetweenPoints As Double = Me.Width / numberOfTicks
+		Dim numberOfTicks As Integer = Math.Min((Me.Width - 1) \ 2, mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
+		Dim distanceBetweenPoints As Double = (Me.Width - 1) / (numberOfTicks - 1)
 		Dim fullrange As Integer = mRangeMax - mRangeMin
+		Dim leftSeek As Single = (RangeMinValue * distanceBetweenPoints)
+		Dim rightSeek As Single = ((RangeMaxValue + 1) * distanceBetweenPoints)
 		'Draw background
-		e.Graphics.DrawRectangle(New Pen(If(Me.Enabled, Color.Green, Color.Gray), 6), CType((RangeMinValue * ((Me.Width - 1) / fullrange)) + 3, Integer), 6, CType(((RangeMaxValue - RangeMinValue) * ((Me.Width - 1) / fullrange)) - 6, Integer), Me.Height - 12)
+		Using contentBrush As New SolidBrush(If(Me.Enabled, Color.Green, Color.Gray))
+			e.Graphics.FillRectangle(contentBrush, leftSeek, 3, rightSeek - leftSeek, Me.Height - 6)
+		End Using
 		Dim colorHeight As Integer = 12
 		'Draw scene changes
 		Using pen As New Pen(Color.DarkSeaGreen, 1)
@@ -130,15 +128,14 @@
 				Next
 			End If
 		End Using
-
 		Using pen As New Pen(Color.Black, 1)
 			'Draw ticks
 			For index As Integer = 0 To numberOfTicks - 1
 				e.Graphics.DrawLine(pen, New Point(index * distanceBetweenPoints, Me.Height), New Point(index * distanceBetweenPoints, Me.Height - 2))
 			Next
 			'Draw current points
-			e.Graphics.DrawLine(pen, New Point((RangeMinValue * ((Me.Width - 1) / fullrange)), Me.Height - 3), New Point((RangeMinValue * ((Me.Width - 1) / fullrange)), 0))
-			e.Graphics.DrawLine(pen, New Point((RangeMaxValue * ((Me.Width - 1) / fullrange)), Me.Height - 3), New Point((RangeMaxValue * ((Me.Width - 1) / fullrange)), 0))
+			e.Graphics.DrawLine(pen, New Point(leftSeek, Me.Height - 3), New Point(leftSeek, 0))
+			e.Graphics.DrawLine(pen, New Point(rightSeek, Me.Height - 3), New Point(rightSeek, 0))
 		End Using
 	End Sub
 
@@ -156,7 +153,7 @@
 				RangeSliderMaxSelected = True
 			End If
 			Me.OnMouseMove(e)
-			Me.Refresh()
+			Me.Invalidate()
 		End If
 	End Sub
 
@@ -174,11 +171,16 @@
 				'Move range sliders
 				Dim newValue As Integer = ((mRangeMax - mRangeMin) / Me.Width) * e.X
 				If RangeSliderMinSelected Then
-					RangeMinValue = newValue
+					If Not RangeMinValue = newValue Then
+						RangeMinValue = newValue
+						Me.Invalidate()
+					End If
 				ElseIf RangeSliderMaxSelected Then
-					RangeMaxValue = newValue
+					If Not RangeMaxValue = newValue Then
+						RangeMaxValue = newValue
+						Me.Invalidate()
+					End If
 				End If
-				Me.Refresh()
 			End If
 		End If
 	End Sub
@@ -197,7 +199,7 @@
 			mRangeValues(1) = RangeMaxValue
 			If minChanged Or maxChanged Then
 				RaiseEvent RangeChanged(If(minChanged, RangeMinValue, RangeMaxValue), False)
-				Me.Refresh()
+				Me.Invalidate()
 			End If
 		End If
 	End Sub
