@@ -27,7 +27,8 @@ Public Class MainForm
 	Private mintCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
 	Private mintDisplayInfo As Integer = 0 'Timer value for how long to render special info to the main image
 	Private Const RENDER_DECAY_TIME As Integer = 2000
-	Private mobjImageCache(0) As Bitmap
+	Private mobjImageCache(0) As Bitmap 'Storage for images so we don't have to extract them again
+	Private mobjQueuedImageCache(0) As DateTime? 'Storage for what images we have asked for from ffmpeg so we don't ask for them again before we recieve them
 
 	Private mobjMetaData As MetaData 'Video metadata, including things like resolution, framerate, bitrate, etc.
 	Private mobjRotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
@@ -127,8 +128,10 @@ Public Class MainForm
 				mobjImageCache(index).Dispose()
 				mobjImageCache(index) = Nothing
 			End If
+			mobjQueuedImageCache(index) = Nothing
 		Next
 		ReDim mobjImageCache(mobjMetaData.TotalFrames - 1)
+		ReDim mobjQueuedImageCache(mobjMetaData.TotalFrames - 1)
 	End Sub
 
 	''' <summary>
@@ -551,7 +554,7 @@ Public Class MainForm
 	''' <summary>
 	''' Immediately polls ffmpeg for the given frame
 	''' </summary>
-	Public Function GetFfmpegFrame(ByVal frame As Integer, Optional cacheSize As Integer = 10) As Bitmap
+	Public Function GetFfmpegFrame(ByVal frame As Integer, Optional cacheSize As Integer = 20) As Bitmap
 		If mobjImageCache(frame) IsNot Nothing Then
 			'If we are at the edge of the cached items, try to expand it a little in advance
 			If mobjImageCache(Math.Min(frame + 4, mobjMetaData.TotalFrames - 4)) Is Nothing Then
@@ -566,12 +569,21 @@ Public Class MainForm
 			End If
 			Return mobjImageCache(frame)
 		End If
+		If mobjQueuedImageCache(frame) IsNot Nothing Then
+			'Wait for already queued ffmpeg process to die
+			For index As Integer = 0 To 2000
+				If mobjImageCache(frame) IsNot Nothing Then
+					Return mobjImageCache(frame)
+				End If
+				Threading.Thread.Sleep(1)
+			Next
+		End If
 		Dim earlyFrame As Integer = Math.Max(0, frame - (cacheSize - 1) / 2)
 
 		'Check what nearby frames need to be grabbed, don't re-grab ones we already have
 		Dim startFrame As Integer = frame 'First frame that is not cached
 		For index As Integer = frame To earlyFrame Step -1
-			If mobjImageCache(index) Is Nothing Then
+			If mobjImageCache(index) Is Nothing AndAlso mobjQueuedImageCache(index) Is Nothing Then
 				startFrame = index
 			Else
 				Exit For
@@ -580,11 +592,16 @@ Public Class MainForm
 		Dim lateFrame As Integer = Math.Min(mobjMetaData.TotalFrames - 1, startFrame + cacheSize)
 		Dim endFrame As Integer = frame 'Last frame that is not cached
 		For index As Integer = frame To lateFrame
-			If mobjImageCache(index) Is Nothing Then
+			If mobjImageCache(index) Is Nothing AndAlso mobjQueuedImageCache(index) Is Nothing Then
 				endFrame = index
 			Else
 				Exit For
 			End If
+		Next
+		Debug.Print($"Working for frames:{startFrame}-{endFrame}")
+		'Mark images that we are looking for
+		For index As Integer = startFrame To endFrame
+			mobjQueuedImageCache(index) = Now
 		Next
 
 		Dim cacheTotal As Integer = endFrame - startFrame + 1
@@ -614,6 +631,10 @@ Public Class MainForm
 					mobjImageCache(startFrame + index) = New Bitmap(recievedStream)
 				End If
 			End Using
+		Next
+		'Unmark in case there was an issue
+		For index As Integer = startFrame To endFrame
+			mobjQueuedImageCache(index) = Nothing
 		Next
 		'If System.IO.File.Exists(targetFilePath) Then
 		'	Return GetImageNonLocking(targetFilePath)
