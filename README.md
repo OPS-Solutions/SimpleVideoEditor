@@ -9,7 +9,9 @@ Then run the SimpleVideoEditor.exe to open the main GUI.
 - Trim start/end
 - Crop
 - Rotate
-- Change resolution
+- Reduce resolution
 - Convert file type
-- Mute
+- Modify volume
 - Delete duplicate frames
+- Change playback speed
+- Reduce framerate
