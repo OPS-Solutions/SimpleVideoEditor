@@ -111,8 +111,8 @@
 		Dim numberOfTicks As Integer = Math.Min((Me.Width - 1) \ 2, mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
 		Dim distanceBetweenPoints As Double = (Me.Width - 1) / (numberOfTicks - 1)
 		Dim fullrange As Integer = mRangeMax - mRangeMin
-		Dim leftSeek As Single = (RangeMinValue * distanceBetweenPoints)
-		Dim rightSeek As Single = ((RangeMaxValue + 1) * distanceBetweenPoints)
+		Dim leftSeek As Single = ((RangeMinValue / fullrange) * (Me.Width - 1))
+		Dim rightSeek As Single = (((RangeMaxValue + 1) / fullrange) * (Me.Width - 1))
 		'Draw background
 		Using contentBrush As New SolidBrush(If(Me.Enabled, Color.Green, Color.Gray))
 			e.Graphics.FillRectangle(contentBrush, leftSeek, 3, rightSeek - leftSeek, Me.Height - 6)
