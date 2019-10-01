@@ -110,7 +110,7 @@
 		'MyBase.OnPaint(e)
 		Dim numberOfTicks As Integer = Math.Min((Me.Width - 1) \ 2, mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
 		Dim distanceBetweenPoints As Double = (Me.Width - 1) / (numberOfTicks - 1)
-		Dim fullrange As Integer = mRangeMax - mRangeMin
+		Dim fullrange As Integer = (mRangeMax - mRangeMin) + 1
 		Dim leftSeek As Single = ((RangeMinValue / fullrange) * (Me.Width - 1))
 		Dim rightSeek As Single = (((RangeMaxValue + 1) / fullrange) * (Me.Width - 1))
 		'Draw background

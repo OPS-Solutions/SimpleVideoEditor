@@ -35,6 +35,8 @@ Partial Class MainForm
 		Me.ThirtyFPSToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
 		Me.SixtyFPSToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
 		Me.grpSettings = New System.Windows.Forms.GroupBox()
+		Me.picPlaybackSpeed = New System.Windows.Forms.PictureBox()
+		Me.picChromaKey = New System.Windows.Forms.PictureBox()
 		Me.cmsPlaybackVolume = New System.Windows.Forms.ContextMenuStrip(Me.components)
 		Me.MuteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
 		Me.ToolStripMenuItem10 = New System.Windows.Forms.ToolStripMenuItem()
@@ -42,8 +44,6 @@ Partial Class MainForm
 		Me.ToolStripMenuItem12 = New System.Windows.Forms.ToolStripMenuItem()
 		Me.ToolStripMenuItem13 = New System.Windows.Forms.ToolStripMenuItem()
 		Me.UnmuteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-		Me.picPlaybackSpeed = New System.Windows.Forms.PictureBox()
-		Me.picChromaKey = New System.Windows.Forms.PictureBox()
 		Me.imgRotate = New System.Windows.Forms.PictureBox()
 		Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
 		Me.cmsPicVideo = New System.Windows.Forms.ContextMenuStrip(Me.components)
@@ -73,9 +73,9 @@ Partial Class MainForm
 		Me.chkMute = New SimpleVideoEditor.ImageSwitch()
 		Me.cmsFrameRate.SuspendLayout()
 		Me.grpSettings.SuspendLayout()
-		Me.cmsPlaybackVolume.SuspendLayout()
 		CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).BeginInit()
 		CType(Me.picChromaKey, System.ComponentModel.ISupportInitialize).BeginInit()
+		Me.cmsPlaybackVolume.SuspendLayout()
 		CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).BeginInit()
 		Me.cmsPicVideo.SuspendLayout()
 		Me.cmsPlaybackSpeed.SuspendLayout()
@@ -112,7 +112,7 @@ Partial Class MainForm
 		Me.cmbDefinition.Location = New System.Drawing.Point(6, 140)
 		Me.cmbDefinition.Name = "cmbDefinition"
 		Me.cmbDefinition.Size = New System.Drawing.Size(75, 21)
-		Me.cmbDefinition.TabIndex = 17
+		Me.cmbDefinition.TabIndex = 9
 		'
 		'cmsFrameRate
 		'
@@ -172,53 +172,9 @@ Partial Class MainForm
 		Me.grpSettings.Location = New System.Drawing.Point(244, 39)
 		Me.grpSettings.Name = "grpSettings"
 		Me.grpSettings.Size = New System.Drawing.Size(87, 170)
-		Me.grpSettings.TabIndex = 19
+		Me.grpSettings.TabIndex = 17
 		Me.grpSettings.TabStop = False
 		Me.grpSettings.Text = "Settings"
-		'
-		'cmsPlaybackVolume
-		'
-		Me.cmsPlaybackVolume.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.MuteToolStripMenuItem, Me.ToolStripMenuItem10, Me.ToolStripMenuItem11, Me.ToolStripMenuItem12, Me.ToolStripMenuItem13, Me.UnmuteToolStripMenuItem})
-		Me.cmsPlaybackVolume.Name = "cmsAudioVolume"
-		Me.cmsPlaybackVolume.Size = New System.Drawing.Size(181, 158)
-		'
-		'MuteToolStripMenuItem
-		'
-		Me.MuteToolStripMenuItem.Checked = True
-		Me.MuteToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
-		Me.MuteToolStripMenuItem.Name = "MuteToolStripMenuItem"
-		Me.MuteToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-		Me.MuteToolStripMenuItem.Text = "0.0 (Mute)"
-		'
-		'ToolStripMenuItem10
-		'
-		Me.ToolStripMenuItem10.Name = "ToolStripMenuItem10"
-		Me.ToolStripMenuItem10.Size = New System.Drawing.Size(180, 22)
-		Me.ToolStripMenuItem10.Text = "0.1"
-		'
-		'ToolStripMenuItem11
-		'
-		Me.ToolStripMenuItem11.Name = "ToolStripMenuItem11"
-		Me.ToolStripMenuItem11.Size = New System.Drawing.Size(180, 22)
-		Me.ToolStripMenuItem11.Text = "0.3"
-		'
-		'ToolStripMenuItem12
-		'
-		Me.ToolStripMenuItem12.Name = "ToolStripMenuItem12"
-		Me.ToolStripMenuItem12.Size = New System.Drawing.Size(180, 22)
-		Me.ToolStripMenuItem12.Text = "0.5"
-		'
-		'ToolStripMenuItem13
-		'
-		Me.ToolStripMenuItem13.Name = "ToolStripMenuItem13"
-		Me.ToolStripMenuItem13.Size = New System.Drawing.Size(180, 22)
-		Me.ToolStripMenuItem13.Text = "0.7"
-		'
-		'UnmuteToolStripMenuItem
-		'
-		Me.UnmuteToolStripMenuItem.Name = "UnmuteToolStripMenuItem"
-		Me.UnmuteToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-		Me.UnmuteToolStripMenuItem.Text = "1.0 (Full)"
 		'
 		'picPlaybackSpeed
 		'
@@ -243,6 +199,50 @@ Partial Class MainForm
 		Me.picChromaKey.TabIndex = 23
 		Me.picChromaKey.TabStop = False
 		Me.picChromaKey.Visible = False
+		'
+		'cmsPlaybackVolume
+		'
+		Me.cmsPlaybackVolume.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.MuteToolStripMenuItem, Me.ToolStripMenuItem10, Me.ToolStripMenuItem11, Me.ToolStripMenuItem12, Me.ToolStripMenuItem13, Me.UnmuteToolStripMenuItem})
+		Me.cmsPlaybackVolume.Name = "cmsAudioVolume"
+		Me.cmsPlaybackVolume.Size = New System.Drawing.Size(129, 136)
+		'
+		'MuteToolStripMenuItem
+		'
+		Me.MuteToolStripMenuItem.Checked = True
+		Me.MuteToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
+		Me.MuteToolStripMenuItem.Name = "MuteToolStripMenuItem"
+		Me.MuteToolStripMenuItem.Size = New System.Drawing.Size(128, 22)
+		Me.MuteToolStripMenuItem.Text = "0.0 (Mute)"
+		'
+		'ToolStripMenuItem10
+		'
+		Me.ToolStripMenuItem10.Name = "ToolStripMenuItem10"
+		Me.ToolStripMenuItem10.Size = New System.Drawing.Size(128, 22)
+		Me.ToolStripMenuItem10.Text = "0.1"
+		'
+		'ToolStripMenuItem11
+		'
+		Me.ToolStripMenuItem11.Name = "ToolStripMenuItem11"
+		Me.ToolStripMenuItem11.Size = New System.Drawing.Size(128, 22)
+		Me.ToolStripMenuItem11.Text = "0.3"
+		'
+		'ToolStripMenuItem12
+		'
+		Me.ToolStripMenuItem12.Name = "ToolStripMenuItem12"
+		Me.ToolStripMenuItem12.Size = New System.Drawing.Size(128, 22)
+		Me.ToolStripMenuItem12.Text = "0.5"
+		'
+		'ToolStripMenuItem13
+		'
+		Me.ToolStripMenuItem13.Name = "ToolStripMenuItem13"
+		Me.ToolStripMenuItem13.Size = New System.Drawing.Size(128, 22)
+		Me.ToolStripMenuItem13.Text = "0.7"
+		'
+		'UnmuteToolStripMenuItem
+		'
+		Me.UnmuteToolStripMenuItem.Name = "UnmuteToolStripMenuItem"
+		Me.UnmuteToolStripMenuItem.Size = New System.Drawing.Size(128, 22)
+		Me.UnmuteToolStripMenuItem.Text = "1.0 (Full)"
 		'
 		'imgRotate
 		'
@@ -360,7 +360,7 @@ Partial Class MainForm
 		Me.btnいくよ.Location = New System.Drawing.Point(244, 214)
 		Me.btnいくよ.Name = "btnいくよ"
 		Me.btnいくよ.Size = New System.Drawing.Size(88, 35)
-		Me.btnいくよ.TabIndex = 9
+		Me.btnいくよ.TabIndex = 19
 		Me.btnいくよ.UseVisualStyleBackColor = False
 		'
 		'picFrame4
@@ -511,9 +511,9 @@ Partial Class MainForm
 		Me.Text = "Simple Video Editor - Open Source"
 		Me.cmsFrameRate.ResumeLayout(False)
 		Me.grpSettings.ResumeLayout(False)
-		Me.cmsPlaybackVolume.ResumeLayout(False)
 		CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).EndInit()
 		CType(Me.picChromaKey, System.ComponentModel.ISupportInitialize).EndInit()
+		Me.cmsPlaybackVolume.ResumeLayout(False)
 		CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).EndInit()
 		Me.cmsPicVideo.ResumeLayout(False)
 		Me.cmsPlaybackSpeed.ResumeLayout(False)
