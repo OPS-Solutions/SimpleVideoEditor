@@ -772,6 +772,11 @@ Public Class MainForm
 	''' Prepares temporary directory and sets up tool tips for controls.
 	''' </summary>
 	Private Sub SimpleVideoEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+		'Destroy old version from any updates
+		Threading.ThreadPool.QueueUserWorkItem(Sub()
+												   DeleteUpdateFiles()
+											   End Sub)
+
 		cmbDefinition.SelectedIndex = 0
 
 		'Setup Tooltips
@@ -816,6 +821,20 @@ Public Class MainForm
 									 End Sub)
 	End Sub
 
+	Private Sub DeleteUpdateFiles()
+		Dim badExePath As String = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly.Location) + "\DeletableSimpleVideoEditor.exe"
+		If File.Exists(badExePath) Then
+			'Keep trying to delete the file for a few seconds, in case the application is still running for some reason
+			For index As Integer = 0 To 10
+				Try
+					File.Delete(badExePath)
+				Catch ex As Exception
+					'Exception, oh well, hopefully it's just because the application is still open, not because the user has no permissions <.<
+				End Try
+				Threading.Thread.Sleep(500)
+			Next
+		End If
+	End Sub
 
 	''' <summary>
 	''' Resets controls to an empty state as if no file has been loaded
@@ -1028,6 +1047,7 @@ Public Class MainForm
 	''' </summary>
 	Private Sub SimpleVideoEditor_HelpButtonClicked(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles MyBase.HelpButtonClicked
 		frmAbout.Show()
+		frmAbout.Location = Me.Location 'Shift to place over the current window
 		frmAbout.Focus()
 		e.Cancel = True
 	End Sub

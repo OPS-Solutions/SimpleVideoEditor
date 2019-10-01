@@ -487,6 +487,7 @@ Partial Class MainForm
 		'MainForm
 		'
 		Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
+		Me.BackColor = System.Drawing.SystemColors.Control
 		Me.ClientSize = New System.Drawing.Size(344, 261)
 		Me.Controls.Add(Me.ctlVideoSeeker)
 		Me.Controls.Add(Me.picFrame5)

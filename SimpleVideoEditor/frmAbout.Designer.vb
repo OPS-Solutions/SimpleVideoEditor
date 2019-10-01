@@ -31,6 +31,7 @@ Partial Class frmAbout
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+		Me.components = New System.ComponentModel.Container()
 		Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmAbout))
 		Me.TableLayoutPanel = New System.Windows.Forms.TableLayoutPanel()
 		Me.LogoPictureBox = New System.Windows.Forms.PictureBox()
@@ -41,6 +42,9 @@ Partial Class frmAbout
 		Me.TextBoxDescription = New System.Windows.Forms.TextBox()
 		Me.lblGithubLink = New System.Windows.Forms.LinkLabel()
 		Me.OKButton = New System.Windows.Forms.Button()
+		Me.btnUpdate = New System.Windows.Forms.Button()
+		Me.lblLatestVersion = New System.Windows.Forms.Label()
+		Me.tmrButtonFlicker = New System.Windows.Forms.Timer(Me.components)
 		Me.TableLayoutPanel.SuspendLayout()
 		CType(Me.LogoPictureBox, System.ComponentModel.ISupportInitialize).BeginInit()
 		Me.SuspendLayout()
@@ -169,12 +173,38 @@ Partial Class frmAbout
 		Me.OKButton.TabIndex = 0
 		Me.OKButton.Text = "&OK"
 		'
+		'btnUpdate
+		'
+		Me.btnUpdate.Enabled = False
+		Me.btnUpdate.Location = New System.Drawing.Point(240, 51)
+		Me.btnUpdate.Name = "btnUpdate"
+		Me.btnUpdate.Size = New System.Drawing.Size(89, 23)
+		Me.btnUpdate.TabIndex = 3
+		Me.btnUpdate.Text = "Checking..."
+		Me.btnUpdate.UseVisualStyleBackColor = True
+		'
+		'lblLatestVersion
+		'
+		Me.lblLatestVersion.Location = New System.Drawing.Point(239, 12)
+		Me.lblLatestVersion.Name = "lblLatestVersion"
+		Me.lblLatestVersion.Size = New System.Drawing.Size(93, 35)
+		Me.lblLatestVersion.TabIndex = 2
+		Me.lblLatestVersion.Text = "Latest Version: X.X.X.X"
+		Me.lblLatestVersion.TextAlign = System.Drawing.ContentAlignment.TopCenter
+		'
+		'tmrButtonFlicker
+		'
+		Me.tmrButtonFlicker.Enabled = True
+		Me.tmrButtonFlicker.Interval = 500
+		'
 		'frmAbout
 		'
 		Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
 		Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
 		Me.CancelButton = Me.OKButton
 		Me.ClientSize = New System.Drawing.Size(344, 261)
+		Me.Controls.Add(Me.btnUpdate)
+		Me.Controls.Add(Me.lblLatestVersion)
 		Me.Controls.Add(Me.TableLayoutPanel)
 		Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog
 		Me.MaximizeBox = False
@@ -191,5 +221,7 @@ Partial Class frmAbout
 
 	End Sub
 	Friend WithEvents lblGithubLink As System.Windows.Forms.LinkLabel
-
+	Friend WithEvents btnUpdate As Button
+	Friend WithEvents lblLatestVersion As Label
+	Friend WithEvents tmrButtonFlicker As Timer
 End Class
