@@ -109,36 +109,40 @@ Public NotInheritable Class frmAbout
 	End Sub
 
 	Private Sub DownloadUpdate()
-		'Download latest release zip
-		Dim remoteUri As String = $"https://github.com/OPS-Solutions/SimpleVideoEditor/releases/download/{mstrLatestVersion}/Simple.Video.Editor.zip"
-		Dim exePath As String = System.Reflection.Assembly.GetExecutingAssembly.Location
-		Dim updateExtractPath As String = System.IO.Path.GetTempPath + "SimpleVideoEditorUpdateFiles"
-		'Clear anything that was in there before
-		If System.IO.Directory.Exists(updateExtractPath) Then
-			For Each objFile In System.IO.Directory.GetFiles(updateExtractPath)
+		Try
+			'Download latest release zip
+			Dim remoteUri As String = $"https://github.com/OPS-Solutions/SimpleVideoEditor/releases/download/{mstrLatestVersion}/Simple.Video.Editor.zip"
+			Dim exePath As String = System.Reflection.Assembly.GetExecutingAssembly.Location
+			Dim updateExtractPath As String = System.IO.Path.GetTempPath + "SimpleVideoEditorUpdateFiles"
+			'Clear anything that was in there before
+			If System.IO.Directory.Exists(updateExtractPath) Then
+				For Each objFile In System.IO.Directory.GetFiles(updateExtractPath)
+					System.IO.File.Delete(objFile)
+				Next
+				System.IO.Directory.Delete(updateExtractPath)
+			End If
+			System.IO.Directory.CreateDirectory(updateExtractPath)
+			Dim downloadedZipPath As String = updateExtractPath + "\" + "Simple.Video.Editor.zip"
+			RefreshUpdateButton("Downloading...")
+			Using client As New WebClient()
+				client.DownloadFile(remoteUri, downloadedZipPath) 'Overwrites whatever is already there
+			End Using
+			RefreshUpdateButton("Extracting...")
+			ZipFile.ExtractToDirectory(downloadedZipPath, updateExtractPath)
+			System.IO.File.Delete(downloadedZipPath)
+			'Must rename the current running .exe because otherwise we can't put anything there
+			RefreshUpdateButton("Renaming...")
+			System.IO.File.Move(exePath, System.IO.Path.GetDirectoryName(exePath) + "\DeletableSimpleVideoEditor.exe")
+			RefreshUpdateButton("Replacing...")
+			For Each objFile In System.IO.Directory.EnumerateFiles(updateExtractPath)
+				System.IO.File.Copy(objFile, System.IO.Path.GetDirectoryName(exePath) + "\" + System.IO.Path.GetFileName(objFile), True)
 				System.IO.File.Delete(objFile)
 			Next
 			System.IO.Directory.Delete(updateExtractPath)
-		End If
-		System.IO.Directory.CreateDirectory(updateExtractPath)
-		Dim downloadedZipPath As String = updateExtractPath + "\" + "Simple.Video.Editor.zip"
-		RefreshUpdateButton("Downloading...")
-		Using client As New WebClient()
-			client.DownloadFile(remoteUri, downloadedZipPath) 'Overwrites whatever is already there
-		End Using
-		RefreshUpdateButton("Extracting...")
-		ZipFile.ExtractToDirectory(downloadedZipPath, updateExtractPath)
-		System.IO.File.Delete(downloadedZipPath)
-		'Must rename the current running .exe because otherwise we can't put anything there
-		RefreshUpdateButton("Renaming...")
-		System.IO.File.Move(exePath, System.IO.Path.GetDirectoryName(exePath) + "\DeletableSimpleVideoEditor.exe")
-		RefreshUpdateButton("Replacing...")
-		For Each objFile In System.IO.Directory.EnumerateFiles(updateExtractPath)
-			System.IO.File.Copy(objFile, System.IO.Path.GetDirectoryName(exePath) + "\" + System.IO.Path.GetFileName(objFile), True)
-			System.IO.File.Delete(objFile)
-		Next
-		System.IO.Directory.Delete(updateExtractPath)
-		RefreshUpdateButton("Restart.", True)
+			RefreshUpdateButton("Restart.", True)
+		Catch ex As Exception
+			RefreshUpdateButton("Error", False)
+		End Try
 	End Sub
 
 	Private Sub RefreshUpdateButton(strStatus As String, Optional enable As Boolean = False)

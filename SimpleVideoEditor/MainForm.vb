@@ -64,7 +64,7 @@ Public Class MainForm
 			ClearControls()
 			LoadFile(ofdVideoIn.FileName)
 		Catch ex As Exception
-			MessageBox.Show(ex.StackTrace)
+			MessageBox.Show(ex.Message & vbNewLine & ex.StackTrace)
 		End Try
 	End Sub
 
@@ -157,6 +157,12 @@ Public Class MainForm
 			.PlaybackVolume = mdblPlaybackVolume,
 			.QScale = If(chkQuality.Checked, 0, -1)
 		}
+		'Limit GIF framerate if the default is assigned
+		If Not Path.GetExtension(mstrVideoPath).Equals(".gif") AndAlso Path.GetExtension(outputPath).Equals(".gif") AndAlso sProperties.FPS = 0 Then
+			If (mobjMetaData.Framerate * sProperties.PlaybackSpeed) > 30 Then
+				sProperties.FPS = 25
+			End If
+		End If
 		Dim ignoreTrim As Boolean = ctlVideoSeeker.RangeMin = ctlVideoSeeker.RangeMinValue And ctlVideoSeeker.RangeMax = ctlVideoSeeker.RangeMaxValue
 		'First check if something would conflict with cropping, if it will, just crop it first
 		Dim willCrop As Boolean = mptStartCrop.X <> mptEndCrop.X AndAlso mptStartCrop.Y <> mptEndCrop.Y
@@ -204,7 +210,7 @@ Public Class MainForm
 	''' </summary>
 	Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
 		mblnUserInjection = My.Computer.Keyboard.CtrlKeyDown
-		sfdVideoOut.Filter = "WMV|*.wmv|AVI|*.avi|All files (*.*)|*.*"
+		sfdVideoOut.Filter = "MP4|*.mp4|GIF|*.gif|MKV|*.mkv|WMV|*.wmv|AVI|*.avi|MOV|*.mov|All files (*.*)|*.*"
 		Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
 		For index As Integer = 1 To validExtensions.Count - 1 Step 2
 			If System.IO.Path.GetExtension(mstrVideoPath).Contains(validExtensions(index).Replace("*", "")) Then
@@ -624,6 +630,15 @@ Public Class MainForm
 		Debug.Print(tempWatch.ElapsedTicks)
 		Dim byteBuffer() As Byte = System.Text.Encoding.Default.GetBytes(dataRead)
 		Dim imageSize As Integer = byteBuffer.Length / cacheTotal
+
+		'Check for rounding error and reduce cache total if necessary
+		'Ideally this should never happen, but I saw it happen with a video of 14.92fps And 35 total frames
+		If cacheTotal > 1 AndAlso byteBuffer(imageSize) <> 66 AndAlso byteBuffer(imageSize + 1) <> 77 Then
+			startFrame += 1
+			cacheTotal = endFrame - startFrame + 1
+			imageSize = byteBuffer.Length / cacheTotal
+			mobjQueuedImageCache(startFrame) = Nothing
+		End If
 		For index As Integer = 0 To cacheTotal - 1
 			Using recievedStream As New System.IO.MemoryStream
 				recievedStream.Write(byteBuffer, index * imageSize, imageSize)
