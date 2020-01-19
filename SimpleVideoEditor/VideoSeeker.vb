@@ -93,26 +93,38 @@
         End Get
         Set(value As Double())
             marySceneChanges = value
-            Me.Refresh()
+            If marySceneChanges?.Count > 0 Then
+                Dim scale As Double = 1
+                Dim max As Double = marySceneChanges.Max()
+                If max > 0 Then
+                    scale = 1 / marySceneChanges.Max()
+                    'Scale so that we always try to show something
+                    For index As Integer = 0 To marySceneChanges.Count - 1
+                        marySceneChanges(index) *= scale
+                    Next
+                End If
+            End If
+
+            Me.Invalidate()
         End Set
     End Property
 
-    Private mdblHolePunches() As Double
+    Private maryHolePunches() As Double
 
     ''' <summary>
     ''' Each of these frames is shown as things to be cut out
     ''' </summary>\
     Public Property HolePunches As Double()
         Get
-            Return mdblHolePunches
+            Return maryHolePunches
         End Get
         Set(value As Double())
-            mdblHolePunches = value
+            maryHolePunches = value
             Me.Invalidate()
         End Set
     End Property
 
-    Private mobjMetaData As VideoData
+    Private WithEvents mobjMetaData As VideoData
 
     Public Property MetaData As VideoData
         Get
@@ -131,10 +143,12 @@
     End Property
 
     Public Sub New()
+        Me.DoubleBuffered = True
     End Sub
 
     Public Sub New(metaData As VideoData)
         Me.MetaData = metaData
+        Me.DoubleBuffered = True
     End Sub
 
     ''' <summary>
@@ -164,20 +178,34 @@
 
         'Draw hole punches
         Using pen As New Pen(Color.Gold, 1)
-            If mdblHolePunches IsNot Nothing Then
+            If maryHolePunches IsNot Nothing Then
                 Dim frameIndex As Integer = 0
-                For Each holePunch As Single In mdblHolePunches
+                For Each holePunch As Single In maryHolePunches
                     e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (holePunch * colorHeight)))
                     frameIndex += 1
                 Next
             End If
         End Using
 
-        Using pen As New Pen(Color.Black, 1)
-            'Draw ticks
+        'Draw frame ticks, color based on if the frame has been cached or not
+        If Me.mobjMetaData IsNot Nothing Then
+            Dim currentFrameTick As Integer = 0
             For index As Integer = 0 To numberOfTicks - 1
-                e.Graphics.DrawLine(pen, New Point(index * distanceBetweenPoints, Me.Height), New Point(index * distanceBetweenPoints, Me.Height - 2))
+                currentFrameTick = (Me.mobjMetaData.TotalFrames / numberOfTicks) * index
+                Dim drawPen As Pen = Pens.Gray
+                Select Case Me.mobjMetaData.ImageCacheStatus(currentFrameTick)
+                    Case VideoData.CacheStatus.None
+                        drawPen = Pens.DarkGray
+                    Case VideoData.CacheStatus.Queued
+                        drawPen = Pens.Blue
+                    Case VideoData.CacheStatus.Cached
+                        drawPen = Pens.Black
+                End Select
+                e.Graphics.DrawLine(drawPen, New Point(index * distanceBetweenPoints, Me.Height), New Point(index * distanceBetweenPoints, Me.Height - 2))
             Next
+        End If
+
+        Using pen As New Pen(Color.Black, 1)
             'Draw current points
             e.Graphics.DrawLine(pen, New Point(leftSeek, Me.Height - 3), New Point(leftSeek, 0))
             e.Graphics.DrawLine(pen, New Point(rightSeek, Me.Height - 3), New Point(rightSeek, 0))
@@ -247,5 +275,9 @@
                 Me.Invalidate()
             End If
         End If
+    End Sub
+
+    Private Sub CacheUpdated(sender As Object, starframe As Integer, endFrame As Integer) Handles mobjMetaData.QueuedFrames, mobjMetaData.RetrievedFrames
+        Me.Invalidate()
     End Sub
 End Class

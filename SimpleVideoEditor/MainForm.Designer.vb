@@ -70,10 +70,10 @@ Partial Class MainForm
         Me.picFrame1 = New System.Windows.Forms.PictureBox()
         Me.picVideo = New System.Windows.Forms.PictureBox()
         Me.btnBrowse = New System.Windows.Forms.Button()
-        Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
         Me.cmsVideoSeeker = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.CacheAllFramesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
+        Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
+        Me.cmsBrowse = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.HolePuncherToolToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
@@ -93,6 +93,7 @@ Partial Class MainForm
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsVideoSeeker.SuspendLayout()
+        Me.cmsBrowse.SuspendLayout()
         Me.SuspendLayout()
         '
         'ofdVideoIn
@@ -481,6 +482,7 @@ Partial Class MainForm
         'btnBrowse
         '
         Me.btnBrowse.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.btnBrowse.ContextMenuStrip = Me.cmsBrowse
         Me.btnBrowse.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnBrowse.Image = Global.SimpleVideoEditor.My.Resources.Resources.Folder
         Me.btnBrowse.Location = New System.Drawing.Point(244, 9)
@@ -488,6 +490,19 @@ Partial Class MainForm
         Me.btnBrowse.Size = New System.Drawing.Size(88, 24)
         Me.btnBrowse.TabIndex = 7
         Me.btnBrowse.UseVisualStyleBackColor = True
+        '
+        'cmsVideoSeeker
+        '
+        Me.cmsVideoSeeker.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.CacheAllFramesToolStripMenuItem})
+        Me.cmsVideoSeeker.Name = "cmsVideoSeeker"
+        Me.cmsVideoSeeker.Size = New System.Drawing.Size(166, 26)
+        '
+        'CacheAllFramesToolStripMenuItem
+        '
+        Me.CacheAllFramesToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
+        Me.CacheAllFramesToolStripMenuItem.Name = "CacheAllFramesToolStripMenuItem"
+        Me.CacheAllFramesToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.CacheAllFramesToolStripMenuItem.Text = "Cache All Frames"
         '
         'ctlVideoSeeker
         '
@@ -509,29 +524,17 @@ Partial Class MainForm
         Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 18)
         Me.ctlVideoSeeker.TabIndex = 21
         '
-        'cmsVideoSeeker
+        'cmsBrowse
         '
-        Me.cmsVideoSeeker.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.CacheAllFramesToolStripMenuItem, Me.ToolStripSeparator1, Me.HolePuncherToolToolStripMenuItem})
-        Me.cmsVideoSeeker.Name = "cmsVideoSeeker"
-        Me.cmsVideoSeeker.Size = New System.Drawing.Size(181, 76)
-        '
-        'CacheAllFramesToolStripMenuItem
-        '
-        Me.CacheAllFramesToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
-        Me.CacheAllFramesToolStripMenuItem.Name = "CacheAllFramesToolStripMenuItem"
-        Me.CacheAllFramesToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.CacheAllFramesToolStripMenuItem.Text = "Cache All Frames"
-        '
-        'ToolStripSeparator1
-        '
-        Me.ToolStripSeparator1.Name = "ToolStripSeparator1"
-        Me.ToolStripSeparator1.Size = New System.Drawing.Size(177, 6)
+        Me.cmsBrowse.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.HolePuncherToolToolStripMenuItem})
+        Me.cmsBrowse.Name = "cmsBrowse"
+        Me.cmsBrowse.Size = New System.Drawing.Size(174, 26)
         '
         'HolePuncherToolToolStripMenuItem
         '
         Me.HolePuncherToolToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.HolePuncher
         Me.HolePuncherToolToolStripMenuItem.Name = "HolePuncherToolToolStripMenuItem"
-        Me.HolePuncherToolToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.HolePuncherToolToolStripMenuItem.Size = New System.Drawing.Size(173, 22)
         Me.HolePuncherToolToolStripMenuItem.Text = "Hole Puncher Tool"
         '
         'MainForm
@@ -578,6 +581,7 @@ Partial Class MainForm
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsVideoSeeker.ResumeLayout(False)
+        Me.cmsBrowse.ResumeLayout(False)
         Me.ResumeLayout(False)
 
     End Sub
@@ -630,6 +634,6 @@ Partial Class MainForm
 	Friend WithEvents chkQuality As ImageSwitch
     Friend WithEvents cmsVideoSeeker As ContextMenuStrip
     Friend WithEvents CacheAllFramesToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents ToolStripSeparator1 As ToolStripSeparator
+    Friend WithEvents cmsBrowse As ContextMenuStrip
     Friend WithEvents HolePuncherToolToolStripMenuItem As ToolStripMenuItem
 End Class

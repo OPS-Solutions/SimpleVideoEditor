@@ -1,6 +1,8 @@
 ﻿Imports System.Text.RegularExpressions
+Imports System.Threading
 
 Public Class VideoData
+    Implements IDisposable
 
     Private Structure MetaData
         Dim name As String
@@ -25,8 +27,40 @@ Public Class VideoData
         Dim framerate As Double
     End Structure
 
+    Public Enum CacheStatus
+        None = 0
+        Queued = 1
+        Cached = 2
+    End Enum
+
     Private mobjMetaData As New MetaData
     Private mdblSceneFrames As Double()
+    Private mobjImageCache(0) As Bitmap 'Storage for images so we don't have to extract them again
+    Private mobjQueuedImageCache(0) As DateTime? 'Storage for what images we have asked for from ffmpeg so we don't ask for them again before we recieve them
+
+    ''' <summary>Event for when some number of frames have been queued for retrieval</summary>
+    Public Event QueuedFrames(sender As Object, startFrame As Integer, endFrame As Integer)
+
+    ''' <summary>Event for when some number of frames has finished retrieval, and can be accessed</summary>
+    Public Event RetrievedFrames(sender As Object, startFrame As Integer, endFrame As Integer)
+
+    ''' <summary>
+    ''' Checks if a given frame is already cached in memory, has been queued, or has not been/is out of bounds(none)
+    ''' </summary>
+    ''' <param name="intFrame"></param>
+    ''' <returns></returns>
+    Public Function ImageCacheStatus(intFrame As Integer) As CacheStatus
+        If Me.mobjImageCache Is Nothing OrElse intFrame < Me.mobjImageCache.GetLowerBound(0) OrElse intFrame > Me.mobjImageCache.GetUpperBound(0) Then
+            Return CacheStatus.None
+        End If
+        If Me.mobjImageCache(intFrame) IsNot Nothing Then
+            Return CacheStatus.Cached
+        ElseIf Me.mobjQueuedImageCache(intFrame) IsNot Nothing Then
+            Return CacheStatus.Queued
+        End If
+        Return CacheStatus.None
+    End Function
+
 
     ''' <summary>
     ''' Gets metadata for video files using ffmpeg command line arguments, and parses it into an object
@@ -78,10 +112,13 @@ Public Class VideoData
         mobjMetaData.stream0 = newVideoData
         'Failed to get duration, try getting it based on framerate and total frames
         If mobjMetaData.duration.Length = 0 Then
-            mobjMetaData.duration = MainForm.FormatHHMMSSm(mobjMetaData.totalFrames / newVideoData.framerate)
+            mobjMetaData.duration = FormatHHMMSSm(mobjMetaData.totalFrames / newVideoData.framerate)
         End If
+        ClearImageCache()
     End Sub
 
+
+#Region "Data Extraction"
     ''' <summary>
     ''' Gets a list of frames where a scene has changed
     ''' </summary>
@@ -111,6 +148,158 @@ Public Class VideoData
         Me.mdblSceneFrames = sceneValues
         Return Me.mdblSceneFrames
     End Function
+
+    ''' <summary>
+    ''' Immediately polls ffmpeg for the given frame
+    ''' </summary>
+    Public Async Function GetFfmpegFrameAsync(ByVal frame As Integer, Optional cacheSize As Integer = 20) As Task(Of Bitmap)
+        If mobjImageCache(frame) IsNot Nothing AndAlso cacheSize >= 0 Then
+            'If we are at the edge of the cached items, try to expand it a little in advance
+            If mobjImageCache(Math.Min(frame + 4, mobjMetaData.totalFrames - 4)) Is Nothing Then
+                ThreadPool.QueueUserWorkItem(Sub()
+                                                 GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1))
+                                             End Sub)
+            End If
+            If mobjImageCache(Math.Max(0, frame - 4)) Is Nothing Then
+                ThreadPool.QueueUserWorkItem(Sub()
+                                                 GetFfmpegFrameAsync(Math.Max(0, frame - 4))
+                                             End Sub)
+            End If
+            Return mobjImageCache(frame)
+        End If
+        If mobjQueuedImageCache(frame) IsNot Nothing Then
+            'Wait for already queued ffmpeg process to die
+            For index As Integer = 0 To 2000
+                If mobjImageCache(frame) IsNot Nothing Then
+                    Return mobjImageCache(frame)
+                End If
+                Threading.Thread.Sleep(1)
+            Next
+        End If
+        Dim earlyFrame As Integer = Math.Max(0, frame - (cacheSize - 1) / 2)
+
+        'Check what nearby frames need to be grabbed, don't re-grab ones we already have
+        Dim startFrame As Integer = frame 'First frame that is not cached
+        If cacheSize < 0 Then
+            startFrame = 0
+        End If
+        'Step backwards from the requested frame, preparing to get anything that hasn't been grabbed yet
+        For index As Integer = frame To earlyFrame Step -1
+            If mobjImageCache(index) Is Nothing AndAlso mobjQueuedImageCache(index) Is Nothing Then
+                startFrame = index
+            Else
+                Exit For
+            End If
+        Next
+        Dim lateFrame As Integer = Math.Min(mobjMetaData.totalFrames - 1, startFrame + cacheSize)
+        Dim endFrame As Integer = frame 'Last frame that is not cached
+        If cacheSize < 0 Then
+            endFrame = mobjMetaData.totalFrames - 1
+        End If
+        'Step forwards from the current frame, preparing to get anything that hasn't been grabbed yet
+        For index As Integer = frame To lateFrame
+            If mobjImageCache(index) Is Nothing AndAlso mobjQueuedImageCache(index) Is Nothing Then
+                endFrame = index
+            Else
+                Exit For
+            End If
+        Next
+        Debug.Print($"Working for frames:{startFrame}-{endFrame}")
+        'Mark images that we are looking for
+        For index As Integer = startFrame To endFrame
+            mobjQueuedImageCache(index) = Now
+        Next
+
+        Dim cacheTotal As Integer = endFrame - startFrame + 1
+        Dim tempWatch As New Stopwatch
+        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
+        tempWatch.Start()
+        Dim processInfo As New ProcessStartInfo
+        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+        processInfo.Arguments = " -ss " & FormatHHMMSSm((startFrame) / Me.Framerate)
+        processInfo.Arguments += " -i """ & Me.FullPath & """"
+        processInfo.Arguments += $" -vf scale=228:-1 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
+        processInfo.UseShellExecute = False
+        processInfo.CreateNoWindow = True
+        processInfo.RedirectStandardOutput = True
+        processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        Dim tempProcess As Process = Process.Start(processInfo)
+        RaiseEvent QueuedFrames(Me, startFrame, endFrame)
+
+        Dim dataRead As String = Await tempProcess.StandardOutput.ReadToEndAsync()
+        tempWatch.Stop()
+        Debug.Print(tempWatch.ElapsedTicks)
+        Dim byteBuffer() As Byte = System.Text.Encoding.Default.GetBytes(dataRead)
+        Dim imageSize As Integer = byteBuffer.Length / cacheTotal
+
+        'Check for rounding error and reduce cache total if necessary
+        'Ideally this should never happen, but I saw it happen with a video of 14.92fps And 35 total frames
+        If cacheTotal > 1 AndAlso byteBuffer(imageSize) <> 66 AndAlso byteBuffer(imageSize + 1) <> 77 Then
+            startFrame += 1
+            cacheTotal = endFrame - startFrame + 1
+            imageSize = byteBuffer.Length / cacheTotal
+            mobjQueuedImageCache(startFrame) = Nothing
+        End If
+        For index As Integer = 0 To cacheTotal - 1
+            Using recievedStream As New System.IO.MemoryStream
+                recievedStream.Write(byteBuffer, index * imageSize, imageSize)
+                If byteBuffer.Length > 0 Then
+                    mobjImageCache(startFrame + index) = New Bitmap(recievedStream)
+                End If
+            End Using
+        Next
+        'Unmark in case there was an issue
+        For index As Integer = startFrame To endFrame
+            mobjQueuedImageCache(index) = Nothing
+        Next
+        RaiseEvent RetrievedFrames(Me, startFrame, endFrame)
+        'If System.IO.File.Exists(targetFilePath) Then
+        '	Return GetImageNonLocking(targetFilePath)
+        'End If
+        Return mobjImageCache(frame)
+    End Function
+
+    ''' <summary>
+    ''' Immediately polls ffmpeg for the given frame
+    ''' </summary>
+    Public Function GetFfmpegFrame(ByVal frame As Integer, Optional cacheSize As Integer = 20) As Bitmap
+        Return GetFfmpegFrameAsync(frame).Result
+    End Function
+
+    ''' <summary>
+    ''' Tells ffmpeg to make a file and returns the corresponding file path to the given seconds value, like 50.5 = "frame_000050.5.png".
+    ''' </summary>
+    Public Function ExportFfmpegFrame(ByVal frame As Integer, targetFilePath As String) As String
+        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
+        Dim processInfo As New ProcessStartInfo
+        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+        processInfo.Arguments = " -ss " & FormatHHMMSSm((frame) / Me.Framerate)
+        processInfo.Arguments += " -i """ & Me.FullPath & """"
+        'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
+        processInfo.Arguments += " -vframes 1 " & """" & targetFilePath & """"
+        processInfo.UseShellExecute = True
+        processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        Dim tempProcess As Process = Process.Start(processInfo)
+        tempProcess.WaitForExit(5000) 'Wait up to 5 seconds for the process to finish
+        Return targetFilePath
+    End Function
+#End Region
+
+
+    ''' <summary>
+    ''' Clears the image cache and ensures it is of the proper size
+    ''' </summary>
+    Private Sub ClearImageCache()
+        For index As Integer = 0 To mobjImageCache.Count - 1
+            If mobjImageCache(index) IsNot Nothing Then
+                mobjImageCache(index).Dispose()
+                mobjImageCache(index) = Nothing
+            End If
+            mobjQueuedImageCache(index) = Nothing
+        Next
+        ReDim mobjImageCache(mobjMetaData.totalFrames - 1)
+        ReDim mobjQueuedImageCache(mobjMetaData.totalFrames - 1)
+    End Sub
 
 #Region "Properties"
     ''' <summary>
@@ -219,7 +408,7 @@ Public Class VideoData
     ''' <summary>
     ''' Saves scene frames to file so they can be loaded back later without wasting processing power
     ''' </summary>
-    Public Sub SaveSceneseToFile()
+    Public Sub SaveScenesToFile()
         Using streamWriter As New System.IO.StreamWriter(Me.SceneFramesPath)
             For index As Integer = 0 To Me.mdblSceneFrames.Count - 1
                 streamWriter.WriteLine(Me.mdblSceneFrames(index))
@@ -244,6 +433,39 @@ Public Class VideoData
         End If
         Return False
     End Function
+
+#Region "IDisposable Support"
+    Private disposedValue As Boolean ' To detect redundant calls
+
+    ' IDisposable
+    Protected Overridable Sub Dispose(disposing As Boolean)
+        If Not disposedValue Then
+            If disposing Then
+                ' TODO: dispose managed state (managed objects).
+                Me.ClearImageCache()
+            End If
+
+            ' TODO: free unmanaged resources (unmanaged objects) and override Finalize() below.
+            ' TODO: set large fields to null.
+        End If
+        disposedValue = True
+    End Sub
+
+    ' TODO: override Finalize() only if Dispose(disposing As Boolean) above has code to free unmanaged resources.
+    'Protected Overrides Sub Finalize()
+    '    ' Do not change this code.  Put cleanup code in Dispose(disposing As Boolean) above.
+    '    Dispose(False)
+    '    MyBase.Finalize()
+    'End Sub
+
+    ' This code added by Visual Basic to correctly implement the disposable pattern.
+    Public Sub Dispose() Implements IDisposable.Dispose
+        ' Do not change this code.  Put cleanup code in Dispose(disposing As Boolean) above.
+        Dispose(True)
+        ' TODO: uncomment the following line if Finalize() is overridden above.
+        ' GC.SuppressFinalize(Me)
+    End Sub
+#End Region
 #End Region
 
 End Class

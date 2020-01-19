@@ -27,8 +27,6 @@ Public Class MainForm
     Private mintCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
     Private mintDisplayInfo As Integer = 0 'Timer value for how long to render special info to the main image
     Private Const RENDER_DECAY_TIME As Integer = 2000
-    Private mobjImageCache(0) As Bitmap 'Storage for images so we don't have to extract them again
-    Private mobjQueuedImageCache(0) As DateTime? 'Storage for what images we have asked for from ffmpeg so we don't ask for them again before we recieve them
 
     Private mobjMetaData As VideoData 'Video metadata, including things like resolution, framerate, bitrate, etc.
     Private mobjRotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
@@ -74,22 +72,16 @@ Public Class MainForm
     Public Sub LoadFile(ByVal fullPath As String)
         mstrVideoPath = fullPath
         lblFileName.Text = System.IO.Path.GetFileName(mstrVideoPath)
+        If mobjMetaData IsNot Nothing Then
+            mobjMetaData.Dispose()
+            mobjMetaData = Nothing
+        End If
         mobjMetaData = VideoData.FromFile(mstrVideoPath)
         mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file." & vbNewLine & mobjMetaData.StreamData)
         'Set frame rate
         mintFrameRate = mobjMetaData.Framerate
 
-        'Get video duration
-        mdblVideoDurationSS = mobjMetaData.DurationSeconds
-
-        ClearImageCache()
-
-        'Set range of slider
-        ctlVideoSeeker.RangeMax = mobjMetaData.TotalFrames - 1
-        ctlVideoSeeker.RangeMinValue = 0
-        ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMax
-        ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMinValue
-        ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMaxValue
+        ctlVideoSeeker.MetaData = mobjMetaData
 
         'Remove irrelevant resolutions
         cmbDefinition.Items.Clear()
@@ -113,26 +105,11 @@ Public Class MainForm
         picFrame3.Image = Nothing
         picFrame4.Image = Nothing
         picFrame5.Image = Nothing
-        mthdDefaultLoadThread = New System.Threading.Thread(AddressOf LoadDefaultFrames)
-        mthdDefaultLoadThread.Start()
+        LoadDefaultFrames()
         PollPreviewFrames()
         cmsPicVideoExportFrame.Enabled = True
     End Sub
 
-    ''' <summary>
-    ''' Clears the image cache and ensures it is of the proper size
-    ''' </summary>
-    Private Sub ClearImageCache()
-        For index As Integer = 0 To mobjImageCache.Count - 1
-            If mobjImageCache(index) IsNot Nothing Then
-                mobjImageCache(index).Dispose()
-                mobjImageCache(index) = Nothing
-            End If
-            mobjQueuedImageCache(index) = Nothing
-        Next
-        ReDim mobjImageCache(mobjMetaData.TotalFrames - 1)
-        ReDim mobjQueuedImageCache(mobjMetaData.TotalFrames - 1)
-    End Sub
 
     ''' <summary>
     ''' Saves the file at the specified location
@@ -227,9 +204,9 @@ Public Class MainForm
     ''' <summary>
     ''' Loads default frames when called.
     ''' </summary>
-    Public Sub LoadDefaultFrames()
+    Public Async Sub LoadDefaultFrames()
         'Use ffmpeg to grab images into a temporary folder
-        Dim tempImage As Bitmap = GetFfmpegFrame(0)
+        Dim tempImage As Bitmap = Await mobjMetaData.GetFfmpegFrameAsync(0)
         mintCurrentFrame = 0
         picVideo.Image = tempImage
         mintAspectWidth = mobjMetaData.Width
@@ -261,7 +238,7 @@ Public Class MainForm
         'Check if the default frames are available
         If picVideo.Image Is Nothing Then
             mintCurrentFrame = 0
-            picVideo.Image = GetFfmpegFrame(0)
+            picVideo.Image = Await mobjMetaData.GetFfmpegFrameAsync(0)
             'Now that the use can see things, they can go ahead and try to edit
         End If
         If picVideo.Image IsNot Nothing Then
@@ -279,13 +256,13 @@ Public Class MainForm
         End If
 
         'Grab keyframes
-        picFrame1.Image = Await GetFfmpegFrameAsync(0)
-        picFrame2.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.25)
-        picFrame3.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.5)
-        picFrame4.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.75)
-        picFrame5.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 1)
+        picFrame1.Image = Await mobjMetaData.GetFfmpegFrameAsync(0)
+        picFrame2.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.25)
+        picFrame3.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.5)
+        picFrame4.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.75)
+        picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 1)
         If picFrame5.Image Is Nothing Then
-            picFrame5.Image = Await GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 2)
+            picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 2)
         End If
         If mobjMetaData.TotalFrames < 5 OrElse (picVideo.Image IsNot Nothing AndAlso picFrame1.Image IsNot Nothing AndAlso picFrame2.Image IsNot Nothing AndAlso picFrame3.Image IsNot Nothing AndAlso picFrame4.Image IsNot Nothing AndAlso picFrame5.Image IsNot Nothing) Then
             'Application is finished searching for images, reset cursor
@@ -293,7 +270,13 @@ Public Class MainForm
             ctlVideoSeeker.Enabled = True
             btnいくよ.Enabled = True
         End If
-        ctlVideoSeeker.SceneFrames = CompressSceneChanges(Await ExtractSceneChanges(mstrVideoPath), ctlVideoSeeker.Width)
+        'Try to read from file, otherwise go ahead and extract them
+        If Not mobjMetaData.ReadScenesFromFile Then
+            Await mobjMetaData.ExtractSceneChanges()
+            mobjMetaData.SaveScenesToFile()
+        End If
+        ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+        'TODO Grab compressed frame. Something like a 3x3 pixel image for each frame
     End Sub
 
 #Region "Get File Attributes"
@@ -532,164 +515,6 @@ Public Class MainForm
         mproFfmpegProcess = Process.Start(processInfo)
     End Sub
 
-    ''' <summary>
-    ''' Immediately polls ffmpeg for the given frame
-    ''' </summary>
-    Public Function GetFfmpegFrame(ByVal frame As Integer, Optional cacheSize As Integer = 20) As Bitmap
-        If mobjImageCache(frame) IsNot Nothing AndAlso cacheSize >= 0 Then
-            'If we are at the edge of the cached items, try to expand it a little in advance
-            If mobjImageCache(Math.Min(frame + 4, mobjMetaData.TotalFrames - 4)) Is Nothing Then
-                ThreadPool.QueueUserWorkItem(Sub()
-                                                 GetFfmpegFrame(Math.Min(frame + 1, mobjMetaData.TotalFrames - 1))
-                                             End Sub)
-            End If
-            If mobjImageCache(Math.Max(0, frame - 4)) Is Nothing Then
-                ThreadPool.QueueUserWorkItem(Sub()
-                                                 GetFfmpegFrame(Math.Max(0, frame - 4))
-                                             End Sub)
-            End If
-            Return mobjImageCache(frame)
-        End If
-        If mobjQueuedImageCache(frame) IsNot Nothing Then
-            'Wait for already queued ffmpeg process to die
-            For index As Integer = 0 To 2000
-                If mobjImageCache(frame) IsNot Nothing Then
-                    Return mobjImageCache(frame)
-                End If
-                Threading.Thread.Sleep(1)
-            Next
-        End If
-        Dim earlyFrame As Integer = Math.Max(0, frame - (cacheSize - 1) / 2)
-
-        'Check what nearby frames need to be grabbed, don't re-grab ones we already have
-        Dim startFrame As Integer = frame 'First frame that is not cached
-        If cacheSize < 0 Then
-            startFrame = 0
-        End If
-        'Step backwards from the requested frame, preparing to get anything that hasn't been grabbed yet
-        For index As Integer = frame To earlyFrame Step -1
-            If mobjImageCache(index) Is Nothing AndAlso mobjQueuedImageCache(index) Is Nothing Then
-                startFrame = index
-            Else
-                Exit For
-            End If
-        Next
-        Dim lateFrame As Integer = Math.Min(mobjMetaData.TotalFrames - 1, startFrame + cacheSize)
-        Dim endFrame As Integer = frame 'Last frame that is not cached
-        If cacheSize < 0 Then
-            endFrame = mobjMetaData.TotalFrames - 1
-        End If
-        'Step forwards from the current frame, preparing to get anything that hasn't been grabbed yet
-        For index As Integer = frame To lateFrame
-            If mobjImageCache(index) Is Nothing AndAlso mobjQueuedImageCache(index) Is Nothing Then
-                endFrame = index
-            Else
-                Exit For
-            End If
-        Next
-        Debug.Print($"Working for frames:{startFrame}-{endFrame}")
-        'Mark images that we are looking for
-        For index As Integer = startFrame To endFrame
-            mobjQueuedImageCache(index) = Now
-        Next
-
-        Dim cacheTotal As Integer = endFrame - startFrame + 1
-        Dim tempWatch As New Stopwatch
-        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
-        tempWatch.Start()
-        Dim processInfo As New ProcessStartInfo
-        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = " -ss " & FormatHHMMSSm((startFrame) / mobjMetaData.Framerate)
-        processInfo.Arguments += " -i """ & mstrVideoPath & """"
-        processInfo.Arguments += $" -vf scale=228:-1 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
-        processInfo.UseShellExecute = False
-        processInfo.CreateNoWindow = True
-        processInfo.RedirectStandardOutput = True
-        processInfo.WindowStyle = ProcessWindowStyle.Hidden
-        Dim tempProcess As Process = Process.Start(processInfo)
-
-        Dim dataRead As String = tempProcess.StandardOutput.ReadToEnd()
-        tempWatch.Stop()
-        Debug.Print(tempWatch.ElapsedTicks)
-        Dim byteBuffer() As Byte = System.Text.Encoding.Default.GetBytes(dataRead)
-        Dim imageSize As Integer = byteBuffer.Length / cacheTotal
-
-        'Check for rounding error and reduce cache total if necessary
-        'Ideally this should never happen, but I saw it happen with a video of 14.92fps And 35 total frames
-        If cacheTotal > 1 AndAlso byteBuffer(imageSize) <> 66 AndAlso byteBuffer(imageSize + 1) <> 77 Then
-            startFrame += 1
-            cacheTotal = endFrame - startFrame + 1
-            imageSize = byteBuffer.Length / cacheTotal
-            mobjQueuedImageCache(startFrame) = Nothing
-        End If
-        For index As Integer = 0 To cacheTotal - 1
-            Using recievedStream As New System.IO.MemoryStream
-                recievedStream.Write(byteBuffer, index * imageSize, imageSize)
-                If byteBuffer.Length > 0 Then
-                    mobjImageCache(startFrame + index) = New Bitmap(recievedStream)
-                End If
-            End Using
-        Next
-        'Unmark in case there was an issue
-        For index As Integer = startFrame To endFrame
-            mobjQueuedImageCache(index) = Nothing
-        Next
-        'If System.IO.File.Exists(targetFilePath) Then
-        '	Return GetImageNonLocking(targetFilePath)
-        'End If
-        Return mobjImageCache(frame)
-    End Function
-
-    ''' <summary>
-    ''' Immediately polls ffmpeg for the given frame
-    ''' </summary>
-    Public Async Function GetFfmpegFrameAsync(ByVal frame As Integer) As Task(Of Bitmap)
-        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
-        Dim processInfo As New ProcessStartInfo
-        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = " -ss " & FormatHHMMSSm((frame) / mobjMetaData.Framerate)
-        processInfo.Arguments += " -i """ & mstrVideoPath & """"
-        processInfo.Arguments += " -vf scale=228:-1 -vframes 1 -f image2pipe -vcodec bmp -"
-        processInfo.UseShellExecute = False
-        processInfo.CreateNoWindow = True
-        processInfo.RedirectStandardOutput = True
-        processInfo.WindowStyle = ProcessWindowStyle.Hidden
-        Dim tempProcess As Process = Process.Start(processInfo)
-
-        Using recievedStream As New System.IO.MemoryStream
-            Dim dataRead As String = Await tempProcess.StandardOutput.ReadToEndAsync()
-            Dim byteBuffer() As Byte = System.Text.Encoding.Default.GetBytes(dataRead)
-            recievedStream.Write(byteBuffer, 0, byteBuffer.Length)
-            If byteBuffer.Length > 0 Then
-                Return New Bitmap(recievedStream)
-            Else
-                Return Nothing
-            End If
-        End Using
-        'If System.IO.File.Exists(targetFilePath) Then
-        '	Return GetImageNonLocking(targetFilePath)
-        'End If
-        Return Nothing
-    End Function
-
-    ''' <summary>
-    ''' Tells ffmpeg to make a file and returns the corresponding file path to the given seconds value, like 50.5 = "frame_000050.5.png".
-    ''' </summary>
-    Public Function ExportFfmpegFrame(ByVal frame As Integer, targetFilePath As String) As String
-        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
-        Dim processInfo As New ProcessStartInfo
-        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = " -ss " & FormatHHMMSSm((frame) / mobjMetaData.Framerate)
-        processInfo.Arguments += " -i """ & mstrVideoPath & """"
-        'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
-        processInfo.Arguments += " -vframes 1 " & """" & targetFilePath & """"
-        processInfo.UseShellExecute = True
-        processInfo.WindowStyle = ProcessWindowStyle.Hidden
-        Dim tempProcess As Process = Process.Start(processInfo)
-        tempProcess.WaitForExit(5000) 'Wait up to 5 seconds for the process to finish
-        Return targetFilePath
-    End Function
-
 
 
 #Region "CROPPING CLICK AND DRAG"
@@ -910,49 +735,6 @@ Public Class MainForm
     End Function
 
     ''' <summary>
-    ''' Converts a double like 100.5 seconds to HHMMSSm... like "00:01:40.5"
-    ''' </summary>
-    Public Shared Function FormatHHMMSSm(ByVal totalSS As Double) As String
-        Dim hours As Double = ((totalSS / 60) / 60)
-        Dim minutes As Double = (hours Mod 1) * 60
-        Dim seconds As Double = (minutes Mod 1) * 60
-        Dim millisecond As Double = (totalSS Mod 1) 'Math.Round(totalSS Mod 1, 2, MidpointRounding.AwayFromZero) * 100
-        Dim hrString As String = Math.Truncate(hours).ToString.PadLeft(2, "0")
-        Dim minString As String = Math.Truncate(minutes).ToString.PadLeft(2, "0")
-        Dim secString As String = Math.Truncate(seconds).ToString.PadLeft(2, "0")
-        Dim milliString As String = millisecond.ToString("R")
-        If milliString.Length > 2 Then
-            milliString = milliString.Substring(2)
-        End If
-        Return $"{hrString}:{minString}:{secString}.{milliString}"
-    End Function
-
-    ''' <summary>
-    ''' Converts a time like "00:01:40.5" to the total number of seconds
-    ''' </summary>
-    ''' <param name="duration"></param>
-    ''' <returns></returns>
-    Public Shared Function HHMMSSssToSeconds(ByVal duration As String) As Double
-        Dim totalSeconds As Double = 0
-        totalSeconds += Integer.Parse(duration.Substring(0, 2)) * 60 * 60 'Hours
-        totalSeconds += Integer.Parse(duration.Substring(3, 2)) * 60 'Minutes
-        totalSeconds += Integer.Parse(duration.Substring(6, 2)) 'Seconds
-        totalSeconds += Integer.Parse(duration.Substring(9, 2)) / 100.0 'Milliseconds
-        Return totalSeconds
-    End Function
-
-    ''' <summary>
-    ''' Takes a number like 123 and forces it to be divisible by 2, either by returning 122 or 124
-    ''' </summary>
-    Public Function ForceEven(ByVal number As Integer, Optional ByVal forceDown As Boolean = True) As String
-        If number \ 2 = (number - 1) \ 2 Then
-            Return number + If(forceDown, -1, 1)
-        Else
-            Return number
-        End If
-    End Function
-
-    ''' <summary>
     ''' Sets the given crop locations to their real points
     ''' </summary>
     Public Sub SetCalculateRealCropPoints(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point)
@@ -1132,50 +914,12 @@ Public Class MainForm
             sfdExportFrame.OverwritePrompt = True
             Select Case sfdExportFrame.ShowDialog()
                 Case DialogResult.OK
-                    ExportFfmpegFrame(mintCurrentFrame, sfdExportFrame.FileName)
+                    mobjMetaData.ExportFfmpegFrame(mintCurrentFrame, sfdExportFrame.FileName)
                 Case Else
                     'Do nothing
             End Select
         End Using
     End Sub
-
-
-    ''' <summary>
-    ''' Gets a list of frames where a scene has changed
-    ''' </summary>
-    Private Async Function ExtractSceneChanges(ByVal strVideoPath As String) As Task(Of Double())
-        'ffmpeg -i GEVideo.wmv -vf select=gt(scene\,0.2),showinfo -f null -
-        'ffmpeg -i GEVideo.wmv -vf select='gte(scene,0)',metadata=print -an -f null -
-        Dim processInfo As New ProcessStartInfo
-        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments += " -i """ & strVideoPath & """"
-        processInfo.Arguments += " -vf select='gte(scene,0)',metadata=print -an -f null -"
-        processInfo.UseShellExecute = False 'Must be false to redirect standard output
-        processInfo.CreateNoWindow = True
-        processInfo.RedirectStandardOutput = True
-        processInfo.RedirectStandardError = True
-        Dim tempProcess As Process = Process.Start(processInfo)
-
-        Dim sceneValues(mobjMetaData.TotalFrames - 1) As Double
-        Using recievedStream As New System.IO.MemoryStream
-            Dim dataRead As String = Await tempProcess.StandardError.ReadToEndAsync()
-            Dim matches As MatchCollection = Regex.Matches(dataRead, "(?<=.scene_score=)\d+\.\d+")
-            Dim frameIndex As Integer = 0
-            For Each sceneString As Match In matches
-                sceneValues(frameIndex) = Double.Parse(sceneString.Value)
-                frameIndex += 1
-            Next
-            'Dim matches As Match = Regex.Match(dataRead, "(?m)Parsed_showinfo.*pts_time.*(?!$)")
-            'For Each sceneString As String In matches.Groups(0).Captures(0).Value.Split(vbNewLine)
-            '	frameList.Add(Double.Parse(Regex.Match(sceneString, "(?<=time:).*(?= pos)").Value) * mobjMetaData.Framerate)
-            'Next
-            'Dim matches As Match = Regex.Match(dataRead, "(?m)frame=.*(?!$)")
-            'For Each sceneString As String In matches.Groups(0).Captures(0).Value.Split(vbNewLine)
-            '	frameList.Add(HHMMSSssToSeconds(Regex.Match(sceneString, "(?<=time=).*(?=bitrate)").Groups(0).Captures(0).Value) * mobjMetaData.Framerate)
-            'Next
-        End Using
-        Return sceneValues
-    End Function
 
     ''' <summary>
     ''' Given an array of scene change values, compress the array into a new array of given size
@@ -1190,11 +934,11 @@ Public Class MainForm
         Return compressedSceneChanges
     End Function
 
-    Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer, ChangeMin As Boolean) Handles ctlVideoSeeker.RangeChanged
+    Private Async Sub ctlVideoSeeker_RangeChanged(newVal As Integer, ChangeMin As Boolean) Handles ctlVideoSeeker.RangeChanged
         If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
             If Not mintCurrentFrame = newVal Then
                 mintCurrentFrame = newVal
-                picVideo.Image = GetFfmpegFrame(mintCurrentFrame)
+                picVideo.Image = Await mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame)
             End If
             mintDisplayInfo = RENDER_DECAY_TIME
         End If
@@ -1253,7 +997,13 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click
-        GetFfmpegFrame(0, -1)
+    Private Async Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click
+        Me.Cursor = Cursors.WaitCursor
+        Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
+        Me.Cursor = Cursors.Default
+    End Sub
+
+    Private Sub HolePuncherToolToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles HolePuncherToolToolStripMenuItem.Click
+        HolePuncherForm.Show()
     End Sub
 End Class

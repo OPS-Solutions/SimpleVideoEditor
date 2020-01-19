@@ -37,7 +37,7 @@
     Private mobjPuncherThread As Threading.Thread
     Private mobjChainList As New List(Of List(Of Chain)) 'List of videos, each with a list of frame chains found
 
-    Private Async Sub HolePuncherForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    Private Sub HolePuncherForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ofdVideoIn.Multiselect = True
         ofdVideoIn.Filter = "Video Files (*.*)|*.*"
         ofdVideoIn.Title = "Select Video Files"
@@ -81,7 +81,7 @@
             'Check if there is a save file so we don't have to recalculate the scene frames
             If Not objVideoData.ReadScenesFromFile Then
                 Await objVideoData.ExtractSceneChanges()
-                objVideoData.SaveSceneseToFile()
+                objVideoData.SaveScenesToFile()
             End If
             For Each objControl As Control In pnlSeekers.Controls
                 If objControl.GetType = GetType(VideoSeeker) Then
@@ -433,12 +433,12 @@
                 Next
                 processInfo.Arguments += ","
                 For goodIndex As Integer = 0 To goodPortions.Count - 1
-                    Dim startHHMMSS As String = MainForm.FormatHHMMSSm(goodPortions(goodIndex).startFrame / mlstMetaDatas(videoIndex).Framerate)
+                    Dim startHHMMSS As String = FormatHHMMSSm(goodPortions(goodIndex).startFrame / mlstMetaDatas(videoIndex).Framerate)
                     startHHMMSS = startHHMMSS.Insert(0, "'")
                     startHHMMSS = startHHMMSS.Insert(3, "\")
                     startHHMMSS = startHHMMSS.Insert(7, "\")
                     startHHMMSS += "'"
-                    Dim endHHMMSS As String = MainForm.FormatHHMMSSm((goodPortions(goodIndex).endFrame + 1) / mlstMetaDatas(videoIndex).Framerate)
+                    Dim endHHMMSS As String = FormatHHMMSSm((goodPortions(goodIndex).endFrame + 1) / mlstMetaDatas(videoIndex).Framerate)
                     endHHMMSS = endHHMMSS.Insert(0, "'")
                     endHHMMSS = endHHMMSS.Insert(3, "\")
                     endHHMMSS = endHHMMSS.Insert(7, "\")
@@ -455,12 +455,12 @@
                 Next
                 processInfo.Arguments += ","
                 For goodIndex As Integer = 0 To goodPortions.Count - 1
-                    Dim startHHMMSS As String = MainForm.FormatHHMMSSm(goodPortions(goodIndex).startFrame / mlstMetaDatas(videoIndex).Framerate)
+                    Dim startHHMMSS As String = FormatHHMMSSm(goodPortions(goodIndex).startFrame / mlstMetaDatas(videoIndex).Framerate)
                     startHHMMSS = startHHMMSS.Insert(0, "'")
                     startHHMMSS = startHHMMSS.Insert(3, "\")
                     startHHMMSS = startHHMMSS.Insert(7, "\")
                     startHHMMSS += "'"
-                    Dim endHHMMSS As String = MainForm.FormatHHMMSSm((goodPortions(goodIndex).endFrame + 1) / mlstMetaDatas(videoIndex).Framerate)
+                    Dim endHHMMSS As String = FormatHHMMSSm((goodPortions(goodIndex).endFrame + 1) / mlstMetaDatas(videoIndex).Framerate)
                     endHHMMSS = endHHMMSS.Insert(0, "'")
                     endHHMMSS = endHHMMSS.Insert(3, "\")
                     endHHMMSS = endHHMMSS.Insert(7, "\")

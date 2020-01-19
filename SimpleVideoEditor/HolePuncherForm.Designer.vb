@@ -138,7 +138,7 @@ Partial Class HolePuncherForm
         Me.Controls.Add(Me.btnいくよ)
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.Name = "HolePuncherForm"
-        Me.Text = "HolePuncherForm"
+        Me.Text = "Hole Puncher Tool"
         CType(Me.numThreshold, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.numMinChain, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
