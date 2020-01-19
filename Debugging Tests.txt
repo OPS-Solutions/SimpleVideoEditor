@@ -1,0 +1,27 @@
+Vid:1 F: 2022, @ 3216 for 820
+Vid:1 F: 3118, @ 4419 for 713
+Vid:1 F: 34045, @ 31856 for 2191
+
+Vid:1 F: 2040, @ 1154 for 838
+Vid:1 F: 3214, @ 2357 for 809
+Vid:1 F: 34045, @ 31855 for 2191
+
+Vid:1 F: 1938, @ 2473 for 736
+Vid:1 F: 3214, @ 3676 for 809
+Vid:1 F: 33357, @ 31856 for 1502
+
+1.61% should work, (so 17 threshold)
+
+4.1% messes something up
+4.3% safe
+
+10 - 31855 (full length)
+17 - 31854 (2192 length)
+23 - 31854, 33057 (split in the middle)
+26 - 31854 (short)
+41 - 31854 (short)
+42 - 31854 (short)
+43 - 31854,33057,33058
+
+Thresh 17 - min 600, gives full ending length 2192 frames
+Thresh 17, min 1500, misses the entire ending (should theoretically be able to use as high as 2192)

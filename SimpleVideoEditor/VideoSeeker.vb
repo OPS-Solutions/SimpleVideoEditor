@@ -97,16 +97,59 @@
         End Set
     End Property
 
+    Private mdblHolePunches() As Double
+
+    ''' <summary>
+    ''' Each of these frames is shown as things to be cut out
+    ''' </summary>\
+    Public Property HolePunches As Double()
+        Get
+            Return mdblHolePunches
+        End Get
+        Set(value As Double())
+            mdblHolePunches = value
+            Me.Invalidate()
+        End Set
+    End Property
+
+    Private mobjMetaData As VideoData
+
+    Public Property MetaData As VideoData
+        Get
+            Return mobjMetaData
+        End Get
+        Set(value As VideoData)
+            mobjMetaData = value
+            If mobjMetaData IsNot Nothing Then
+                Me.RangeMax = mobjMetaData.TotalFrames - 1
+            End If
+            Me.RangeMinValue = 0
+            Me.RangeMaxValue = Me.RangeMax
+            Me.RangeValues(0) = Me.RangeMinValue
+            Me.RangeValues(1) = Me.RangeMaxValue
+        End Set
+    End Property
+
+    Public Sub New()
+    End Sub
+
+    Public Sub New(metaData As VideoData)
+        Me.MetaData = metaData
+    End Sub
+
     ''' <summary>
     ''' Paints over the control with custom dual trackbar looking graphics.
     ''' </summary>
     Protected Overrides Sub OnPaint(e As PaintEventArgs)
-        'MyBase.OnPaint(e)
-        Dim numberOfTicks As Integer = Math.Min(Me.Width \ 2, mRangeMax - mRangeMin)
-        Dim distanceBetweenPoints As Double = Me.Width / numberOfTicks
-        Dim fullrange As Integer = mRangeMax - mRangeMin
+        Dim numberOfTicks As Integer = Math.Min((Me.Width - 1) \ 2, mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
+        Dim distanceBetweenPoints As Double = (Me.Width - 1) / (numberOfTicks - 1)
+        Dim fullrange As Integer = (mRangeMax - mRangeMin) + 1
+        Dim leftSeek As Single = ((RangeMinValue / fullrange) * (Me.Width - 1))
+        Dim rightSeek As Single = (((RangeMaxValue + 1) / fullrange) * (Me.Width - 1))
         'Draw background
-        e.Graphics.DrawRectangle(New Pen(If(Me.Enabled, Color.Green, Color.Gray), 6), CType((RangeMinValue * ((Me.Width - 1) / fullrange)) + 3, Integer), 6, CType(((RangeMaxValue - RangeMinValue) * ((Me.Width - 1) / fullrange)) - 6, Integer), Me.Height - 12)
+        Using contentBrush As New SolidBrush(If(Me.Enabled, Color.Green, Color.Gray))
+            e.Graphics.FillRectangle(contentBrush, leftSeek, 3, rightSeek - leftSeek, Me.Height - 6)
+        End Using
         Dim colorHeight As Integer = 12
         'Draw scene changes
         Using pen As New Pen(Color.DarkSeaGreen, 1)
@@ -114,6 +157,17 @@
                 Dim frameIndex As Integer = 0
                 For Each sceneChange As Single In marySceneChanges
                     e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (sceneChange * colorHeight)))
+                    frameIndex += 1
+                Next
+            End If
+        End Using
+
+        'Draw hole punches
+        Using pen As New Pen(Color.Gold, 1)
+            If mdblHolePunches IsNot Nothing Then
+                Dim frameIndex As Integer = 0
+                For Each holePunch As Single In mdblHolePunches
+                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (holePunch * colorHeight)))
                     frameIndex += 1
                 Next
             End If

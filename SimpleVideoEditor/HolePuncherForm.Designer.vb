@@ -38,6 +38,7 @@ Partial Class HolePuncherForm
         '
         'btnいくよ
         '
+        Me.btnいくよ.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.btnいくよ.BackColor = System.Drawing.SystemColors.Control
         Me.btnいくよ.Enabled = False
         Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
@@ -50,6 +51,7 @@ Partial Class HolePuncherForm
         '
         'numThreshold
         '
+        Me.numThreshold.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.numThreshold.Location = New System.Drawing.Point(260, 156)
         Me.numThreshold.Name = "numThreshold"
         Me.numThreshold.Size = New System.Drawing.Size(72, 20)
@@ -58,6 +60,7 @@ Partial Class HolePuncherForm
         '
         'lblThreshold
         '
+        Me.lblThreshold.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.lblThreshold.Location = New System.Drawing.Point(257, 140)
         Me.lblThreshold.Name = "lblThreshold"
         Me.lblThreshold.Size = New System.Drawing.Size(75, 13)
@@ -67,6 +70,9 @@ Partial Class HolePuncherForm
         '
         'pnlSeekers
         '
+        Me.pnlSeekers.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
+            Or System.Windows.Forms.AnchorStyles.Left) _
+            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.pnlSeekers.AutoScroll = True
         Me.pnlSeekers.Location = New System.Drawing.Point(12, 10)
         Me.pnlSeekers.Name = "pnlSeekers"
@@ -75,6 +81,7 @@ Partial Class HolePuncherForm
         '
         'btnBrowse
         '
+        Me.btnBrowse.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.btnBrowse.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnBrowse.Image = Global.SimpleVideoEditor.My.Resources.Resources.Folder
         Me.btnBrowse.Location = New System.Drawing.Point(260, 9)
@@ -89,6 +96,7 @@ Partial Class HolePuncherForm
         '
         'lblMinChain
         '
+        Me.lblMinChain.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.lblMinChain.Location = New System.Drawing.Point(257, 77)
         Me.lblMinChain.Name = "lblMinChain"
         Me.lblMinChain.Size = New System.Drawing.Size(75, 13)
@@ -98,6 +106,7 @@ Partial Class HolePuncherForm
         '
         'numMinChain
         '
+        Me.numMinChain.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.numMinChain.Location = New System.Drawing.Point(260, 93)
         Me.numMinChain.Maximum = New Decimal(New Integer() {3600, 0, 0, 0})
         Me.numMinChain.Minimum = New Decimal(New Integer() {30, 0, 0, 0})
@@ -108,6 +117,7 @@ Partial Class HolePuncherForm
         '
         'pgbProgress
         '
+        Me.pgbProgress.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.pgbProgress.Location = New System.Drawing.Point(260, 39)
         Me.pgbProgress.Name = "pgbProgress"
         Me.pgbProgress.Size = New System.Drawing.Size(72, 23)
