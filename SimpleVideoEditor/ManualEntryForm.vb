@@ -15,8 +15,13 @@ Public Class ManualEntryForm
 		ModifiedText = txtConsole.Text
 		Select Case e.KeyCode
 			Case Keys.Enter
+				Me.DialogResult = DialogResult.OK
 				Me.Close()
 			Case Keys.Return
+				Me.DialogResult = DialogResult.OK
+				Me.Close()
+			Case Keys.Escape
+				Me.DialogResult = DialogResult.Cancel
 				Me.Close()
 		End Select
 	End Sub
