@@ -150,7 +150,7 @@ Public Class VideoData
     End Function
 
     ''' <summary>
-    ''' Immediately polls ffmpeg for the given frame
+    ''' Polls ffmpeg for the given frame asynchrounously
     ''' </summary>
     Public Async Function GetFfmpegFrameAsync(ByVal frame As Integer, Optional cacheSize As Integer = 20) As Task(Of Bitmap)
         If mobjImageCache(frame) IsNot Nothing AndAlso cacheSize >= 0 Then
@@ -226,36 +226,173 @@ Public Class VideoData
         Dim tempProcess As Process = Process.Start(processInfo)
         RaiseEvent QueuedFrames(Me, startFrame, endFrame)
 
-        Dim dataRead As String = Await tempProcess.StandardOutput.ReadToEndAsync()
+        'Grab each frame as they are output from ffmpeg in real time as fast as possible
+        'Don't wait for the entire thing to complete
+        Dim currentFrame As Integer = startFrame
+        While True
+            Dim headerBuffer(5) As Char
+            Dim readCount As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
+            If readCount < 6 Then
+                Exit While
+            End If
+            Dim imageByteCount As Integer
+            If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
+                imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
+            End If
+            Dim imageBuffer(imageByteCount - 1) As Char
+            'Copy header
+            For index As Integer = 0 To 5
+                imageBuffer(index) = headerBuffer(index)
+            Next
+            Dim readImageBytes As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 6, imageByteCount - 6)
+            If readImageBytes < imageByteCount - 6 Then
+                Exit While
+            End If
+            Dim imageBytes(imageByteCount - 1) As Byte
+            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+
+            Using recievedstream As New System.IO.MemoryStream
+                recievedstream.Write(imageBytes, 0, imageByteCount)
+                mobjImageCache(currentFrame) = New Bitmap(recievedstream)
+            End Using
+            mobjQueuedImageCache(currentFrame) = Nothing
+            currentFrame += 1
+        End While
+
         tempWatch.Stop()
         Debug.Print(tempWatch.ElapsedTicks)
-        Dim byteBuffer() As Byte = System.Text.Encoding.Default.GetBytes(dataRead)
-        Dim imageSize As Integer = byteBuffer.Length / cacheTotal
 
-        'Check for rounding error and reduce cache total if necessary
-        'Ideally this should never happen, but I saw it happen with a video of 14.92fps And 35 total frames
-        If cacheTotal > 1 AndAlso byteBuffer(imageSize) <> 66 AndAlso byteBuffer(imageSize + 1) <> 77 Then
-            startFrame += 1
-            cacheTotal = endFrame - startFrame + 1
-            imageSize = byteBuffer.Length / cacheTotal
-            mobjQueuedImageCache(startFrame) = Nothing
-        End If
-        For index As Integer = 0 To cacheTotal - 1
-            Using recievedStream As New System.IO.MemoryStream
-                recievedStream.Write(byteBuffer, index * imageSize, imageSize)
-                If byteBuffer.Length > 0 Then
-                    mobjImageCache(startFrame + index) = New Bitmap(recievedStream)
-                End If
-            End Using
-        Next
-        'Unmark in case there was an issue
+        'With a video of 14.92fps and 35 total frames, the total returned images ended up being less than expected
+
+        'unmark in case there was an issue
         For index As Integer = startFrame To endFrame
             mobjQueuedImageCache(index) = Nothing
         Next
         RaiseEvent RetrievedFrames(Me, startFrame, endFrame)
-        'If System.IO.File.Exists(targetFilePath) Then
-        '	Return GetImageNonLocking(targetFilePath)
-        'End If
+        Return mobjImageCache(frame)
+    End Function
+
+    ''' <summary>
+    ''' Polls ffmpeg for the given frame asynchrounously
+    ''' </summary>
+    Public Async Function GetFfmpegFrameAsync2(ByVal frame As Integer, Optional cacheSize As Integer = 20) As Task(Of Bitmap)
+        If mobjImageCache(frame) IsNot Nothing AndAlso cacheSize >= 0 Then
+            'If we are at the edge of the cached items, try to expand it a little in advance
+            If mobjImageCache(Math.Min(frame + 4, mobjMetaData.totalFrames - 4)) Is Nothing Then
+                ThreadPool.QueueUserWorkItem(Sub()
+                                                 GetFfmpegFrameAsync2(Math.Min(frame + 1, mobjMetaData.totalFrames - 1))
+                                             End Sub)
+            End If
+            If mobjImageCache(Math.Max(0, frame - 4)) Is Nothing Then
+                ThreadPool.QueueUserWorkItem(Sub()
+                                                 GetFfmpegFrameAsync2(Math.Max(0, frame - 4))
+                                             End Sub)
+            End If
+            Return mobjImageCache(frame)
+        End If
+        If mobjQueuedImageCache(frame) IsNot Nothing Then
+            'Wait for already queued ffmpeg process to die
+            For index As Integer = 0 To 2000
+                If mobjImageCache(frame) IsNot Nothing Then
+                    Return mobjImageCache(frame)
+                End If
+                Threading.Thread.Sleep(1)
+            Next
+        End If
+        Dim earlyFrame As Integer = Math.Max(0, frame - (cacheSize - 1) / 2)
+
+        'Check what nearby frames need to be grabbed, don't re-grab ones we already have
+        Dim startFrame As Integer = frame 'First frame that is not cached
+        If cacheSize < 0 Then
+            startFrame = 0
+        End If
+        'Step backwards from the requested frame, preparing to get anything that hasn't been grabbed yet
+        For index As Integer = frame To earlyFrame Step -1
+            If mobjImageCache(index) Is Nothing AndAlso mobjQueuedImageCache(index) Is Nothing Then
+                startFrame = index
+            Else
+                Exit For
+            End If
+        Next
+        Dim lateFrame As Integer = Math.Min(mobjMetaData.totalFrames - 1, startFrame + cacheSize)
+        Dim endFrame As Integer = frame 'Last frame that is not cached
+        If cacheSize < 0 Then
+            endFrame = mobjMetaData.totalFrames - 1
+        End If
+        'Step forwards from the current frame, preparing to get anything that hasn't been grabbed yet
+        For index As Integer = frame To lateFrame
+            If mobjImageCache(index) Is Nothing AndAlso mobjQueuedImageCache(index) Is Nothing Then
+                endFrame = index
+            Else
+                Exit For
+            End If
+        Next
+        Debug.Print($"Working for frames:{startFrame}-{endFrame}")
+        'Mark images that we are looking for
+        For index As Integer = startFrame To endFrame
+            mobjQueuedImageCache(index) = Now
+        Next
+
+        Dim cacheTotal As Integer = endFrame - startFrame + 1
+        Dim tempWatch As New Stopwatch
+        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
+        tempWatch.Start()
+        Dim processInfo As New ProcessStartInfo
+        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+        processInfo.Arguments = " -ss " & FormatHHMMSSm((startFrame) / Me.Framerate)
+        processInfo.Arguments += " -i """ & Me.FullPath & """"
+#If DEBUG Then
+        cacheTotal = 1
+#End If
+        processInfo.Arguments += $" -vf scale=-1:10 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
+        processInfo.UseShellExecute = False
+        processInfo.CreateNoWindow = True
+        processInfo.RedirectStandardOutput = True
+        processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        Dim tempProcess As Process = Process.Start(processInfo)
+        RaiseEvent QueuedFrames(Me, startFrame, endFrame)
+
+        Dim currentFrame As Integer = startFrame
+        While tempProcess.StandardOutput.Peek() > 0
+            Dim headerBuffer(5) As Char
+            Dim readCount As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
+            If readCount < 6 Then
+                Exit While
+            End If
+            Dim imageByteCount As Integer
+            If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
+                imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
+            End If
+            Dim imageBuffer(imageByteCount - 1) As Char
+            'Copy header
+            For index As Integer = 0 To 5
+                imageBuffer(index) = headerBuffer(index)
+            Next
+            Dim readImageBytes As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 6, imageByteCount - 6)
+            If readImageBytes < imageByteCount - 6 Then
+                Exit While
+            End If
+            Dim imageBytes(imageByteCount - 1) As Byte
+            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+
+            Using recievedstream As New System.IO.MemoryStream
+                recievedstream.Write(imageBytes, 0, imageByteCount)
+                mobjImageCache(currentFrame) = New Bitmap(recievedstream)
+            End Using
+            mobjQueuedImageCache(currentFrame) = Nothing
+            currentFrame += 1
+        End While
+
+        tempWatch.Stop()
+        Debug.Print(tempWatch.ElapsedTicks)
+
+        'With a video of 14.92fps and 35 total frames, the total returned images ended up being less than expected
+
+        'unmark in case there was an issue
+        For index As Integer = startFrame To endFrame
+            mobjQueuedImageCache(index) = Nothing
+        Next
+        RaiseEvent RetrievedFrames(Me, startFrame, endFrame)
         Return mobjImageCache(frame)
     End Function
 
