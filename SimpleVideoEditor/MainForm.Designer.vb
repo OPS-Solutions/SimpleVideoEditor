@@ -519,7 +519,6 @@ Partial Class MainForm
         Me.ctlVideoSeeker.RangeMaxValue = 100
         Me.ctlVideoSeeker.RangeMin = 0
         Me.ctlVideoSeeker.RangeMinValue = 0
-        Me.ctlVideoSeeker.RangeValues = New Integer() {0, 100}
         Me.ctlVideoSeeker.SceneFrames = Nothing
         Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 18)
         Me.ctlVideoSeeker.TabIndex = 21

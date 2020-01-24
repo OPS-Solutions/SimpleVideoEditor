@@ -28,7 +28,7 @@ Public Class MainForm
     Private mintDisplayInfo As Integer = 0 'Timer value for how long to render special info to the main image
     Private Const RENDER_DECAY_TIME As Integer = 2000
 
-    Private mobjMetaData As VideoData 'Video metadata, including things like resolution, framerate, bitrate, etc.
+    Private WithEvents mobjMetaData As VideoData 'Video metadata, including things like resolution, framerate, bitrate, etc.
     Private mobjRotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
     Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
     Private mdblPlaybackSpeed As Double = 1
@@ -264,12 +264,10 @@ Public Class MainForm
         If picFrame5.Image Is Nothing Then
             picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 2)
         End If
-        If mobjMetaData.TotalFrames < 5 OrElse (picVideo.Image IsNot Nothing AndAlso picFrame1.Image IsNot Nothing AndAlso picFrame2.Image IsNot Nothing AndAlso picFrame3.Image IsNot Nothing AndAlso picFrame4.Image IsNot Nothing AndAlso picFrame5.Image IsNot Nothing) Then
-            'Application is finished searching for images, reset cursor
-            Cursor = Cursors.Arrow
-            ctlVideoSeeker.Enabled = True
-            btnいくよ.Enabled = True
-        End If
+        'Application is finished searching for images, reset cursor
+        Cursor = Cursors.Arrow
+        ctlVideoSeeker.Enabled = True
+        btnいくよ.Enabled = True
         'Try to read from file, otherwise go ahead and extract them
         If Not mobjMetaData.ReadScenesFromFile Then
             Await mobjMetaData.ExtractSceneChanges()
@@ -524,19 +522,16 @@ Public Class MainForm
     Private Sub picFrame_Click(sender As PictureBox, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
         Select Case True
             Case sender Is picFrame1
-                mintCurrentFrame = 0
+                ctlVideoSeeker.PreviewLocation = 0
             Case sender Is picFrame2
-                mintCurrentFrame = mobjMetaData.TotalFrames * 0.25
+                ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.25
             Case sender Is picFrame3
-                mintCurrentFrame = mobjMetaData.TotalFrames * 0.5
+                ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.5
             Case sender Is picFrame4
-                mintCurrentFrame = mobjMetaData.TotalFrames * 0.75
+                ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.75
             Case sender Is picFrame5
-                mintCurrentFrame = mobjMetaData.TotalFrames - 1
+                ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames - 1
         End Select
-        If sender.Image IsNot Nothing Then
-            picVideo.Image = sender.Image.Clone
-        End If
     End Sub
 
     ''' <summary>
@@ -665,8 +660,6 @@ Public Class MainForm
     Private Sub ClearControls()
         mptStartCrop = New Point(0, 0)
         mptEndCrop = New Point(0, 0)
-        ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMin
-        ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMax
         picVideo.Image = Nothing
         picFrame1.Image = Nothing
         picFrame2.Image = Nothing
@@ -796,26 +789,22 @@ Public Class MainForm
         Select Case keys
             Case Keys.A
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
-                ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMinValue
-                ctlVideoSeeker.Refresh()
+                ctlVideoSeeker.Invalidate()
                 'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
                 Return True
             Case Keys.D
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
-                ctlVideoSeeker.RangeValues(0) = ctlVideoSeeker.RangeMinValue
-                ctlVideoSeeker.Refresh()
+                ctlVideoSeeker.Invalidate()
                 'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
                 Return True
             Case Keys.Left
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
-                ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMaxValue
-                ctlVideoSeeker.Refresh()
+                ctlVideoSeeker.Invalidate()
                 'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
                 Return True
             Case Keys.Right
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
-                ctlVideoSeeker.RangeValues(1) = ctlVideoSeeker.RangeMaxValue
-                ctlVideoSeeker.Refresh()
+                ctlVideoSeeker.Invalidate()
                 'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
                 Return True
         End Select
@@ -934,13 +923,28 @@ Public Class MainForm
         Return compressedSceneChanges
     End Function
 
-    Private Async Sub ctlVideoSeeker_RangeChanged(newVal As Integer, ChangeMin As Boolean) Handles ctlVideoSeeker.RangeChanged
+    Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
         If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
             If Not mintCurrentFrame = newVal Then
                 mintCurrentFrame = newVal
-                picVideo.Image = Await mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame)
+                If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = VideoData.CacheStatus.Cached Then
+                    'Grab immediate
+                    picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+                Else
+                    'Loading image...
+                    picVideo.Image = Nothing
+                    'Queue, event will change the image for us
+                    mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame)
+                End If
             End If
             mintDisplayInfo = RENDER_DECAY_TIME
+        End If
+    End Sub
+
+    Private Sub NewFrameCached(sender As Object, startFrame As Integer, endFrame As Integer) Handles mobjMetaData.RetrievedFrames
+        If mintCurrentFrame >= startFrame AndAlso mintCurrentFrame <= endFrame Then
+            'Grab immediate
+            picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
         End If
     End Sub
 

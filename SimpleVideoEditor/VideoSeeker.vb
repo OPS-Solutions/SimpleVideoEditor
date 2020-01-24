@@ -1,6 +1,6 @@
 ﻿Public Class VideoSeeker
     Inherits UserControl
-    Public Event RangeChanged(ByVal newVal As Integer, ByVal ChangeMin As Boolean)
+    Public Event SeekChanged(ByVal newVal As Integer)
 
     Private pRangeMinValue As Integer = 0 'Value that should only be accessed by the property below
     ''' <summary>
@@ -18,7 +18,7 @@
                     pRangeMinValue = RangeMaxValue - 1
                 End If
             End If
-            RaiseEvent RangeChanged(pRangeMinValue, True)
+            PreviewLocation = pRangeMinValue
         End Set
     End Property
 
@@ -39,7 +39,7 @@
                     pRangeMaxValue = RangeMinValue + 1
                 End If
             End If
-            RaiseEvent RangeChanged(pRangeMaxValue, False)
+            PreviewLocation = pRangeMaxValue
         End Set
     End Property
 
@@ -70,37 +70,61 @@
     Private mRangeMax As Integer = 100
 
     ''' <summary>
-    ''' Storage for the last range values for the control
+    ''' Movable marker position for what frame should be displayed
     ''' </summary>
-    Public Property RangeValues As Integer()
+    Public Property PreviewLocation As Integer
         Get
-            Return mRangeValues
+            Return mintPreviewLocation
         End Get
-        Set(value As Integer())
-            mRangeValues = value
+        Set(value As Integer)
+            Dim newVal As Integer = Math.Min(Math.Max(value, mRangeMin), mRangeMax)
+            If newVal <> mintPreviewLocation Then
+                mintPreviewLocation = newVal
+                RaiseEvent SeekChanged(mintPreviewLocation)
+                Me.Invalidate()
+            End If
         End Set
     End Property
+    Private mintPreviewLocation As Integer = 0
 
-    Private mRangeValues As Integer() = {0, 100}
+    Public Enum SliderID
+        None = 0
+        LeftTrim = 1
+        RightTrim = 2
+        Preview = 3
+        Hover = 4
+    End Enum
 
-    Private marySceneChanges() As Double
+    Private menmSelectedSlider As SliderID
+
+    ''' <summary>
+    ''' Keeps track of which slider is currently selected
+    ''' </summary>
+    Public ReadOnly Property SelectedSlider As SliderID
+        Get
+            Return menmSelectedSlider
+        End Get
+    End Property
+
+
+    Private mdblSceneChanges() As Double
     ''' <summary>
     ''' Special marks will be shown for each of these frames
     ''' </summary>\
     Public Property SceneFrames As Double()
         Get
-            Return marySceneChanges
+            Return mdblSceneChanges
         End Get
         Set(value As Double())
-            marySceneChanges = value
-            If marySceneChanges?.Count > 0 Then
+            mdblSceneChanges = value
+            If mdblSceneChanges?.Count > 0 Then
                 Dim scale As Double = 1
-                Dim max As Double = marySceneChanges.Max()
+                Dim max As Double = mdblSceneChanges.Max()
                 If max > 0 Then
-                    scale = 1 / marySceneChanges.Max()
+                    scale = 1 / mdblSceneChanges.Max()
                     'Scale so that we always try to show something
-                    For index As Integer = 0 To marySceneChanges.Count - 1
-                        marySceneChanges(index) *= scale
+                    For index As Integer = 0 To mdblSceneChanges.Count - 1
+                        mdblSceneChanges(index) *= scale
                     Next
                 End If
             End If
@@ -137,8 +161,7 @@
             End If
             Me.RangeMinValue = 0
             Me.RangeMaxValue = Me.RangeMax
-            Me.RangeValues(0) = Me.RangeMinValue
-            Me.RangeValues(1) = Me.RangeMaxValue
+            Me.PreviewLocation = 0
         End Set
     End Property
 
@@ -151,26 +174,27 @@
         Me.DoubleBuffered = True
     End Sub
 
+    Private Const COLOR_HEIGHT As Integer = 12
+
     ''' <summary>
     ''' Paints over the control with custom dual trackbar looking graphics.
     ''' </summary>
     Protected Overrides Sub OnPaint(e As PaintEventArgs)
         Dim numberOfTicks As Integer = Math.Min((Me.Width - 1) \ 2, mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
         Dim distanceBetweenPoints As Double = (Me.Width - 1) / (numberOfTicks - 1)
-        Dim fullrange As Integer = (mRangeMax - mRangeMin) + 1
-        Dim leftSeek As Single = ((RangeMinValue / fullrange) * (Me.Width - 1))
-        Dim rightSeek As Single = (((RangeMaxValue + 1) / fullrange) * (Me.Width - 1))
+        Dim leftPreview As Single = ((PreviewLocation / FullRange) * (Me.Width - 1))
+        Dim rightPreview As Single = (((PreviewLocation + 1) / FullRange) * (Me.Width - 1))
         'Draw background
         Using contentBrush As New SolidBrush(If(Me.Enabled, Color.Green, Color.Gray))
-            e.Graphics.FillRectangle(contentBrush, leftSeek, 3, rightSeek - leftSeek, Me.Height - 6)
+            e.Graphics.FillRectangle(contentBrush, LeftSeekPixel, 3, RightSeekPixel - LeftSeekPixel, Me.Height - 6)
         End Using
-        Dim colorHeight As Integer = 12
+
         'Draw scene changes
         Using pen As New Pen(Color.DarkSeaGreen, 1)
-            If marySceneChanges IsNot Nothing Then
+            If mdblSceneChanges IsNot Nothing Then
                 Dim frameIndex As Integer = 0
-                For Each sceneChange As Single In marySceneChanges
-                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (sceneChange * colorHeight)))
+                For Each sceneChange As Single In mdblSceneChanges
+                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (sceneChange * COLOR_HEIGHT)))
                     frameIndex += 1
                 Next
             End If
@@ -181,7 +205,7 @@
             If maryHolePunches IsNot Nothing Then
                 Dim frameIndex As Integer = 0
                 For Each holePunch As Single In maryHolePunches
-                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (holePunch * colorHeight)))
+                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (holePunch * COLOR_HEIGHT)))
                     frameIndex += 1
                 Next
             End If
@@ -205,13 +229,92 @@
             Next
         End If
 
+        'Draw range sliders
         Using pen As New Pen(Color.Black, 1)
-            'Draw current points
-            e.Graphics.DrawLine(pen, New Point(leftSeek, Me.Height - 3), New Point(leftSeek, 0))
-            e.Graphics.DrawLine(pen, New Point(rightSeek, Me.Height - 3), New Point(rightSeek, 0))
+            e.Graphics.DrawLine(pen, New Point(LeftSeekPixel, Me.Height - 3), New Point(LeftSeekPixel, 0))
+            e.Graphics.DrawLine(pen, New Point(RightSeekPixel, Me.Height - 3), New Point(RightSeekPixel, 0))
+        End Using
+
+        'Draw preview frame
+        Using pen As New Pen(Color.LimeGreen, 1)
+            'Draw preview differently if it is attacked to a trim bar
+            If LeftSeekPixel = leftPreview Then
+                e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(leftPreview, 0))
+            ElseIf RightSeekPixel = rightPreview Then
+                e.Graphics.DrawLine(pen, New Point(rightPreview, Me.Height - 3), New Point(rightPreview, 0))
+            Else
+                e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(leftPreview, 0))
+                e.Graphics.DrawLine(pen, New Point(rightPreview, Me.Height - 3), New Point(rightPreview, 0))
+            End If
         End Using
     End Sub
 
+    Private ReadOnly Property FullRange As Integer
+        Get
+            Return (mRangeMax - mRangeMin) + 1
+        End Get
+    End Property
+
+    Private ReadOnly Property LeftSeekPixel As Single
+        Get
+            Return ((RangeMinValue / FullRange) * (Me.Width - 1))
+        End Get
+    End Property
+
+    Private ReadOnly Property RightSeekPixel As Single
+        Get
+            Return (((RangeMaxValue + 1) / FullRange) * (Me.Width - 1))
+        End Get
+    End Property
+
+    Private ReadOnly Property PreviewBounds As RectangleF
+        Get
+            Dim leftPreview As Single = ((PreviewLocation / FullRange) * (Me.Width - 1))
+            Dim rightPreview As Single = (((PreviewLocation + 1) / FullRange) * (Me.Width - 1))
+            Return New RectangleF(leftPreview, 0, rightPreview - leftPreview, Me.Height)
+        End Get
+    End Property
+
+#Region "Collision"
+    Private Const SLIDER_COLLISION_WIDTH As Integer = 20
+    Private Function CollisionRect(targetSlider As SliderID) As RectangleF
+        Select Case targetSlider
+            Case SliderID.LeftTrim
+                Dim leftPixel As Single = Math.Max(LeftSeekPixel - (SLIDER_COLLISION_WIDTH / 2), 0)
+                Dim rightpixel As Single = leftPixel + (SLIDER_COLLISION_WIDTH)
+                Return New RectangleF(leftPixel, 0, rightpixel - leftPixel, Me.Height)
+            Case SliderID.RightTrim
+                Dim rightPixel As Single = Math.Min(RightSeekPixel + (SLIDER_COLLISION_WIDTH / 2), Me.Width - 1)
+                Dim leftpixel As Single = rightPixel - (SLIDER_COLLISION_WIDTH)
+                Return New RectangleF(leftpixel, 0, rightPixel - leftpixel, Me.Height)
+            Case SliderID.Preview
+                Dim previewRect As RectangleF = PreviewBounds
+                previewRect.X -= (SLIDER_COLLISION_WIDTH - previewRect.Width) / 2
+                previewRect.Width = SLIDER_COLLISION_WIDTH - previewRect.Width
+                Return PreviewBounds
+            Case Else
+                Return Nothing
+        End Select
+    End Function
+
+    Private Function PotentialCollisions(location As Point) As List(Of SliderID)
+        Dim resultList As New List(Of SliderID)
+
+        If CollisionRect(SliderID.LeftTrim).Contains(location) Then
+            resultList.Add(SliderID.LeftTrim)
+        End If
+        If CollisionRect(SliderID.RightTrim).Contains(location) Then
+            resultList.Add(SliderID.RightTrim)
+        End If
+        If CollisionRect(SliderID.Preview).Contains(location) Then
+            resultList.Add(SliderID.Preview)
+        End If
+        'TODO Hover
+        Return resultList
+    End Function
+#End Region
+
+#Region "Mouse Interaction"
     ''' <summary>
     ''' Searches for the nearest slider in the control, and selects it for use.
     ''' </summary>
@@ -220,19 +323,23 @@
         'Convert mouse coordinates to increments, Grab closest slider
         If Me.Enabled Then
             Dim newValue As Integer = ((mRangeMax - mRangeMin) / Me.Width) * e.X
-            If Math.Abs(newValue - RangeMinValue) < Math.Abs(newValue - RangeMaxValue) Then
-                RangeSliderMinSelected = True
+
+            Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
+
+            If potentialCollisions.Count > 0 Then
+                potentialCollisions.Sort(Function(obj1, obj2) CollisionRect(obj1).DistanceToCenter(e.Location).CompareTo(CollisionRect(obj2).DistanceToCenter(e.Location)))
+                menmSelectedSlider = potentialCollisions(0)
             Else
-                RangeSliderMaxSelected = True
+                menmSelectedSlider = SliderID.Preview
             End If
+            If Me.Cursor = Cursors.Default Then
+                Me.Cursor = Cursors.SizeWE
+            End If
+
             Me.OnMouseMove(e)
             Me.Invalidate()
         End If
     End Sub
-
-
-    Private RangeSliderMinSelected As Boolean = False
-    Private RangeSliderMaxSelected As Boolean = False
 
     ''' <summary>
     ''' Changes the corresponding range values for the sliders in the control.
@@ -240,20 +347,38 @@
     Protected Overrides Sub OnMouseMove(e As MouseEventArgs)
         MyBase.OnMouseMove(e)
         If Me.Enabled Then
+            If menmSelectedSlider = SliderID.None Then
+                If Me.PotentialCollisions(e.Location).Count > 0 Then
+                    If Me.Cursor = Cursors.Default Then
+                        Me.Cursor = Cursors.SizeWE
+                    End If
+                Else
+                    If Not Me.Cursor = Cursors.Default Then
+                        Me.Cursor = Cursors.Default
+                    End If
+                End If
+            End If
             If e.Button = Windows.Forms.MouseButtons.Left Then
                 'Move range sliders
                 Dim newValue As Integer = ((mRangeMax - mRangeMin) / Me.Width) * e.X
-                If RangeSliderMinSelected Then
-                    If Not RangeMinValue = newValue Then
-                        RangeMinValue = newValue
-                        Me.Invalidate()
-                    End If
-                ElseIf RangeSliderMaxSelected Then
-                    If Not RangeMaxValue = newValue Then
-                        RangeMaxValue = newValue
-                        Me.Invalidate()
-                    End If
-                End If
+                Select Case menmSelectedSlider
+                    Case SliderID.LeftTrim
+                        If Not RangeMinValue = newValue Then
+                            RangeMinValue = newValue
+                        End If
+                    Case SliderID.RightTrim
+                        If Not RangeMaxValue = newValue Then
+                            RangeMaxValue = newValue
+                        End If
+                    Case SliderID.Preview
+                        If Not PreviewLocation = newValue Then
+                            PreviewLocation = newValue
+                        End If
+                    Case SliderID.Hover
+                        'TODO Maybe have a teeny display for cached images, scene change info, etc.
+                    Case Else
+                        'Ignore if nothing is selected
+                End Select
             End If
         End If
     End Sub
@@ -264,18 +389,11 @@
     Protected Overrides Sub OnMouseUp(e As MouseEventArgs)
         MyBase.OnMouseUp(e)
         If Me.Enabled Then
-            RangeSliderMinSelected = False
-            RangeSliderMaxSelected = False
-            Dim minChanged As Boolean = Not RangeMinValue = mRangeValues(0)
-            mRangeValues(0) = RangeMinValue
-            Dim maxChanged As Boolean = Not RangeMaxValue = mRangeValues(1)
-            mRangeValues(1) = RangeMaxValue
-            If minChanged Or maxChanged Then
-                RaiseEvent RangeChanged(If(minChanged, RangeMinValue, RangeMaxValue), False)
-                Me.Invalidate()
-            End If
+            menmSelectedSlider = SliderID.None
         End If
     End Sub
+#End Region
+
 
     Private Sub CacheUpdated(sender As Object, starframe As Integer, endFrame As Integer) Handles mobjMetaData.QueuedFrames, mobjMetaData.RetrievedFrames
         Me.Invalidate()

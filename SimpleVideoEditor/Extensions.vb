@@ -22,6 +22,16 @@ Module Extensions
     End Sub
 
     ''' <summary>
+    ''' Distance from a point to the center of the given rectangle
+    ''' </summary>
+    <Extension>
+    Public Function DistanceToCenter(rect As RectangleF, location As Point) As Single
+        Dim rectCenterX As Single = (rect.X + rect.Width / 2)
+        Dim rectCenterY As Single = (rect.Y + rect.Height / 2)
+        Return Math.Sqrt(Math.Pow(location.X - rectCenterX, 2) + Math.Pow(location.Y - rectCenterY, 2))
+    End Function
+
+    ''' <summary>
     ''' Converts a double like 100.5 seconds to HHMMSSm... like "00:01:40.5"
     ''' </summary>
     Public Function FormatHHMMSSm(ByVal totalSS As Double) As String
