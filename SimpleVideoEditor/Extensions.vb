@@ -32,6 +32,48 @@ Module Extensions
     End Function
 
     ''' <summary>
+    ''' Distance from a point to the center of the given rectangle
+    ''' </summary>
+    <Extension>
+    Public Function DistanceTo(pt1 As Point, pt2 As Point) As Single
+        Return Math.Sqrt(Math.Pow(pt2.X - pt1.X, 2) + Math.Pow(pt2.Y - pt1.Y, 2))
+    End Function
+
+    ''' <summary>
+    ''' Compares two byte arrays(must be of same length), and returns their average difference between bytes with a value between 0 and 1
+    ''' </summary>
+    <Extension>
+    Public Function CompareArraysAvg(array1 As Byte(), array2 As Byte()) As Double
+        If array1.Count <> array2.Count Then
+            Return False
+        End If
+
+        Dim difSum As Double = 0
+        For index As Integer = 0 To array1.Count - 1
+            difSum += Math.Abs(CType(array1(index), Integer) - array2(index)) / 255
+        Next
+        Dim difAvg As Double = difSum / array1.Count
+        Return difAvg
+    End Function
+
+    ''' <summary>
+    ''' Compares two double arrays(must be of same length), and returns their average difference
+    ''' </summary>
+    <Extension>
+    Public Function CompareArrays(array1 As Double(), array2 As Double()) As Double
+        If array1.Count <> array2.Count Then
+            Return False
+        End If
+
+        Dim difSum As Double = 0
+        For index As Integer = 0 To array1.Count - 1
+            difSum += Math.Abs(array1(index) - array2(index))
+        Next
+        Dim difAvg As Double = difSum / array1.Count
+        Return difAvg
+    End Function
+
+    ''' <summary>
     ''' Converts a double like 100.5 seconds to HHMMSSm... like "00:01:40.5"
     ''' </summary>
     Public Function FormatHHMMSSm(ByVal totalSS As Double) As String

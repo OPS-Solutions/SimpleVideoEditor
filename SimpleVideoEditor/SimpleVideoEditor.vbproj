@@ -134,6 +134,7 @@
     <Compile Include="HolePuncherForm.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="ImageCache.vb" />
     <Compile Include="ManualEntryForm.Designer.vb">
       <DependentUpon>ManualEntryForm.vb</DependentUpon>
     </Compile>

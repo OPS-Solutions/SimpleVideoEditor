@@ -45,7 +45,9 @@
         mlstMetaDatas.Clear()
         pnlSeekers.Controls.Clear()
         mobjChainList.Clear()
+    End Sub
 
+    Private Sub HolePuncherForm_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
         Try
             Select Case ofdVideoIn.ShowDialog()
                 Case DialogResult.OK
@@ -67,9 +69,6 @@
                     pgbProgress.Value = 0
 
                     CompareScenes()
-
-                    mobjPuncherThread = New Threading.Thread(AddressOf DetectSimilarities)
-                    mobjPuncherThread.Start(mobjChainList)
             End Select
         Catch ex As Exception
             MessageBox.Show(ex.StackTrace)
@@ -82,6 +81,10 @@
             If Not objVideoData.ReadScenesFromFile Then
                 Await objVideoData.ExtractSceneChanges()
                 objVideoData.SaveScenesToFile()
+            End If
+            If Not objVideoData.ReadThumbsFromFile Then
+                Await objVideoData.ExtractThumbFrames()
+                objVideoData.SaveThumbsToFile()
             End If
             For Each objControl As Control In pnlSeekers.Controls
                 If objControl.GetType = GetType(VideoSeeker) Then
@@ -135,6 +138,8 @@
         mobjPuncherThread.Start(mobjChainList)
     End Sub
 
+    Private Const IMAGE_COMPARE_THRESHOLD As Double = 0.004
+
     Private Sub DetectSimilarities(chainList As List(Of List(Of Chain)))
         Try
             Dim threshold As Double = numThreshold.Value / 1000
@@ -144,15 +149,17 @@
                 Dim holePunch(objData.SceneFrames.Count - 1) As Double
                 videoList.Add(holePunch)
             Next
-
-
+            Dim stopwatch As New Stopwatch
+            stopwatch.Start()
             'Compare each array to see if they have similarities
             'Loop through each video, comparing scene frames until one is within the threshold
             For masterIndex As Integer = 0 To mlstMetaDatas.Count - 1
                 Dim master As Double() = mlstMetaDatas(masterIndex).SceneFrames
+                Dim masterFrames As ImageCache.CacheItem() = mlstMetaDatas(masterIndex).ThumbFrames.Items 'Must grab and use the collection directly, access via the property takes ~28 times longer
                 'Only compare videos moving forward, so all video content will be shown at least once
                 For slaveIndex As Integer = masterIndex + 1 To mlstMetaDatas.Count - 1
                     Dim slave As Double() = mlstMetaDatas(slaveIndex).SceneFrames
+                    Dim slaveFrames As ImageCache.CacheItem() = mlstMetaDatas(slaveIndex).ThumbFrames.Items 'Must grab and use the collection directly, access via the property takes ~28 times longer
                     Dim slaveChains As List(Of Chain) = chainList(slaveIndex)
                     Dim chainStart As Integer = 0
                     Dim chainLength As Integer = 0
@@ -168,9 +175,15 @@
                         Next
                     Next
 
+                    Dim foundChainReversal As Boolean = False
+                    Dim masterSubframe As Integer
                     'Loop through frame by frame to find chains
                     For masterFrame As Integer = 0 To master.Count - 1
-                        Dim masterSubframe As Integer = masterFrame 'Keeps track of chain position
+                        'Do not reset subframe if it is carried over from a chain reversal
+                        If Not foundChainReversal Then
+                            masterSubframe = masterFrame 'Keeps track of chain position
+                        End If
+                        foundChainReversal = False
                         Dim foundSufficientChain As Boolean = False
                         For slaveFrame As Integer = Math.Max(0, slaveSkip) To slave.Count - 1
                             If slaveChains.Count > 0 Then
@@ -187,14 +200,16 @@
                                 End If
                             End If
                             frameComparisons += 1
-                            If master(masterSubframe).EqualsWithin(slave(slaveFrame), threshold) Then
+                            'If master(masterSubframe).EqualsWithin(slave(slaveFrame), threshold) AndAlso masterFrames(masterSubframe).EqualsWithin(slaveFrames(slaveFrame), IMAGE_COMPARE_THRESHOLD) Then
+                            If masterFrames(masterSubframe).EqualsWithin(slaveFrames(slaveFrame), IMAGE_COMPARE_THRESHOLD) Then
                                 If chainLength = 0 Then
                                     chainStart = slaveFrame
                                     'Check that the farthest frame would be valid, because if its not, you don't
                                     'want to waste time comparing against everything inbetween
                                     Dim masterPeek As Integer = masterSubframe + minChainLength
                                     Dim slavePeek As Integer = slaveFrame + minChainLength
-                                    If masterPeek > master.Count - 1 OrElse slavePeek > slave.Count - 1 OrElse Not master(masterPeek).EqualsWithin(slave(slavePeek), threshold) Then
+                                    'If masterPeek > master.Count - 1 OrElse slavePeek > slave.Count - 1 OrElse Not (master(masterPeek).EqualsWithin(slave(slavePeek), threshold) AndAlso masterFrames(masterPeek).EqualsWithin(slaveFrames(slavePeek), IMAGE_COMPARE_THRESHOLD)) Then
+                                    If masterPeek > master.Count - 1 OrElse slavePeek > slave.Count - 1 OrElse Not masterFrames(masterPeek).EqualsWithin(slaveFrames(slavePeek), IMAGE_COMPARE_THRESHOLD) Then
                                         totalBadChainSkips += 1
                                         Continue For
                                     End If
@@ -244,12 +259,14 @@
                                 skipFrameComparisons += 1
                                 'TODO Do not check equals here, find the match with the longest forward chain, then go backwards from there
                                 'Actually that might not work, you could skip to just the end of a OP, but match something else
-                                If master(skipFrame).EqualsWithin(slave(slaveFrame), threshold) Then
+                                'If (master(skipFrame).EqualsWithin(slave(slaveFrame), threshold) AndAlso masterFrames(skipFrame).EqualsWithin(slaveFrames(slaveFrame), IMAGE_COMPARE_THRESHOLD)) Then
+                                If masterFrames(skipFrame).EqualsWithin(slaveFrames(slaveFrame), IMAGE_COMPARE_THRESHOLD) Then
                                     Dim slaveOffset As Integer = 0
                                     skipMatches += 1
                                     For reverseIndex As Integer = skipFrame To masterFrame Step -1
                                         reverseFrameComparisons += 1
-                                        If (slaveFrame - slaveOffset < 0) OrElse Not master(reverseIndex).EqualsWithin(slave(slaveFrame - slaveOffset), threshold) Then
+                                        'If (slaveFrame - slaveOffset < 0) OrElse Not (master(reverseIndex).EqualsWithin(slave(slaveFrame - slaveOffset), threshold) AndAlso masterFrames(reverseIndex).EqualsWithin(slaveFrames(slaveFrame - slaveOffset), IMAGE_COMPARE_THRESHOLD)) Then
+                                        If (slaveFrame - slaveOffset < 0) OrElse Not masterFrames(reverseIndex).EqualsWithin(slaveFrames(slaveFrame - slaveOffset), IMAGE_COMPARE_THRESHOLD) Then
                                             slaveSkip = slaveFrame + 1
                                             chainStart = (slaveFrame - slaveOffset) + 1
                                             If slaveFrame - chainStart > farthestSlaveskip - farthestReversal Then
@@ -265,11 +282,20 @@
                             Next
                             chainStart = farthestReversal
                             slaveSkip = farthestSlaveskip
-                            chainLength = (slaveSkip - chainStart)
+                            chainLength = Math.Max(slaveSkip - chainStart, 0)
+
+                            If chainLength > 0 Then
+                                foundChainReversal = True
+                                masterSubframe = skipFrame + 1
+                                skipFrame -= chainLength
+                            End If
                             masterFrame = skipFrame 'Automaticall increments by 1 when it hits the loop "Next"
                         End If
+                        If masterFrame >= 31760 Then
+                            Dim asdf As String = "ASDF"
+                        End If
                     Next
-                    Debug.Print("Completed search from: " + masterIndex.ToString + " to " + slaveIndex.ToString)
+                    Debug.Print($"Completed search from: {masterIndex.ToString} to {slaveIndex} in {stopwatch.ElapsedMilliseconds}ms")
                     Debug.Print("Cost: " + frameComparisons.ToString + " main comparisons. " + skipFrameComparisons.ToString + " skip comparisons. " + reverseFrameComparisons.ToString + " reverse comparisons.")
                     Debug.Print("Matched on " + skipMatches.ToString + " skips. With " + totalChainAttempts.ToString + " total chain attempts. Skipping " + totalBadChainSkips.ToString + " bad chain attempts.")
                     totalComparisons += 1
@@ -288,6 +314,7 @@
                     Next
                 Next
             Next
+            stopwatch.Stop()
             For Each objVid In mobjChainList
                 For Each objChain In objVid
                     Debug.Print(objChain.ToString)

@@ -150,6 +150,10 @@ Public Class MainForm
             'Don't pass in special properties yet, it would be better to decimate after cropping
             RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, Nothing, 0, 0, cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
             mproFfmpegProcess.WaitForExit()
+            'Check if user canceled manual entry
+            If Not File.Exists(intermediateFilePath) Then
+                Exit Sub
+            End If
         End If
         Dim realTopLeftCrop As Point = mptStartCrop
         Dim realBottomRightCrop As Point = mptEndCrop
@@ -168,6 +172,10 @@ Public Class MainForm
         mproFfmpegProcess.WaitForExit()
         If overwriteOriginal Or (postCropOperation AndAlso willCrop) Then
             My.Computer.FileSystem.DeleteFile(intermediateFilePath)
+        End If
+        If File.Exists(outputPath) Then
+            'Show file location of saved file
+            Process.Start("explorer.exe", $"/select,""{outputPath}""")
         End If
     End Sub
 
@@ -205,6 +213,11 @@ Public Class MainForm
     ''' Loads default frames when called.
     ''' </summary>
     Public Async Sub LoadDefaultFrames()
+        'Make sure the user is notified that the application is working
+        If Cursor = Cursors.Arrow Then
+            Cursor = Cursors.WaitCursor
+        End If
+
         'Use ffmpeg to grab images into a temporary folder
         Dim tempImage As Bitmap = Await mobjMetaData.GetFfmpegFrameAsync(0)
         mintCurrentFrame = 0
@@ -223,8 +236,9 @@ Public Class MainForm
                 SwapValues(mintAspectWidth, mintAspectHeight)
             End If
         End If
-        mdblScaleFactorX = mintAspectWidth / picVideo.Width
-        mdblScaleFactorY = mintAspectHeight / picVideo.Height
+        Cursor = Cursors.Arrow
+        ctlVideoSeeker.Enabled = True
+        btnいくよ.Enabled = True
     End Sub
 
     ''' <summary>
@@ -234,25 +248,6 @@ Public Class MainForm
         'Make sure the user is notified that the application is working
         If Cursor = Cursors.Arrow Then
             Cursor = Cursors.WaitCursor
-        End If
-        'Check if the default frames are available
-        If picVideo.Image Is Nothing Then
-            mintCurrentFrame = 0
-            picVideo.Image = Await mobjMetaData.GetFfmpegFrameAsync(0)
-            'Now that the use can see things, they can go ahead and try to edit
-        End If
-        If picVideo.Image IsNot Nothing Then
-            'If the aspect ration was somehow saved wrong, fix it
-            'Try flipping the known aspect, if its closer to what was loaded, change it
-            If mintAspectWidth <> 0 And mintAspectHeight <> 0 Then
-                If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
-                    Dim tempHeight As Integer = mintAspectHeight
-                    mintAspectHeight = mintAspectWidth
-                    mintAspectWidth = tempHeight
-                End If
-            End If
-            ctlVideoSeeker.Enabled = True
-            btnいくよ.Enabled = True
         End If
 
         'Grab keyframes
@@ -266,116 +261,25 @@ Public Class MainForm
         End If
         'Application is finished searching for images, reset cursor
         Cursor = Cursors.Arrow
-        ctlVideoSeeker.Enabled = True
-        btnいくよ.Enabled = True
+
         'Try to read from file, otherwise go ahead and extract them
         If Not mobjMetaData.ReadScenesFromFile Then
-            Await mobjMetaData.ExtractSceneChanges()
-            mobjMetaData.SaveScenesToFile()
+            ThreadPool.QueueUserWorkItem(Async Sub()
+                                             Await mobjMetaData.ExtractSceneChanges()
+                                             Me.BeginInvoke(Sub()
+                                                                ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+                                                            End Sub)
+                                         End Sub)
+            'mobjMetaData.SaveScenesToFile()
         End If
-        ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
-        'TODO Grab compressed frame. Something like a 3x3 pixel image for each frame
+        'Grab compressed frames
+        If Not mobjMetaData.ReadThumbsFromFile Then
+            ThreadPool.QueueUserWorkItem(Async Sub()
+                                             Await mobjMetaData.ExtractThumbFrames()
+                                         End Sub)
+            'mobjMetaData.SaveThumbsToFile()
+        End If
     End Sub
-
-#Region "Get File Attributes"
-    ''' <summary>
-    ''' Searches file details to find duration information
-    ''' </summary>
-    Function GetHHMMSS(ByVal fullPath As String) As String
-        'Check a few known possible locations for details that look like duration like 00:08:02
-        If System.IO.File.Exists(fullPath) Then
-            Dim shell As Object = CreateObject("Shell.Application")
-            Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
-            For Each strFileName In folder.Items
-                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(fullPath) Then
-                    For index As Integer = 0 To 500
-                        If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Equals("length")) Then
-                            Return folder.GetDetailsOf(strFileName, index).ToString
-                        End If
-                    Next
-                    Exit For
-                End If
-            Next
-        End If
-        Return ""
-    End Function
-
-    ''' <summary>
-    ''' Searches file details to find frame rate information
-    ''' </summary>
-    Function GetFrameRate(ByVal fullPath As String) As Integer
-        Try
-            'Loop through folder info for information that looks like frames/second
-            If System.IO.File.Exists(fullPath) Then
-                Dim shell As Object = CreateObject("Shell.Application")
-                Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
-                For Each strFileName In folder.Items
-                    If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(fullPath) Then
-                        For index As Integer = 0 To 500
-                            Debug.Print(folder.GetDetailsOf(Nothing, index).ToString & " | " & folder.GetDetailsOf(strFileName, index))
-                            If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame rate")) Then
-                                Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString.Split(" ")(0).Trim("‎")) 'Trim is not empty, it contains zero width space
-                            End If
-                        Next
-                        Exit For
-                    End If
-                Next
-            End If
-        Catch ex As Exception
-            'MessageBox.Show("No Framerate Detected... Defaulted to 30 FPS...")
-            'Error, default to 30 fps
-            Return 30
-        End Try
-        Return 30
-    End Function
-
-    ''' <summary>
-    ''' Searches file details to find horizontal resolution of the video
-    ''' </summary>
-    Function GetHorizontalResolution(ByVal fullPath As String) As Integer
-        Dim attrib As FileAttribute = System.IO.File.GetAttributes(fullPath)
-
-        'Loop through folder info for information that looks like frames/second
-        If System.IO.File.Exists(fullPath) Then
-            Dim shell As Object = CreateObject("Shell.Application")
-            Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
-            For Each strFileName In folder.Items
-                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(fullPath) Then
-                    For index As Integer = 0 To 500
-                        If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame width")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString)
-                        End If
-                    Next
-                    Exit For
-                End If
-            Next
-        End If
-        Return 0
-    End Function
-
-    ''' <summary>
-    ''' Searches file details to find vertical resolution of the video
-    ''' </summary>
-    Function GetVerticalResolution(ByVal fullPath As String) As Integer
-        'Loop through folder info for information that looks like frames/second
-        If System.IO.File.Exists(fullPath) Then
-            Dim shell As Object = CreateObject("Shell.Application")
-            Dim folder As Object = shell.Namespace(System.IO.Path.GetDirectoryName(fullPath))
-            For Each strFileName In folder.Items
-                If System.IO.Path.GetFileName(strFileName.Path) = System.IO.Path.GetFileName(fullPath) Then
-                    For index As Integer = 0 To 500
-                        'Debug.Print(index & ":" & folder.GetDetailsOf(Nothing, index).ToString)
-                        If (folder.GetDetailsOf(Nothing, index).ToString.ToLower.Contains("frame height")) Then
-                            Return Integer.Parse(folder.GetDetailsOf(strFileName, index).ToString)
-                        End If
-                    Next
-                    Exit For
-                End If
-            Next
-        End If
-        Return 0
-    End Function
-#End Region
 
     ''' <summary>
     ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
@@ -385,7 +289,6 @@ Public Class MainForm
         If specProperties?.PlaybackSpeed <> 0 Then
             duration /= specProperties.PlaybackSpeed
         End If
-        Dim startHHMMSS As String = FormatHHMMSSm(startSS / specProperties.PlaybackSpeed)
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'Flip vertical
@@ -394,6 +297,7 @@ Public Class MainForm
         '-filter:v "crop=out_w:out_h:x:y"
         processInfo.Arguments = "-i """ & inputFile & """"
         If duration > 0 Then
+            Dim startHHMMSS As String = FormatHHMMSSm(startSS / specProperties.PlaybackSpeed)
             processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
         End If
 
@@ -560,7 +464,9 @@ Public Class MainForm
     Private Sub picVideo_MouseDown(sender As Object, e As MouseEventArgs) Handles picVideo.MouseDown
         'Start dragging start or end point
         If e.Button = Windows.Forms.MouseButtons.Left Then
-            mptStartCrop = New Point(e.X, e.Y)
+            If Not mptEndCrop.DistanceTo(e.Location) < 10 Then
+                mptStartCrop = New Point(e.X, e.Y)
+            End If
             mptEndCrop = New Point(e.X, e.Y)
         End If
         picVideo.Refresh()
@@ -702,15 +608,15 @@ Public Class MainForm
     ''' <summary>
     ''' Add a little bit of text to the end of a file name string between its extension like "-temp" or "-SHINY".
     ''' </summary>
-    Public Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
-        Return System.IO.Path.GetDirectoryName(mstrVideoPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(mstrVideoPath) & newEnd & System.IO.Path.GetExtension(mstrVideoPath)
+    Public Shared Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
+        Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
     End Function
 
     ''' <summary>
     ''' Changes the extension of a filepath string
     ''' </summary>
-    Public Function FileNameChangeExtension(ByVal fullPath As String, ByVal newExtension As String)
-        Return System.IO.Path.GetDirectoryName(mstrVideoPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(mstrVideoPath) & newExtension
+    Public Shared Function FileNameChangeExtension(ByVal fullPath As String, ByVal newExtension As String)
+        Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newExtension
     End Function
 
     ''' <summary>
@@ -927,12 +833,17 @@ Public Class MainForm
         If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
             If Not mintCurrentFrame = newVal Then
                 mintCurrentFrame = newVal
-                If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = VideoData.CacheStatus.Cached Then
+                If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
                     'Grab immediate
                     picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
                 Else
-                    'Loading image...
-                    picVideo.Image = Nothing
+                    If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+                        'Check for low res thumbnail if we have it
+                        picVideo.Image = mobjMetaData.GetImageFromThumbCache(mintCurrentFrame)
+                    Else
+                        'Loading image...
+                        picVideo.Image = Nothing
+                    End If
                     'Queue, event will change the image for us
                     mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame)
                 End If

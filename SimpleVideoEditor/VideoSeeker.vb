@@ -218,11 +218,11 @@
                 currentFrameTick = (Me.mobjMetaData.TotalFrames / numberOfTicks) * index
                 Dim drawPen As Pen = Pens.Gray
                 Select Case Me.mobjMetaData.ImageCacheStatus(currentFrameTick)
-                    Case VideoData.CacheStatus.None
+                    Case ImageCache.CacheStatus.None
                         drawPen = Pens.DarkGray
-                    Case VideoData.CacheStatus.Queued
+                    Case ImageCache.CacheStatus.Queued
                         drawPen = Pens.Blue
-                    Case VideoData.CacheStatus.Cached
+                    Case ImageCache.CacheStatus.Cached
                         drawPen = Pens.Black
                 End Select
                 e.Graphics.DrawLine(drawPen, New Point(index * distanceBetweenPoints, Me.Height), New Point(index * distanceBetweenPoints, Me.Height - 2))
