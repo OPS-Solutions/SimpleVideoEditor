@@ -151,6 +151,18 @@ Public Class ImageCache
 
             Return margin >= difAvg
         End Function
+
+        Public Function Status() As CacheStatus
+            If Me.Image Is Nothing AndAlso Me.QueueTime Is Nothing Then
+                Return CacheStatus.None
+            End If
+            If Me.Image IsNot Nothing Then
+                Return CacheStatus.Cached
+            ElseIf Me.QueueTime IsNot Nothing Then
+                Return CacheStatus.Queued
+            End If
+            Return CacheStatus.None
+        End Function
     End Class
 
     Public Enum CacheStatus
@@ -192,13 +204,9 @@ Public Class ImageCache
     Public Function ImageCacheStatus(intFrame As Integer) As CacheStatus
         If intFrame < 0 OrElse intFrame >= Me.mobjCollection.Count Then
             Return CacheStatus.None
+        Else
+            Return Me.mobjCollection(intFrame).Status
         End If
-        If Me.mobjCollection(intFrame).Image IsNot Nothing Then
-            Return CacheStatus.Cached
-        ElseIf Me.mobjCollection(intFrame).QueueTime IsNot Nothing Then
-            Return CacheStatus.Queued
-        End If
-        Return CacheStatus.None
     End Function
 
     ''' <summary>

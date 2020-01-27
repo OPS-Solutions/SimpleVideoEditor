@@ -175,12 +175,12 @@ Public Class VideoData
         End If
         If targetCache(frame).Image IsNot Nothing AndAlso cacheSize >= 0 Then
             'If we are at the edge of the cached items, try to expand it a little in advance
-            If targetCache(Math.Min(frame + 4, mobjMetaData.totalFrames - 4)).Image Is Nothing Then
+            If targetCache(Math.Min(frame + 4, mobjMetaData.totalFrames - 4)).Status = ImageCache.CacheStatus.None Then
                 ThreadPool.QueueUserWorkItem(Sub()
                                                  GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
                                              End Sub)
             End If
-            If targetCache(Math.Max(0, frame - 4)).Image Is Nothing Then
+            If targetCache(Math.Max(0, frame - 4)).Status = ImageCache.CacheStatus.None Then
                 ThreadPool.QueueUserWorkItem(Sub()
                                                  GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
                                              End Sub)
