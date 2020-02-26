@@ -389,8 +389,9 @@
     Protected Overrides Sub OnMouseUp(e As MouseEventArgs)
         MyBase.OnMouseUp(e)
         If Me.Enabled Then
-            menmSelectedSlider = SliderID.None
-        End If
+			menmSelectedSlider = SliderID.None
+			RaiseEvent SeekChanged(mintPreviewLocation) 'Not actually changed, but we are done manipulating at least
+		End If
     End Sub
 #End Region
 

@@ -221,6 +221,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Play Button Old.ico" />
+    <None Include="Resources\UserInjectionIcon.png" />
     <None Include="Resources\qscaleOn.png" />
     <None Include="Resources\qscaleOff.png" />
     <None Include="Resources\StopWatch.png" />
