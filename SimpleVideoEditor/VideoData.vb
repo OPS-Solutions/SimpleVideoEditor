@@ -230,17 +230,17 @@ Public Class VideoData
         If frameSize.Width = 0 AndAlso frameSize.Height = 0 Then
             frameSize.Width = 288
         End If
-        processInfo.Arguments += $" -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)} -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
-        processInfo.UseShellExecute = False
+		processInfo.Arguments += $" -r {Me.Framerate} -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)} -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
+		processInfo.UseShellExecute = False
         processInfo.CreateNoWindow = True
-        processInfo.RedirectStandardOutput = True
-        processInfo.WindowStyle = ProcessWindowStyle.Hidden
-        Dim tempProcess As Process = Process.Start(processInfo)
-        RaiseEvent QueuedFrames(Me, startFrame, endFrame)
+		processInfo.RedirectStandardOutput = True
+		processInfo.WindowStyle = ProcessWindowStyle.Hidden
+		Dim tempProcess As Process = Process.Start(processInfo)
+		RaiseEvent QueuedFrames(Me, startFrame, endFrame)
 
-        'Grab each frame as they are output from ffmpeg in real time as fast as possible
-        'Don't wait for the entire thing to complete
-        Dim currentFrame As Integer = startFrame
+		'Grab each frame as they are output from ffmpeg in real time as fast as possible
+		'Don't wait for the entire thing to complete
+		Dim currentFrame As Integer = startFrame
         While True
             Dim headerBuffer(5) As Char
             Dim readCount As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)

@@ -245,46 +245,47 @@ Public Class MainForm
     ''' Asynchronously polls for keyframe image data from ffmpeg, gives a loading cursor
     ''' </summary>
     Private Async Sub PollPreviewFrames()
-        'Make sure the user is notified that the application is working
-        If Cursor = Cursors.Arrow Then
-            Cursor = Cursors.WaitCursor
-        End If
+		'Make sure the user is notified that the application is working
+		If Cursor = Cursors.Arrow Then
+			Cursor = Cursors.WaitCursor
+		End If
 
-        'Grab keyframes
-        picFrame1.Image = Await mobjMetaData.GetFfmpegFrameAsync(0)
-        picFrame2.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.25)
-        picFrame3.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.5)
-        picFrame4.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.75)
-        picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 1)
-        If picFrame5.Image Is Nothing Then
-            picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 2)
-        End If
-        'Application is finished searching for images, reset cursor
-        Cursor = Cursors.Arrow
+		'Try to read from file, otherwise go ahead and extract them
+		If Not mobjMetaData.ReadScenesFromFile Then
+			ThreadPool.QueueUserWorkItem(Async Sub()
+											 Await mobjMetaData.ExtractSceneChanges()
+											 Me.BeginInvoke(Sub()
+																ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+															End Sub)
+										 End Sub)
+			'mobjMetaData.SaveScenesToFile()
+		End If
+		'Grab compressed frames
+		If Not mobjMetaData.ReadThumbsFromFile Then
+			ThreadPool.QueueUserWorkItem(Async Sub()
+											 Await mobjMetaData.ExtractThumbFrames()
+										 End Sub)
+			'mobjMetaData.SaveThumbsToFile()
+		End If
 
-        'Try to read from file, otherwise go ahead and extract them
-        If Not mobjMetaData.ReadScenesFromFile Then
-            ThreadPool.QueueUserWorkItem(Async Sub()
-                                             Await mobjMetaData.ExtractSceneChanges()
-                                             Me.BeginInvoke(Sub()
-                                                                ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
-                                                            End Sub)
-                                         End Sub)
-            'mobjMetaData.SaveScenesToFile()
-        End If
-        'Grab compressed frames
-        If Not mobjMetaData.ReadThumbsFromFile Then
-            ThreadPool.QueueUserWorkItem(Async Sub()
-                                             Await mobjMetaData.ExtractThumbFrames()
-                                         End Sub)
-            'mobjMetaData.SaveThumbsToFile()
-        End If
-    End Sub
+		'Grab keyframes
+		picFrame1.Image = Await mobjMetaData.GetFfmpegFrameAsync(0)
+		picFrame2.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.25)
+		picFrame3.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.5)
+		picFrame4.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.75)
+		picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 1)
+		If picFrame5.Image Is Nothing Then
+			picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 2)
+		End If
+		'Application is finished searching for images, reset cursor
+		Cursor = Cursors.Arrow
 
-    ''' <summary>
-    ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
-    ''' </summary>
-    Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
+	End Sub
+
+	''' <summary>
+	''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
+	''' </summary>
+	Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
         Dim duration As String = (endSS) - (startSS)
         If specProperties?.PlaybackSpeed <> 0 Then
             duration /= specProperties.PlaybackSpeed
@@ -571,8 +572,9 @@ Public Class MainForm
         picFrame2.Image = Nothing
         picFrame3.Image = Nothing
         picFrame4.Image = Nothing
-        picFrame5.Image = Nothing
-        ctlVideoSeeker.Enabled = False
+		picFrame5.Image = Nothing
+		ctlVideoSeeker.SceneFrames = Nothing
+		ctlVideoSeeker.Enabled = False
         btnいくよ.Enabled = False
         lblFileName.Text = ""
     End Sub
@@ -829,30 +831,42 @@ Public Class MainForm
         Return compressedSceneChanges
     End Function
 
-    Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
-        If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
-            If Not mintCurrentFrame = newVal Then
-                mintCurrentFrame = newVal
-                If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-                    'Grab immediate
-                    picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
-                Else
-                    If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-                        'Check for low res thumbnail if we have it
-                        picVideo.Image = mobjMetaData.GetImageFromThumbCache(mintCurrentFrame)
-                    Else
-                        'Loading image...
-                        picVideo.Image = Nothing
-                    End If
-                    'Queue, event will change the image for us
-                    mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame)
-                End If
-            End If
-            mintDisplayInfo = RENDER_DECAY_TIME
-        End If
-    End Sub
+	Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
+		If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
+			If Not mintCurrentFrame = newVal Then
+				mintCurrentFrame = newVal
+				If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+					'Grab immediate
+					picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+				Else
+					If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+						'Check for low res thumbnail if we have it
+						picVideo.Image = mobjMetaData.GetImageFromThumbCache(mintCurrentFrame)
+					Else
+						'Loading image...
+						picVideo.Image = Nothing
+					End If
+					'Queue, event will change the image for us
+					If mobjSlideQueue Is Nothing OrElse Not mobjSlideQueue.IsAlive Then
+						mobjSlideQueue = New Thread(Sub()
+														Dim startFrame As Integer
+														Do
+															startFrame = mintCurrentFrame
+															mobjMetaData.GetFfmpegFrame(mintCurrentFrame)
+														Loop While startFrame <> mintCurrentFrame
+													End Sub)
+						mobjSlideQueue.Start()
+					End If
+				End If
+			End If
+			mintDisplayInfo = RENDER_DECAY_TIME
+		End If
+	End Sub
 
-    Private Sub NewFrameCached(sender As Object, startFrame As Integer, endFrame As Integer) Handles mobjMetaData.RetrievedFrames
+	Private mobjSlideQueue As Thread
+
+
+	Private Sub NewFrameCached(sender As Object, startFrame As Integer, endFrame As Integer) Handles mobjMetaData.RetrievedFrames
         If mintCurrentFrame >= startFrame AndAlso mintCurrentFrame <= endFrame Then
             'Grab immediate
             picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
