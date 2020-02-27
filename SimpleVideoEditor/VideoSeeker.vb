@@ -320,26 +320,26 @@
     ''' </summary>
     Protected Overrides Sub OnMouseDown(e As MouseEventArgs)
         MyBase.OnMouseDown(e)
-        'Convert mouse coordinates to increments, Grab closest slider
-        If Me.Enabled Then
-            Dim newValue As Integer = ((mRangeMax - mRangeMin) / Me.Width) * e.X
+		'Convert mouse coordinates to increments, Grab closest slider
+		If Me.Enabled AndAlso e.Button = MouseButtons.Left Then
+			Dim newValue As Integer = ((mRangeMax - mRangeMin) / Me.Width) * e.X
 
-            Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
+			Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
 
-            If potentialCollisions.Count > 0 Then
-                potentialCollisions.Sort(Function(obj1, obj2) CollisionRect(obj1).DistanceToCenter(e.Location).CompareTo(CollisionRect(obj2).DistanceToCenter(e.Location)))
-                menmSelectedSlider = potentialCollisions(0)
-            Else
-                menmSelectedSlider = SliderID.Preview
-            End If
-            If Me.Cursor = Cursors.Default Then
-                Me.Cursor = Cursors.SizeWE
-            End If
+			If potentialCollisions.Count > 0 Then
+				potentialCollisions.Sort(Function(obj1, obj2) CollisionRect(obj1).DistanceToCenter(e.Location).CompareTo(CollisionRect(obj2).DistanceToCenter(e.Location)))
+				menmSelectedSlider = potentialCollisions(0)
+			Else
+				menmSelectedSlider = SliderID.Preview
+			End If
+			If Me.Cursor = Cursors.Default Then
+				Me.Cursor = Cursors.SizeWE
+			End If
 
-            Me.OnMouseMove(e)
-            Me.Invalidate()
-        End If
-    End Sub
+			Me.OnMouseMove(e)
+			Me.Invalidate()
+		End If
+	End Sub
 
     ''' <summary>
     ''' Changes the corresponding range values for the sliders in the control.
@@ -399,4 +399,9 @@
     Private Sub CacheUpdated(sender As Object, starframe As Integer, endFrame As Integer) Handles mobjMetaData.QueuedFrames, mobjMetaData.RetrievedFrames
         Me.Invalidate()
     End Sub
+
+
+	Private Sub VideoSeeker_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
+		Me.Invalidate()
+	End Sub
 End Class

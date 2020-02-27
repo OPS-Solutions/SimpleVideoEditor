@@ -272,18 +272,54 @@ Public Class MainForm
 			'mobjMetaData.SaveThumbsToFile()
 		End If
 
-		'Grab keyframes
-		picFrame1.Image = Await mobjMetaData.GetFfmpegFrameAsync(0)
-		picFrame2.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.25)
-		picFrame3.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.5)
-		picFrame4.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames * 0.75)
-		picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 1)
-		If picFrame5.Image Is Nothing Then
-			picFrame5.Image = Await mobjMetaData.GetFfmpegFrameAsync(mobjMetaData.TotalFrames - 2)
-		End If
-		'Application is finished searching for images, reset cursor
-		Cursor = Cursors.Arrow
-
+		'Grab keyframes in a parallel manner
+		'Spin up a thread for each set of frame grabs so they can be done at the same time
+		'Update the images via invoking the main thread to avoid cross thread UI access
+		'Signal barrer to synchronize completion between all keyframes
+		Dim imageGrabBarrier As New Barrier(5)
+		ThreadPool.QueueUserWorkItem(Sub()
+										 mobjMetaData.GetFfmpegFrame(0)
+										 Me.Invoke(Sub()
+													   picFrame1.Image = mobjMetaData.GetFfmpegFrame(0)
+												   End Sub)
+										 imageGrabBarrier.SignalAndWait()
+									 End Sub)
+		ThreadPool.QueueUserWorkItem(Sub()
+										 mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25)
+										 Me.Invoke(Sub()
+													   picFrame2.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25)
+												   End Sub)
+										 imageGrabBarrier.SignalAndWait()
+									 End Sub)
+		ThreadPool.QueueUserWorkItem(Sub()
+										 mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5)
+										 Me.Invoke(Sub()
+													   picFrame3.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5)
+												   End Sub)
+										 imageGrabBarrier.SignalAndWait()
+									 End Sub)
+		ThreadPool.QueueUserWorkItem(Sub()
+										 mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75)
+										 Me.Invoke(Sub()
+													   picFrame4.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75)
+												   End Sub)
+										 imageGrabBarrier.SignalAndWait()
+									 End Sub)
+		ThreadPool.QueueUserWorkItem(Sub()
+										 mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 1)
+										 Me.Invoke(Sub()
+													   picFrame5.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 1)
+													   If picFrame5.Image Is Nothing Then
+														   picFrame5.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 2)
+													   End If
+												   End Sub)
+										 'Wait until all keyframes have been grabbed in their seperate threads
+										 imageGrabBarrier.SignalAndWait()
+										 Me.Invoke(Sub()
+													   'Application is finished searching for images, reset cursor
+													   Cursor = Cursors.Arrow
+												   End Sub)
+									 End Sub)
 	End Sub
 
 	''' <summary>
@@ -727,10 +763,10 @@ Public Class MainForm
     ''' Show company and development information
     ''' </summary>
     Private Sub SimpleVideoEditor_HelpButtonClicked(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles MyBase.HelpButtonClicked
-        frmAbout.Show()
-        frmAbout.Location = Me.Location 'Shift to place over the current window
-        frmAbout.Focus()
-        e.Cancel = True
+		AboutForm.Show()
+		AboutForm.Location = Me.Location 'Shift to place over the current window
+		AboutForm.Focus()
+		e.Cancel = True
     End Sub
 
     ''' <summary>
@@ -878,11 +914,18 @@ Public Class MainForm
 
 
 	Private Sub NewFrameCached(sender As Object, startFrame As Integer, endFrame As Integer) Handles mobjMetaData.RetrievedFrames
-        If mintCurrentFrame >= startFrame AndAlso mintCurrentFrame <= endFrame Then
-            'Grab immediate
-            picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
-        End If
-    End Sub
+		If mintCurrentFrame >= startFrame AndAlso mintCurrentFrame <= endFrame Then
+			'Ensure we avoid cross thread GDI access of the bitmap
+			If Me.InvokeRequired Then
+				Me.Invoke(Sub()
+							  picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+						  End Sub)
+			Else
+				'Grab immediate
+				picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+			End If
+		End If
+	End Sub
 
     Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click
 

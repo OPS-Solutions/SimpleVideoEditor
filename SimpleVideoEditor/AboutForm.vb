@@ -3,7 +3,7 @@ Imports System.Text.RegularExpressions
 Imports System.Threading
 Imports System.IO.Compression
 
-Public NotInheritable Class frmAbout
+Public NotInheritable Class AboutForm
 
 	Private mstrReleasePage As String
 	Private mstrLatestVersion As String
