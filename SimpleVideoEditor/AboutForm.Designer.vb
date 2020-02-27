@@ -34,6 +34,7 @@ Partial Class AboutForm
 		Me.components = New System.ComponentModel.Container()
 		Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(AboutForm))
 		Me.TableLayoutPanel = New System.Windows.Forms.TableLayoutPanel()
+		Me.LogoPictureBox = New System.Windows.Forms.PictureBox()
 		Me.LabelProductName = New System.Windows.Forms.Label()
 		Me.LabelVersion = New System.Windows.Forms.Label()
 		Me.LabelCopyright = New System.Windows.Forms.Label()
@@ -44,7 +45,6 @@ Partial Class AboutForm
 		Me.btnUpdate = New System.Windows.Forms.Button()
 		Me.lblLatestVersion = New System.Windows.Forms.Label()
 		Me.tmrButtonFlicker = New System.Windows.Forms.Timer(Me.components)
-		Me.LogoPictureBox = New System.Windows.Forms.PictureBox()
 		Me.TableLayoutPanel.SuspendLayout()
 		CType(Me.LogoPictureBox, System.ComponentModel.ISupportInitialize).BeginInit()
 		Me.SuspendLayout()
@@ -76,6 +76,18 @@ Partial Class AboutForm
 		Me.TableLayoutPanel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
 		Me.TableLayoutPanel.Size = New System.Drawing.Size(326, 243)
 		Me.TableLayoutPanel.TabIndex = 0
+		'
+		'LogoPictureBox
+		'
+		Me.LogoPictureBox.Dock = System.Windows.Forms.DockStyle.Fill
+		Me.LogoPictureBox.Image = Global.SimpleVideoEditor.My.Resources.Resources.Play_Button
+		Me.LogoPictureBox.Location = New System.Drawing.Point(3, 3)
+		Me.LogoPictureBox.Name = "LogoPictureBox"
+		Me.TableLayoutPanel.SetRowSpan(Me.LogoPictureBox, 4)
+		Me.LogoPictureBox.Size = New System.Drawing.Size(101, 78)
+		Me.LogoPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
+		Me.LogoPictureBox.TabIndex = 0
+		Me.LogoPictureBox.TabStop = False
 		'
 		'LabelProductName
 		'
@@ -185,19 +197,7 @@ Partial Class AboutForm
 		Me.tmrButtonFlicker.Enabled = True
 		Me.tmrButtonFlicker.Interval = 500
 		'
-		'LogoPictureBox
-		'
-		Me.LogoPictureBox.Dock = System.Windows.Forms.DockStyle.Fill
-		Me.LogoPictureBox.Image = Global.SimpleVideoEditor.My.Resources.Resources.Play_Button
-		Me.LogoPictureBox.Location = New System.Drawing.Point(3, 3)
-		Me.LogoPictureBox.Name = "LogoPictureBox"
-		Me.TableLayoutPanel.SetRowSpan(Me.LogoPictureBox, 4)
-		Me.LogoPictureBox.Size = New System.Drawing.Size(101, 78)
-		Me.LogoPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
-		Me.LogoPictureBox.TabIndex = 0
-		Me.LogoPictureBox.TabStop = False
-		'
-		'frmAbout
+		'AboutForm
 		'
 		Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
 		Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
@@ -209,7 +209,7 @@ Partial Class AboutForm
 		Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog
 		Me.MaximizeBox = False
 		Me.MinimizeBox = False
-		Me.Name = "frmAbout"
+		Me.Name = "AboutForm"
 		Me.Padding = New System.Windows.Forms.Padding(9)
 		Me.ShowInTaskbar = False
 		Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent
