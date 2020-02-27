@@ -144,14 +144,18 @@ Public Class MainForm
         'First check if something would conflict with cropping, if it will, just crop it first
         Dim willCrop As Boolean = mptStartCrop.X <> mptEndCrop.X AndAlso mptStartCrop.Y <> mptEndCrop.Y
         Dim postCropOperation As Boolean = sProperties.Decimate
-        Dim intermediateFilePath As String = mstrVideoPath
-        If postCropOperation AndAlso willCrop Then
+		Dim intermediateFilePath As String = mstrVideoPath
+		mproFfmpegProcess = Nothing
+		If postCropOperation AndAlso willCrop Then
             intermediateFilePath = FileNameAppend(outputPath, "-tempCrop")
             'Don't pass in special properties yet, it would be better to decimate after cropping
             RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, Nothing, 0, 0, cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
-            mproFfmpegProcess.WaitForExit()
-            'Check if user canceled manual entry
-            If Not File.Exists(intermediateFilePath) Then
+			If mproFfmpegProcess Is Nothing Then
+				Exit Sub
+			End If
+			mproFfmpegProcess.WaitForExit()
+			'Check if user canceled manual entry
+			If Not File.Exists(intermediateFilePath) Then
                 Exit Sub
             End If
         End If
@@ -169,8 +173,11 @@ Public Class MainForm
         End If
         'Now you can apply everything else
         RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mintFrameRate), If(ignoreTrim, 0, (ctlVideoSeeker.RangeMaxValue + 1) / mintFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(postCropOperation, New Point(0, 0), mptStartCrop), If(postCropOperation, New Point(0, 0), mptEndCrop))
-        mproFfmpegProcess.WaitForExit()
-        If overwriteOriginal Or (postCropOperation AndAlso willCrop) Then
+		If mproFfmpegProcess Is Nothing Then
+			Exit Sub
+		End If
+		mproFfmpegProcess.WaitForExit()
+		If overwriteOriginal Or (postCropOperation AndAlso willCrop) Then
             My.Computer.FileSystem.DeleteFile(intermediateFilePath)
         End If
         If File.Exists(outputPath) Then
@@ -766,7 +773,7 @@ Public Class MainForm
     ''' Show company and development information
     ''' </summary>
     Private Sub SimpleVideoEditor_HelpButtonClicked(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles MyBase.HelpButtonClicked
-		AboutForm.Show()
+		AboutForm.Show(Me)
 		AboutForm.Location = Me.Location 'Shift to place over the current window
 		AboutForm.Focus()
 		e.Cancel = True

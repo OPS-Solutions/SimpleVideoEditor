@@ -123,12 +123,43 @@ Public NotInheritable Class AboutForm
 			End If
 			System.IO.Directory.CreateDirectory(updateExtractPath)
 			Dim downloadedZipPath As String = updateExtractPath + "\" + "Simple.Video.Editor.zip"
-			RefreshUpdateButton("Downloading...")
-			Using client As New WebClient()
-				client.DownloadFile(remoteUri, downloadedZipPath) 'Overwrites whatever is already there
-			End Using
+			Dim downloadBarrier As New Barrier(2)
+			ThreadPool.QueueUserWorkItem(Sub()
+											 Dim dotCount As Integer = 1
+											 While downloadBarrier.ParticipantsRemaining > 1
+												 RefreshUpdateButton($"Downloading{String.Join("", Enumerable.Repeat(Of String)(".", dotCount))}")
+												 Threading.Thread.Sleep(300)
+												 dotCount = (dotCount Mod 3) + 1
+											 End While
+											 downloadBarrier.SignalAndWait()
+										 End Sub)
+			Try
+				Using client As New WebClient()
+					client.DownloadFile(remoteUri, downloadedZipPath) 'Overwrites whatever is already there
+				End Using
+			Catch ex As Exception
+				Throw ex
+			Finally
+				downloadBarrier.SignalAndWait()
+			End Try
 			RefreshUpdateButton("Extracting...")
-			ZipFile.ExtractToDirectory(downloadedZipPath, updateExtractPath)
+
+			'Use shell32 unzip to avoid needing .net 4.5 System.IO.Compression.dll
+			Dim doubleBarrier As New Threading.Barrier(2)
+			Dim unzipThread As New Thread(Sub()
+											  Dim objShell As New Shell32.Shell
+											  Dim targetDir As Shell32.Folder = objShell.NameSpace(updateExtractPath)
+											  Dim zipFolder As Shell32.Folder = objShell.NameSpace(downloadedZipPath)
+											  For index As Integer = 0 To zipFolder.Items.Count - 1
+												  RefreshUpdateButton($"Extracting({index + 1}/{zipFolder.Items.Count})")
+												  targetDir.CopyHere(zipFolder.Items(index), 0)
+											  Next
+											  doubleBarrier.SignalAndWait()
+										  End Sub)
+			unzipThread.SetApartmentState(ApartmentState.STA)
+			unzipThread.Start()
+			doubleBarrier.SignalAndWait()
+
 			System.IO.File.Delete(downloadedZipPath)
 			'Must rename the current running .exe because otherwise we can't put anything there
 			RefreshUpdateButton("Renaming...")
@@ -139,9 +170,12 @@ Public NotInheritable Class AboutForm
 				System.IO.File.Delete(objFile)
 			Next
 			System.IO.Directory.Delete(updateExtractPath)
-			RefreshUpdateButton("Restart.", True)
+			RefreshUpdateButton("Restart", True)
 		Catch ex As Exception
 			RefreshUpdateButton("Error", False)
+			Me.Invoke(Sub()
+						  MessageBox.Show(Me, ex.Message, "Error While Updating", MessageBoxButtons.OK, MessageBoxIcon.Error)
+					  End Sub)
 		End Try
 	End Sub
 
