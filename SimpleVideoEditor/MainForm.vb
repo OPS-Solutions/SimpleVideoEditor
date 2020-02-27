@@ -259,7 +259,10 @@ Public Class MainForm
 			ThreadPool.QueueUserWorkItem(Async Sub()
 											 Await mobjMetaData.ExtractSceneChanges()
 											 Me.BeginInvoke(Sub()
-																ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+																If mobjMetaData.SceneFrames IsNot Nothing Then
+																	'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
+																	ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+																End If
 															End Sub)
 										 End Sub)
 			'mobjMetaData.SaveScenesToFile()
@@ -917,9 +920,9 @@ Public Class MainForm
 		If mintCurrentFrame >= startFrame AndAlso mintCurrentFrame <= endFrame Then
 			'Ensure we avoid cross thread GDI access of the bitmap
 			If Me.InvokeRequired Then
-				Me.Invoke(Sub()
-							  picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
-						  End Sub)
+				Me.BeginInvoke(Sub()
+								   picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+							   End Sub)
 			Else
 				'Grab immediate
 				picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
