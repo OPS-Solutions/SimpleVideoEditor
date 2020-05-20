@@ -182,7 +182,7 @@ Public Class MainForm
         End If
         If File.Exists(outputPath) Then
             'Show file location of saved file
-            Process.Start("explorer.exe", $"/select,""{outputPath}""")
+            OpenOrFocusFile(outputPath)
         End If
     End Sub
 
@@ -564,9 +564,6 @@ Public Class MainForm
         mobjGenericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
-        mobjGenericToolTip.SetToolTip(chkMute, "Unmute the videos audio track. Currently Muted.")
-        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, "Delete Duplicate Frames. Audio may go out of sync. Currently allowing them.")
-        mobjGenericToolTip.SetToolTip(chkQuality, "Force equivalent quality. WARNING: Slow processing and large file size may occur. Currently automatic (fast and small).")
         mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
         mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
         mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
@@ -809,7 +806,7 @@ Public Class MainForm
     ''' Toggles whether the video will be decimated or not, and changes the image to make it obvious
     ''' </summary>
     Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
-        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
+        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync. (WARNING: .mp4 not supported, convert to .avi first using forced quality)") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
     End Sub
 
     ''' <summary>

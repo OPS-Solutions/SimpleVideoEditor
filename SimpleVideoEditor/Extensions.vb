@@ -1,8 +1,8 @@
 ﻿Imports System.Runtime.CompilerServices
+Imports System.Runtime.InteropServices
+Imports Shell32
 
 Module Extensions
-
-
     ''' <summary>
     ''' Checks that a given value is equal to another within a given margen of error
     ''' </summary>
@@ -115,4 +115,28 @@ Module Extensions
             Return number
         End If
     End Function
+
+    <DllImport("shell32.dll", EntryPoint:="SHOpenFolderAndSelectItems")>
+    Private Function SHOpenFolderAndSelectItems(<[In]> pidlFolder As IntPtr, cidl As UInteger, <[In], [Optional]> apidl As IntPtr, dwFlags As Integer) As Integer
+    End Function
+
+    <DllImport("shell32.dll", CharSet:=CharSet.Unicode)>
+    Public Function ILCreateFromPath(<[In], MarshalAs(UnmanagedType.LPWStr)> pszPath As String) As IntPtr
+    End Function
+
+    <DllImport("shell32.dll")>
+    Public Sub ILFree(<[In]> pidl As IntPtr)
+    End Sub
+
+    ''' <summary>
+    ''' Opens a file explorer window targeting the given filepath. Will use an existing explorer window of the same folder and retarget if one exists.
+    ''' </summary>
+    ''' <param name="filePath"></param>
+    Public Sub OpenOrFocusFile(ByVal filePath As String)
+        Dim idStructure As Object = ILCreateFromPath(filePath)
+        If idStructure <> IntPtr.Zero Then
+            SHOpenFolderAndSelectItems(idStructure, 0, 0, 0)
+            ILFree(idStructure)
+        End If
+    End Sub
 End Module
