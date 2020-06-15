@@ -144,18 +144,27 @@ Public Class MainForm
         'First check if something would conflict with cropping, if it will, just crop it first
         Dim willCrop As Boolean = mptStartCrop.X <> mptEndCrop.X AndAlso mptStartCrop.Y <> mptEndCrop.Y
         Dim postCropOperation As Boolean = sProperties.Decimate
-		Dim intermediateFilePath As String = mstrVideoPath
-		mproFfmpegProcess = Nothing
-		If postCropOperation AndAlso willCrop Then
-            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop")
+        'MP4 does not work with decimate for some reason, so we should lossless convert to AVI first
+        Dim isMP4 As Boolean = IO.Path.GetExtension(outputPath) = ".mp4"
+        Dim intermediateFilePath As String = mstrVideoPath
+        mproFfmpegProcess = Nothing
+        Dim useIntermediate As Boolean = postCropOperation AndAlso willCrop OrElse isMP4
+        If useIntermediate Then
+            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
+            If isMP4 Then
+                intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
+            End If
             'Don't pass in special properties yet, it would be better to decimate after cropping
-            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, Nothing, 0, 0, cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
-			If mproFfmpegProcess Is Nothing Then
-				Exit Sub
-			End If
-			mproFfmpegProcess.WaitForExit()
-			'Check if user canceled manual entry
-			If Not File.Exists(intermediateFilePath) Then
+            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = 1, .QScale = 0}, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mintFrameRate), If(ignoreTrim, 0, (ctlVideoSeeker.RangeMaxValue + 1) / mintFrameRate), cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
+            If Not ignoreTrim Then
+                ignoreTrim = True
+            End If
+            If mproFfmpegProcess Is Nothing Then
+                Exit Sub
+            End If
+            mproFfmpegProcess.WaitForExit()
+            'Check if user canceled manual entry
+            If Not File.Exists(intermediateFilePath) Then
                 Exit Sub
             End If
         End If
@@ -177,7 +186,7 @@ Public Class MainForm
 			Exit Sub
 		End If
 		mproFfmpegProcess.WaitForExit()
-		If overwriteOriginal Or (postCropOperation AndAlso willCrop) Then
+        If overwriteOriginal Or (useIntermediate) Then
             My.Computer.FileSystem.DeleteFile(intermediateFilePath)
         End If
         If File.Exists(outputPath) Then
