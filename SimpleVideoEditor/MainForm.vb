@@ -815,7 +815,7 @@ Public Class MainForm
     ''' Toggles whether the video will be decimated or not, and changes the image to make it obvious
     ''' </summary>
     Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
-        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync. (WARNING: .mp4 not supported, convert to .avi first using forced quality)") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
+        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync.") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
     End Sub
 
     ''' <summary>
