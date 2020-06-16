@@ -144,67 +144,67 @@ Public Class MainForm
         'First check if something would conflict with cropping, if it will, just crop it first
         Dim willCrop As Boolean = mptStartCrop.X <> mptEndCrop.X AndAlso mptStartCrop.Y <> mptEndCrop.Y
         Dim postCropOperation As Boolean = sProperties.Decimate
-        'MP4 does not work with decimate for some reason, so we should lossless convert to AVI first
-        Dim isMP4 As Boolean = IO.Path.GetExtension(outputPath) = ".mp4"
-        Dim intermediateFilePath As String = mstrVideoPath
-        mproFfmpegProcess = Nothing
-        Dim useIntermediate As Boolean = postCropOperation AndAlso willCrop OrElse isMP4
-        If useIntermediate Then
-            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
-            If isMP4 Then
-                intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
-            End If
-            'Don't pass in special properties yet, it would be better to decimate after cropping
-            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = 1, .QScale = 0}, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mintFrameRate), If(ignoreTrim, 0, (ctlVideoSeeker.RangeMaxValue + 1) / mintFrameRate), cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
-            If Not ignoreTrim Then
-                ignoreTrim = True
-            End If
-            If mproFfmpegProcess Is Nothing Then
-                Exit Sub
-            End If
-            mproFfmpegProcess.WaitForExit()
-            'Check if user canceled manual entry
-            If Not File.Exists(intermediateFilePath) Then
-                Exit Sub
-            End If
-        End If
-        Dim realTopLeftCrop As Point = mptStartCrop
-        Dim realBottomRightCrop As Point = mptEndCrop
-        SetCalculateRealCropPoints(realTopLeftCrop, realBottomRightCrop)
-        Dim realwidth As Integer = mintAspectWidth
-        Dim realheight As Integer = mintAspectHeight
-        If mptStartCrop.X <> mptEndCrop.X AndAlso mptStartCrop.Y <> mptEndCrop.Y Then
-            realwidth = realBottomRightCrop.X - realTopLeftCrop.X
-            realheight = realBottomRightCrop.Y - realTopLeftCrop.Y
-        End If
-        If (Not mobjRotation = RotateFlipType.RotateNoneFlipNone) And (Not mobjRotation = RotateFlipType.Rotate180FlipNone) Then
-            SwapValues(realwidth, realheight)
-        End If
-        'Now you can apply everything else
-        RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mintFrameRate), If(ignoreTrim, 0, (ctlVideoSeeker.RangeMaxValue + 1) / mintFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(postCropOperation, New Point(0, 0), mptStartCrop), If(postCropOperation, New Point(0, 0), mptEndCrop))
+		'MP4 does not work with decimate for some reason, so we should lossless convert to AVI first
+		Dim isMP4 As Boolean = IO.Path.GetExtension(outputPath) = ".mp4"
+		Dim intermediateFilePath As String = mstrVideoPath
+		mproFfmpegProcess = Nothing
+		Dim useIntermediate As Boolean = postCropOperation AndAlso willCrop OrElse isMP4
+		If useIntermediate Then
+			intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
+			If isMP4 Then
+				intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
+			End If
+			'Don't pass in special properties yet, it would be better to decimate after cropping
+			RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = 1, .QScale = 0}, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mintFrameRate), If(ignoreTrim, 0, (ctlVideoSeeker.RangeMaxValue + 1) / mintFrameRate), cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
+			If Not ignoreTrim Then
+				ignoreTrim = True
+			End If
+			If mproFfmpegProcess Is Nothing Then
+				Exit Sub
+			End If
+			mproFfmpegProcess.WaitForExit()
+			'Check if user canceled manual entry
+			If Not File.Exists(intermediateFilePath) Then
+				Exit Sub
+			End If
+		End If
+		Dim realTopLeftCrop As Point = mptStartCrop
+		Dim realBottomRightCrop As Point = mptEndCrop
+		SetCalculateRealCropPoints(realTopLeftCrop, realBottomRightCrop)
+		Dim realwidth As Integer = mintAspectWidth
+		Dim realheight As Integer = mintAspectHeight
+		If mptStartCrop.X <> mptEndCrop.X AndAlso mptStartCrop.Y <> mptEndCrop.Y Then
+			realwidth = realBottomRightCrop.X - realTopLeftCrop.X
+			realheight = realBottomRightCrop.Y - realTopLeftCrop.Y
+		End If
+		If (Not mobjRotation = RotateFlipType.RotateNoneFlipNone) And (Not mobjRotation = RotateFlipType.Rotate180FlipNone) Then
+			SwapValues(realwidth, realheight)
+		End If
+		'Now you can apply everything else
+		RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mintFrameRate), If(ignoreTrim, 0, (ctlVideoSeeker.RangeMaxValue + 1) / mintFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(postCropOperation, New Point(0, 0), mptStartCrop), If(postCropOperation, New Point(0, 0), mptEndCrop))
 		If mproFfmpegProcess Is Nothing Then
 			Exit Sub
 		End If
 		mproFfmpegProcess.WaitForExit()
-        If overwriteOriginal Or (useIntermediate) Then
-            My.Computer.FileSystem.DeleteFile(intermediateFilePath)
-        End If
-        If File.Exists(outputPath) Then
-            'Show file location of saved file
-            OpenOrFocusFile(outputPath)
-        End If
-    End Sub
+		If overwriteOriginal Or (useIntermediate) Then
+			My.Computer.FileSystem.DeleteFile(intermediateFilePath)
+		End If
+		If File.Exists(outputPath) Then
+			'Show file location of saved file
+			OpenOrFocusFile(outputPath)
+		End If
+	End Sub
 
-    ''' <summary>
-    ''' Save file when the save file dialog is finished with an "ok" click
-    ''' </summary>
-    Private Sub sfdVideoOut_FileOk(sender As System.Windows.Forms.SaveFileDialog, e As EventArgs) Handles sfdVideoOut.FileOk
-        If IO.Path.GetExtension(sfdVideoOut.FileName).Length = 0 Then
-            'If the user failed to have a file extension, default to the one it already was
-            sfdVideoOut.FileName += IO.Path.GetExtension(mstrVideoPath)
-        End If
-        SaveFile(sfdVideoOut.FileName, System.IO.File.Exists(sfdVideoOut.FileName))
-    End Sub
+	''' <summary>
+	''' Save file when the save file dialog is finished with an "ok" click
+	''' </summary>
+	Private Sub sfdVideoOut_FileOk(sender As System.Windows.Forms.SaveFileDialog, e As EventArgs) Handles sfdVideoOut.FileOk
+		If IO.Path.GetExtension(sfdVideoOut.FileName).Length = 0 Then
+			'If the user failed to have a file extension, default to the one it already was
+			sfdVideoOut.FileName += IO.Path.GetExtension(mstrVideoPath)
+		End If
+		SaveFile(sfdVideoOut.FileName, System.IO.File.Exists(sfdVideoOut.FileName))
+	End Sub
 
 	''' <summary>
 	''' sets up needed information and runs ffmpeg.exe to render the final video.
@@ -233,38 +233,38 @@ Public Class MainForm
 	''' Loads default frames when called.
 	''' </summary>
 	Public Async Sub LoadDefaultFrames()
-        'Make sure the user is notified that the application is working
-        If Cursor = Cursors.Arrow Then
-            Cursor = Cursors.WaitCursor
-        End If
+		'Make sure the user is notified that the application is working
+		If Cursor = Cursors.Arrow Then
+			Cursor = Cursors.WaitCursor
+		End If
 
-        'Use ffmpeg to grab images into a temporary folder
-        Dim tempImage As Bitmap = Await mobjMetaData.GetFfmpegFrameAsync(0)
-        mintCurrentFrame = 0
-        picVideo.Image = tempImage
-        mintAspectWidth = mobjMetaData.Width
-        mintAspectHeight = mobjMetaData.Height
-        If picVideo.Image IsNot Nothing Then
-            'If the resolution failed to load, put in something
-            If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
-                mintAspectWidth = tempImage.Width
-                mintAspectHeight = tempImage.Height
-            End If
-            'If the aspect ratio was somehow saved wrong, fix it
-            'Try flipping the known aspect, if its closer to what was loaded, change it
-            If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
-                SwapValues(mintAspectWidth, mintAspectHeight)
-            End If
-        End If
-        Cursor = Cursors.Arrow
-        ctlVideoSeeker.Enabled = True
-        btnいくよ.Enabled = True
-    End Sub
+		'Use ffmpeg to grab images into a temporary folder
+		Dim tempImage As Bitmap = Await mobjMetaData.GetFfmpegFrameAsync(0)
+		mintCurrentFrame = 0
+		picVideo.Image = tempImage
+		mintAspectWidth = mobjMetaData.Width
+		mintAspectHeight = mobjMetaData.Height
+		If picVideo.Image IsNot Nothing Then
+			'If the resolution failed to load, put in something
+			If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
+				mintAspectWidth = tempImage.Width
+				mintAspectHeight = tempImage.Height
+			End If
+			'If the aspect ratio was somehow saved wrong, fix it
+			'Try flipping the known aspect, if its closer to what was loaded, change it
+			If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
+				SwapValues(mintAspectWidth, mintAspectHeight)
+			End If
+		End If
+		Cursor = Cursors.Arrow
+		ctlVideoSeeker.Enabled = True
+		btnいくよ.Enabled = True
+	End Sub
 
-    ''' <summary>
-    ''' Asynchronously polls for keyframe image data from ffmpeg, gives a loading cursor
-    ''' </summary>
-    Private Async Sub PollPreviewFrames()
+	''' <summary>
+	''' Asynchronously polls for keyframe image data from ffmpeg, gives a loading cursor
+	''' </summary>
+	Private Async Sub PollPreviewFrames()
 		'Make sure the user is notified that the application is working
 		If Cursor = Cursors.Arrow Then
 			Cursor = Cursors.WaitCursor
@@ -345,520 +345,520 @@ Public Class MainForm
 	''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
 	''' </summary>
 	Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
-        Dim duration As String = (endSS) - (startSS)
-        If specProperties?.PlaybackSpeed <> 0 Then
-            duration /= specProperties.PlaybackSpeed
-        End If
-        Dim processInfo As New ProcessStartInfo
-        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        'Flip vertical
-        '-vf "vflip,hflip"
-        'Cropping
-        '-filter:v "crop=out_w:out_h:x:y"
-        processInfo.Arguments = "-i """ & inputFile & """"
-        If duration > 0 Then
-            Dim startHHMMSS As String = FormatHHMMSSm(startSS / specProperties.PlaybackSpeed)
-            processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
-        End If
+		Dim duration As String = (endSS) - (startSS)
+		If specProperties?.PlaybackSpeed <> 0 Then
+			duration /= specProperties.PlaybackSpeed
+		End If
+		Dim processInfo As New ProcessStartInfo
+		processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+		'Flip vertical
+		'-vf "vflip,hflip"
+		'Cropping
+		'-filter:v "crop=out_w:out_h:x:y"
+		processInfo.Arguments = "-i """ & inputFile & """"
+		If duration > 0 Then
+			Dim startHHMMSS As String = FormatHHMMSSm(startSS / specProperties.PlaybackSpeed)
+			processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
+		End If
 
-        'CREATE LIST OF PARAMETERS FOR EACH FILTER
-        Dim videoFilterParams As New List(Of String)
-        Dim audioFilterParams As New List(Of String)
+		'CREATE LIST OF PARAMETERS FOR EACH FILTER
+		Dim videoFilterParams As New List(Of String)
+		Dim audioFilterParams As New List(Of String)
 
-        'CROP VIDEO(Can not be done with a rotate, must run twice)
-        Dim cropWidth As Integer = newWidth
-        Dim cropHeight As Integer = newHeight
-        If (cropBottomRight.X - cropTopLeft.X) > 0 And (cropBottomRight.Y - cropTopLeft.Y) > 0 Then
-            SetCalculateRealCropPoints(cropTopLeft, cropBottomRight)
-            cropWidth = (cropBottomRight.X - cropTopLeft.X)
-            cropHeight = (cropBottomRight.Y - cropTopLeft.Y)
-            videoFilterParams.Add($"crop={cropWidth}:{cropHeight}:{cropTopLeft.X}:{cropTopLeft.Y}")
-        End If
-        'SCALE VIDEO
-        Dim scale As Double = newHeight
-        Select Case targetDefinition
-            Case "Original"
-            Case "120p"
-                scale = 120
-            Case "240p"
-                scale = 240
-            Case "360p"
-                scale = 360
-            Case "460p"
-                scale = 460
-            Case "720p"
-                scale = 720
-            Case "1080p"
-                scale = 1080
-        End Select
-        scale /= newHeight
-        If scale <> 1 Then
-            Dim scaleX As Integer = ForceEven(Math.Floor(cropWidth * scale))
-            Dim scaleY As Integer = ForceEven(Math.Floor(cropHeight * scale))
-            If flip = RotateFlipType.Rotate90FlipNone OrElse flip = RotateFlipType.Rotate270FlipNone Then
-                processInfo.Arguments += $" -s {scaleY}x{scaleX} -threads 4"
-            Else
-                processInfo.Arguments += $" -s {scaleX}x{scaleY} -threads 4"
-            End If
-        End If
+		'CROP VIDEO(Can not be done with a rotate, must run twice)
+		Dim cropWidth As Integer = newWidth
+		Dim cropHeight As Integer = newHeight
+		If (cropBottomRight.X - cropTopLeft.X) > 0 And (cropBottomRight.Y - cropTopLeft.Y) > 0 Then
+			SetCalculateRealCropPoints(cropTopLeft, cropBottomRight)
+			cropWidth = (cropBottomRight.X - cropTopLeft.X)
+			cropHeight = (cropBottomRight.Y - cropTopLeft.Y)
+			videoFilterParams.Add($"crop={cropWidth}:{cropHeight}:{cropTopLeft.X}:{cropTopLeft.Y}")
+		End If
+		'SCALE VIDEO
+		Dim scale As Double = newHeight
+		Select Case targetDefinition
+			Case "Original"
+			Case "120p"
+				scale = 120
+			Case "240p"
+				scale = 240
+			Case "360p"
+				scale = 360
+			Case "460p"
+				scale = 460
+			Case "720p"
+				scale = 720
+			Case "1080p"
+				scale = 1080
+		End Select
+		scale /= newHeight
+		If scale <> 1 Then
+			Dim scaleX As Integer = ForceEven(Math.Floor(cropWidth * scale))
+			Dim scaleY As Integer = ForceEven(Math.Floor(cropHeight * scale))
+			If flip = RotateFlipType.Rotate90FlipNone OrElse flip = RotateFlipType.Rotate270FlipNone Then
+				processInfo.Arguments += $" -s {scaleY}x{scaleX} -threads 4"
+			Else
+				processInfo.Arguments += $" -s {scaleX}x{scaleY} -threads 4"
+			End If
+		End If
 
-        'ROTATE VIDEO
-        Dim rotateString As String = If(flip = RotateFlipType.Rotate90FlipNone, "transpose=1", If(flip = RotateFlipType.Rotate180FlipNone, """transpose=2,transpose=2""", If(flip = RotateFlipType.Rotate270FlipNone, "transpose=2", "")))
-        If rotateString.Length > 0 Then
-            videoFilterParams.Add(rotateString)
-        End If
-        'DELETE DUPLICATE FRAMES
-        Dim decimateString As String = If(specProperties?.Decimate, "mpdecimate,setpts=N/FRAME_RATE/TB", "")
-        If decimateString.Length > 0 Then
-            videoFilterParams.Add(decimateString)
-        End If
-        'CHROMAKEY
-        'If Not specProperties.ChromaKey = Nothing Then
-        '	With specProperties.ChromaKey
-        '		vfParams.Add("chromakey=" & String.Format("0x{0:X2}{1:X2}{2:X2}", .R, .G, .B))
-        '	End With
-        'End If
-        'PLAYBACK SPEED
-        If specProperties?.PlaybackSpeed <> 1 AndAlso specProperties?.PlaybackSpeed > 0 AndAlso specProperties?.PlaybackSpeed < 3 Then
-            videoFilterParams.Add($"setpts={1 / specProperties.PlaybackSpeed}*PTS")
-            Dim audioPlaybackSpeed As String = $"atempo={specProperties.PlaybackSpeed}"
-            If specProperties.PlaybackSpeed = 0.25 Then
-                'atempo has a limit of between 0.5 and 2.0
-                audioPlaybackSpeed = $"atempo=0.5,atempo=0.5"
-            End If
-            audioFilterParams.Add(audioPlaybackSpeed)
-        End If
-        'ASSEMBLE VIDEO PARAMETERS
-        For paramIndex As Integer = 0 To videoFilterParams.Count - 1
-            If paramIndex = 0 Then
-                processInfo.Arguments += " -filter:v " & videoFilterParams(paramIndex)
-            Else
-                processInfo.Arguments += "," & videoFilterParams(paramIndex)
-            End If
-        Next
+		'ROTATE VIDEO
+		Dim rotateString As String = If(flip = RotateFlipType.Rotate90FlipNone, "transpose=1", If(flip = RotateFlipType.Rotate180FlipNone, """transpose=2,transpose=2""", If(flip = RotateFlipType.Rotate270FlipNone, "transpose=2", "")))
+		If rotateString.Length > 0 Then
+			videoFilterParams.Add(rotateString)
+		End If
+		'DELETE DUPLICATE FRAMES
+		Dim decimateString As String = If(specProperties?.Decimate, "mpdecimate,setpts=N/FRAME_RATE/TB", "")
+		If decimateString.Length > 0 Then
+			videoFilterParams.Add(decimateString)
+		End If
+		'CHROMAKEY
+		'If Not specProperties.ChromaKey = Nothing Then
+		'	With specProperties.ChromaKey
+		'		vfParams.Add("chromakey=" & String.Format("0x{0:X2}{1:X2}{2:X2}", .R, .G, .B))
+		'	End With
+		'End If
+		'PLAYBACK SPEED
+		If specProperties?.PlaybackSpeed <> 1 AndAlso specProperties?.PlaybackSpeed > 0 AndAlso specProperties?.PlaybackSpeed < 3 Then
+			videoFilterParams.Add($"setpts={1 / specProperties.PlaybackSpeed}*PTS")
+			Dim audioPlaybackSpeed As String = $"atempo={specProperties.PlaybackSpeed}"
+			If specProperties.PlaybackSpeed = 0.25 Then
+				'atempo has a limit of between 0.5 and 2.0
+				audioPlaybackSpeed = $"atempo=0.5,atempo=0.5"
+			End If
+			audioFilterParams.Add(audioPlaybackSpeed)
+		End If
+		'ASSEMBLE VIDEO PARAMETERS
+		For paramIndex As Integer = 0 To videoFilterParams.Count - 1
+			If paramIndex = 0 Then
+				processInfo.Arguments += " -filter:v " & videoFilterParams(paramIndex)
+			Else
+				processInfo.Arguments += "," & videoFilterParams(paramIndex)
+			End If
+		Next
 
-        'ADJUST VOLUME
-        If specProperties?.PlaybackVolume <> 1 Then
-            If specProperties.PlaybackVolume = 0 Then
-                processInfo.Arguments += " -an"
-            Else
-                audioFilterParams.Add($"volume={specProperties.PlaybackVolume}")
-            End If
-        End If
+		'ADJUST VOLUME
+		If specProperties?.PlaybackVolume <> 1 Then
+			If specProperties.PlaybackVolume = 0 Then
+				processInfo.Arguments += " -an"
+			Else
+				audioFilterParams.Add($"volume={specProperties.PlaybackVolume}")
+			End If
+		End If
 
-        'ASSEMBLE AUDIO PARAMETERS
-        For paramIndex As Integer = 0 To audioFilterParams.Count - 1
-            If paramIndex = 0 Then
-                processInfo.Arguments += " -filter:a " & audioFilterParams(paramIndex)
-            Else
-                processInfo.Arguments += "," & audioFilterParams(paramIndex)
-            End If
-        Next
+		'ASSEMBLE AUDIO PARAMETERS
+		For paramIndex As Integer = 0 To audioFilterParams.Count - 1
+			If paramIndex = 0 Then
+				processInfo.Arguments += " -filter:a " & audioFilterParams(paramIndex)
+			Else
+				processInfo.Arguments += "," & audioFilterParams(paramIndex)
+			End If
+		Next
 
-        'SET QUALITY
-        processInfo.Arguments += If(specProperties?.QScale <> -1, $" -q:v {specProperties.QScale}", "")
+		'SET QUALITY
+		processInfo.Arguments += If(specProperties?.QScale <> -1, $" -q:v {specProperties.QScale}", "")
 
-        'LIMIT FRAMERATE
-        processInfo.Arguments += If(specProperties?.FPS > 0, $" -r {specProperties.FPS}", "")
+		'LIMIT FRAMERATE
+		processInfo.Arguments += If(specProperties?.FPS > 0, $" -r {specProperties.FPS}", "")
 
-        'OUTPUT TO FILE
-        processInfo.Arguments += " """ & outPutFile & """"
-        If mblnUserInjection Then
-            'Show a form where the user can modify the arguments manually
-            Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)
-            Select Case manualEntryForm.ShowDialog()
-                Case DialogResult.Cancel
-                    Exit Sub
-            End Select
-            processInfo.Arguments = manualEntryForm.ModifiedText
-        End If
-        processInfo.UseShellExecute = True
-        processInfo.WindowStyle = ProcessWindowStyle.Normal
-        mproFfmpegProcess = Process.Start(processInfo)
-    End Sub
+		'OUTPUT TO FILE
+		processInfo.Arguments += " """ & outPutFile & """"
+		If mblnUserInjection Then
+			'Show a form where the user can modify the arguments manually
+			Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)
+			Select Case manualEntryForm.ShowDialog()
+				Case DialogResult.Cancel
+					Exit Sub
+			End Select
+			processInfo.Arguments = manualEntryForm.ModifiedText
+		End If
+		processInfo.UseShellExecute = True
+		processInfo.WindowStyle = ProcessWindowStyle.Normal
+		mproFfmpegProcess = Process.Start(processInfo)
+	End Sub
 
 
 
 #Region "CROPPING CLICK AND DRAG"
-    ''' <summary>
-    ''' Updates the main image with one of the pre-selected images from the picture box clicked.
-    ''' </summary>
-    Private Sub picFrame_Click(sender As PictureBox, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
-        Select Case True
-            Case sender Is picFrame1
-                ctlVideoSeeker.PreviewLocation = 0
-            Case sender Is picFrame2
-                ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.25
-            Case sender Is picFrame3
-                ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.5
-            Case sender Is picFrame4
-                ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.75
-            Case sender Is picFrame5
-                ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames - 1
-        End Select
-    End Sub
+	''' <summary>
+	''' Updates the main image with one of the pre-selected images from the picture box clicked.
+	''' </summary>
+	Private Sub picFrame_Click(sender As PictureBox, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
+		Select Case True
+			Case sender Is picFrame1
+				ctlVideoSeeker.PreviewLocation = 0
+			Case sender Is picFrame2
+				ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.25
+			Case sender Is picFrame3
+				ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.5
+			Case sender Is picFrame4
+				ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.75
+			Case sender Is picFrame5
+				ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames - 1
+		End Select
+	End Sub
 
-    ''' <summary>
-    ''' Draws cropping graphics over the main video picturebox.
-    ''' </summary>
-    Private Sub picVideo_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles picVideo.Paint
-        Using pen As New Pen(Color.White, 1)
-            If Not (mptStartCrop.X = 0 AndAlso mptStartCrop.X = mptEndCrop.X) Then
-                e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, picVideo.Height))
-                e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(picVideo.Width, mptStartCrop.Y))
-                e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, picVideo.Height))
-                e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(picVideo.Width, mptEndCrop.Y - 1))
-            End If
-            If mintDisplayInfo <> 0 Then
-                e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
-                e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
-            End If
-            'e.Graphics.DrawRectangle(pen, 10, 75, 100, 100)
-        End Using
-        e.Graphics.DrawRectangle(New Pen(Color.Green, 1), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X - 1, mptEndCrop.Y - mptStartCrop.Y - 1)
-    End Sub
+	''' <summary>
+	''' Draws cropping graphics over the main video picturebox.
+	''' </summary>
+	Private Sub picVideo_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles picVideo.Paint
+		Using pen As New Pen(Color.White, 1)
+			If Not (mptStartCrop.X = 0 AndAlso mptStartCrop.X = mptEndCrop.X) Then
+				e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, picVideo.Height))
+				e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(picVideo.Width, mptStartCrop.Y))
+				e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, picVideo.Height))
+				e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(picVideo.Width, mptEndCrop.Y - 1))
+			End If
+			If mintDisplayInfo <> 0 Then
+				e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
+				e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
+			End If
+			'e.Graphics.DrawRectangle(pen, 10, 75, 100, 100)
+		End Using
+		e.Graphics.DrawRectangle(New Pen(Color.Green, 1), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X - 1, mptEndCrop.Y - mptStartCrop.Y - 1)
+	End Sub
 
-    ''' <summary>
-    ''' Modifies the crop region, sets to current point
-    ''' </summary>
-    Private Sub picVideo_MouseDown(sender As Object, e As MouseEventArgs) Handles picVideo.MouseDown
-        'Start dragging start or end point
-        If e.Button = Windows.Forms.MouseButtons.Left Then
-            If Not mptEndCrop.DistanceTo(e.Location) < 10 Then
-                mptStartCrop = New Point(e.X, e.Y)
-            End If
-            mptEndCrop = New Point(e.X, e.Y)
-        End If
-        picVideo.Refresh()
-    End Sub
+	''' <summary>
+	''' Modifies the crop region, sets to current point
+	''' </summary>
+	Private Sub picVideo_MouseDown(sender As Object, e As MouseEventArgs) Handles picVideo.MouseDown
+		'Start dragging start or end point
+		If e.Button = Windows.Forms.MouseButtons.Left Then
+			If Not mptEndCrop.DistanceTo(e.Location) < 10 Then
+				mptStartCrop = New Point(e.X, e.Y)
+			End If
+			mptEndCrop = New Point(e.X, e.Y)
+		End If
+		picVideo.Refresh()
+	End Sub
 
-    ''' <summary>
-    ''' Modifies the crop region, draggable in all directions
-    ''' </summary>
-    Private Sub picVideo_MouseMove(sender As Object, e As MouseEventArgs) Handles picVideo.MouseMove
-        If e.Button = Windows.Forms.MouseButtons.Left Then
-            mptEndCrop = New Point(e.X, e.Y)
-            Dim minX As Integer = Math.Max(0, Math.Min(mptStartCrop.X, mptEndCrop.X))
-            Dim minY As Integer = Math.Max(0, Math.Min(mptStartCrop.Y, mptEndCrop.Y))
-            Dim maxX As Integer = Math.Min(picVideo.Width, Math.Max(mptStartCrop.X, mptEndCrop.X))
-            Dim maxY As Integer = Math.Min(picVideo.Height, Math.Max(mptStartCrop.Y, mptEndCrop.Y))
-            mptStartCrop.X = minX
-            mptStartCrop.Y = minY
-            mptEndCrop.X = maxX
-            mptEndCrop.Y = maxY
-            picVideo.Refresh()
-        End If
-    End Sub
+	''' <summary>
+	''' Modifies the crop region, draggable in all directions
+	''' </summary>
+	Private Sub picVideo_MouseMove(sender As Object, e As MouseEventArgs) Handles picVideo.MouseMove
+		If e.Button = Windows.Forms.MouseButtons.Left Then
+			mptEndCrop = New Point(e.X, e.Y)
+			Dim minX As Integer = Math.Max(0, Math.Min(mptStartCrop.X, mptEndCrop.X))
+			Dim minY As Integer = Math.Max(0, Math.Min(mptStartCrop.Y, mptEndCrop.Y))
+			Dim maxX As Integer = Math.Min(picVideo.Width, Math.Max(mptStartCrop.X, mptEndCrop.X))
+			Dim maxY As Integer = Math.Min(picVideo.Height, Math.Max(mptStartCrop.Y, mptEndCrop.Y))
+			mptStartCrop.X = minX
+			mptStartCrop.Y = minY
+			mptEndCrop.X = maxX
+			mptEndCrop.Y = maxY
+			picVideo.Refresh()
+		End If
+	End Sub
 #End Region
 
 #Region "Form Open/Close"
-    ''' <summary>
-    ''' Prepares temporary directory and sets up tool tips for controls.
-    ''' </summary>
-    Private Sub SimpleVideoEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        'Destroy old version from any updates
-        Threading.ThreadPool.QueueUserWorkItem(Sub()
-                                                   DeleteUpdateFiles()
-                                               End Sub)
+	''' <summary>
+	''' Prepares temporary directory and sets up tool tips for controls.
+	''' </summary>
+	Private Sub SimpleVideoEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+		'Destroy old version from any updates
+		Threading.ThreadPool.QueueUserWorkItem(Sub()
+												   DeleteUpdateFiles()
+											   End Sub)
 
-        cmbDefinition.SelectedIndex = 0
+		cmbDefinition.SelectedIndex = 0
 
-        'Setup Tooltips
-        mobjGenericToolTip.SetToolTip(ctlVideoSeeker, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
-        mobjGenericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
-        mobjGenericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video. Right click for FPS options.")
-        mobjGenericToolTip.SetToolTip(btnいくよ, "Save video. Hold ctrl to manually modify ffmpeg arguments.")
-        mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
-        mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
-        mobjGenericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
-        mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
-        mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
-        mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
-        mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
-        mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
-        mobjGenericToolTip.SetToolTip(picChromaKey, "Color that will be made transparent if the output file type supports it.")
-        mobjGenericToolTip.SetToolTip(picPlaybackSpeed, "Playback speed multiplier.")
+		'Setup Tooltips
+		mobjGenericToolTip.SetToolTip(ctlVideoSeeker, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
+		mobjGenericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
+		mobjGenericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video. Right click for FPS options.")
+		mobjGenericToolTip.SetToolTip(btnいくよ, "Save video. Hold ctrl to manually modify ffmpeg arguments.")
+		mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
+		mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
+		mobjGenericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
+		mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
+		mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
+		mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
+		mobjGenericToolTip.SetToolTip(btnBrowse, "Search for a video to edit.")
+		mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
+		mobjGenericToolTip.SetToolTip(picChromaKey, "Color that will be made transparent if the output file type supports it.")
+		mobjGenericToolTip.SetToolTip(picPlaybackSpeed, "Playback speed multiplier.")
 
-        'Check if the program was started with a dragdrop exe
-        Dim args() As String = Environment.GetCommandLineArgs()
-        If args.Length > 1 Then
-            For index As Integer = 1 To args.Length - 1
-                If System.IO.File.Exists(args(index)) Then
-                    LoadFile(args(index))
-                End If
-            Next
-        End If
+		'Check if the program was started with a dragdrop exe
+		Dim args() As String = Environment.GetCommandLineArgs()
+		If args.Length > 1 Then
+			For index As Integer = 1 To args.Length - 1
+				If System.IO.File.Exists(args(index)) Then
+					LoadFile(args(index))
+				End If
+			Next
+		End If
 
-        'Start render decay timer
-        ThreadPool.QueueUserWorkItem(Sub()
-                                         While (True)
-                                             Dim oldValue As Integer = mintDisplayInfo
-                                             mintDisplayInfo = Math.Max(mintDisplayInfo - 10, 0)
-                                             Threading.Thread.Sleep(10)
-                                             If oldValue <> 0 AndAlso mintDisplayInfo = 0 Then
-                                                 picVideo.Invalidate()
-                                             End If
-                                         End While
-                                     End Sub)
-    End Sub
+		'Start render decay timer
+		ThreadPool.QueueUserWorkItem(Sub()
+										 While (True)
+											 Dim oldValue As Integer = mintDisplayInfo
+											 mintDisplayInfo = Math.Max(mintDisplayInfo - 10, 0)
+											 Threading.Thread.Sleep(10)
+											 If oldValue <> 0 AndAlso mintDisplayInfo = 0 Then
+												 picVideo.Invalidate()
+											 End If
+										 End While
+									 End Sub)
+	End Sub
 
-    Private Sub DeleteUpdateFiles()
-        Dim badExePath As String = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly.Location) + "\DeletableSimpleVideoEditor.exe"
-        If File.Exists(badExePath) Then
-            'Keep trying to delete the file for a few seconds, in case the application is still running for some reason
-            For index As Integer = 0 To 10
-                Try
-                    File.Delete(badExePath)
-                Catch ex As Exception
-                    'Exception, oh well, hopefully it's just because the application is still open, not because the user has no permissions <.<
-                End Try
-                Threading.Thread.Sleep(500)
-            Next
-        End If
-    End Sub
+	Private Sub DeleteUpdateFiles()
+		Dim badExePath As String = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly.Location) + "\DeletableSimpleVideoEditor.exe"
+		If File.Exists(badExePath) Then
+			'Keep trying to delete the file for a few seconds, in case the application is still running for some reason
+			For index As Integer = 0 To 10
+				Try
+					File.Delete(badExePath)
+				Catch ex As Exception
+					'Exception, oh well, hopefully it's just because the application is still open, not because the user has no permissions <.<
+				End Try
+				Threading.Thread.Sleep(500)
+			Next
+		End If
+	End Sub
 
-    ''' <summary>
-    ''' Resets controls to an empty state as if no file has been loaded
-    ''' </summary>
-    Private Sub ClearControls()
-        mptStartCrop = New Point(0, 0)
-        mptEndCrop = New Point(0, 0)
-        picVideo.Image = Nothing
-        picFrame1.Image = Nothing
-        picFrame2.Image = Nothing
-        picFrame3.Image = Nothing
-        picFrame4.Image = Nothing
+	''' <summary>
+	''' Resets controls to an empty state as if no file has been loaded
+	''' </summary>
+	Private Sub ClearControls()
+		mptStartCrop = New Point(0, 0)
+		mptEndCrop = New Point(0, 0)
+		picVideo.Image = Nothing
+		picFrame1.Image = Nothing
+		picFrame2.Image = Nothing
+		picFrame3.Image = Nothing
+		picFrame4.Image = Nothing
 		picFrame5.Image = Nothing
 		ctlVideoSeeker.SceneFrames = Nothing
 		ctlVideoSeeker.Enabled = False
-        btnいくよ.Enabled = False
-        lblFileName.Text = ""
-    End Sub
+		btnいくよ.Enabled = False
+		lblFileName.Text = ""
+	End Sub
 #End Region
 
 #Region "Misc Functions"
-    ''' <summary>
-    ''' Recursively deletes directories in as safe a manner as possible.
-    ''' </summary>
-    Public Shared Sub DeleteDirectory(ByVal directoryPath As String)
-        'Assure each file is not read-only, then delete them
-        For Each file As String In System.IO.Directory.GetFiles(directoryPath)
-            System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal)
-            System.IO.File.Delete(file)
-        Next
-        'Delete each directory inside
-        For Each directory As String In System.IO.Directory.GetDirectories(directoryPath)
-            DeleteDirectory(directory)
-        Next
-        'Delete parent directory
-        System.IO.Directory.Delete(directoryPath, False)
-    End Sub
+	''' <summary>
+	''' Recursively deletes directories in as safe a manner as possible.
+	''' </summary>
+	Public Shared Sub DeleteDirectory(ByVal directoryPath As String)
+		'Assure each file is not read-only, then delete them
+		For Each file As String In System.IO.Directory.GetFiles(directoryPath)
+			System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal)
+			System.IO.File.Delete(file)
+		Next
+		'Delete each directory inside
+		For Each directory As String In System.IO.Directory.GetDirectories(directoryPath)
+			DeleteDirectory(directory)
+		Next
+		'Delete parent directory
+		System.IO.Directory.Delete(directoryPath, False)
+	End Sub
 
-    ''' <summary>
-    ''' Returns the temporary file path used to store images that ffmpeg.exe finds. TODO Would be nice to have a Ramdisk, or just not use files at all.
-    ''' </summary>
-    Public ReadOnly Property TempFolderPath() As String
-        Get
-            Return Application.StartupPath & "\tempSimpleVideoEditor"
-        End Get
-    End Property
+	''' <summary>
+	''' Returns the temporary file path used to store images that ffmpeg.exe finds. TODO Would be nice to have a Ramdisk, or just not use files at all.
+	''' </summary>
+	Public ReadOnly Property TempFolderPath() As String
+		Get
+			Return Application.StartupPath & "\tempSimpleVideoEditor"
+		End Get
+	End Property
 
-    ''' <summary>
-    ''' Add a little bit of text to the end of a file name string between its extension like "-temp" or "-SHINY".
-    ''' </summary>
-    Public Shared Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
-        Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
-    End Function
+	''' <summary>
+	''' Add a little bit of text to the end of a file name string between its extension like "-temp" or "-SHINY".
+	''' </summary>
+	Public Shared Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
+		Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
+	End Function
 
-    ''' <summary>
-    ''' Changes the extension of a filepath string
-    ''' </summary>
-    Public Shared Function FileNameChangeExtension(ByVal fullPath As String, ByVal newExtension As String)
-        Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newExtension
-    End Function
+	''' <summary>
+	''' Changes the extension of a filepath string
+	''' </summary>
+	Public Shared Function FileNameChangeExtension(ByVal fullPath As String, ByVal newExtension As String)
+		Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newExtension
+	End Function
 
-    ''' <summary>
-    ''' Returns an image from file without locking it from being deleted
-    ''' </summary>
-    Public Shared Function GetImageNonLocking(ByVal fullPath As String) As Image
-        Try
-            Using fileStream As New System.IO.FileStream(fullPath, IO.FileMode.Open, IO.FileAccess.Read)
-                Return Image.FromStream(fileStream)
-            End Using
-        Catch
-            'Failed to access image
-            Return Nothing
-        End Try
-    End Function
+	''' <summary>
+	''' Returns an image from file without locking it from being deleted
+	''' </summary>
+	Public Shared Function GetImageNonLocking(ByVal fullPath As String) As Image
+		Try
+			Using fileStream As New System.IO.FileStream(fullPath, IO.FileMode.Open, IO.FileAccess.Read)
+				Return Image.FromStream(fileStream)
+			End Using
+		Catch
+			'Failed to access image
+			Return Nothing
+		End Try
+	End Function
 
-    ''' <summary>
-    ''' Sets the given crop locations to their real points
-    ''' </summary>
-    Public Sub SetCalculateRealCropPoints(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point)
-        If (cropBottomRight.X - cropTopLeft.X) > 0 And (cropBottomRight.Y - cropTopLeft.Y) > 0 Then
-            'Calculate actual crop locations due to bars and aspect ration changes
-            Dim actualAspectRatio As Double = (mintAspectHeight / mintAspectWidth)
-            Dim picVideoAspectRatio As Double = (picVideo.Height / picVideo.Width)
-            Dim fullHeight As Double = If(actualAspectRatio < picVideoAspectRatio, (mintAspectHeight / (actualAspectRatio / picVideoAspectRatio)), mintAspectHeight)
-            Dim fullWidth As Double = If(actualAspectRatio > picVideoAspectRatio, (mintAspectWidth / (picVideoAspectRatio / actualAspectRatio)), mintAspectWidth)
-            Dim verticalBarSizeRealPx As Integer = If(actualAspectRatio < picVideoAspectRatio, (fullHeight - mintAspectHeight) / 2, 0)
-            Dim horizontalBarSizeRealPx As Integer = If(actualAspectRatio > picVideoAspectRatio, (fullWidth - mintAspectWidth) / 2, 0)
-            Dim realStartCrop As Point = New Point(Math.Max(0, mptStartCrop.X * (fullWidth / picVideo.Width) - horizontalBarSizeRealPx), Math.Max(0, mptStartCrop.Y * (fullHeight / picVideo.Height) - verticalBarSizeRealPx))
-            Dim realEndCrop As Point = New Point(Math.Min(mintAspectWidth, mptEndCrop.X * (fullWidth / picVideo.Width) - horizontalBarSizeRealPx), Math.Min(mintAspectHeight, mptEndCrop.Y * (fullHeight / picVideo.Height) - verticalBarSizeRealPx))
-            cropTopLeft = realStartCrop
-            cropBottomRight = realEndCrop
-        End If
-    End Sub
+	''' <summary>
+	''' Sets the given crop locations to their real points
+	''' </summary>
+	Public Sub SetCalculateRealCropPoints(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point)
+		If (cropBottomRight.X - cropTopLeft.X) > 0 And (cropBottomRight.Y - cropTopLeft.Y) > 0 Then
+			'Calculate actual crop locations due to bars and aspect ration changes
+			Dim actualAspectRatio As Double = (mintAspectHeight / mintAspectWidth)
+			Dim picVideoAspectRatio As Double = (picVideo.Height / picVideo.Width)
+			Dim fullHeight As Double = If(actualAspectRatio < picVideoAspectRatio, (mintAspectHeight / (actualAspectRatio / picVideoAspectRatio)), mintAspectHeight)
+			Dim fullWidth As Double = If(actualAspectRatio > picVideoAspectRatio, (mintAspectWidth / (picVideoAspectRatio / actualAspectRatio)), mintAspectWidth)
+			Dim verticalBarSizeRealPx As Integer = If(actualAspectRatio < picVideoAspectRatio, (fullHeight - mintAspectHeight) / 2, 0)
+			Dim horizontalBarSizeRealPx As Integer = If(actualAspectRatio > picVideoAspectRatio, (fullWidth - mintAspectWidth) / 2, 0)
+			Dim realStartCrop As Point = New Point(Math.Max(0, mptStartCrop.X * (fullWidth / picVideo.Width) - horizontalBarSizeRealPx), Math.Max(0, mptStartCrop.Y * (fullHeight / picVideo.Height) - verticalBarSizeRealPx))
+			Dim realEndCrop As Point = New Point(Math.Min(mintAspectWidth, mptEndCrop.X * (fullWidth / picVideo.Width) - horizontalBarSizeRealPx), Math.Min(mintAspectHeight, mptEndCrop.Y * (fullHeight / picVideo.Height) - verticalBarSizeRealPx))
+			cropTopLeft = realStartCrop
+			cropBottomRight = realEndCrop
+		End If
+	End Sub
 
-    ''' <summary>
-    ''' Swaps the data between two objects
-    ''' </summary>
-    Public Sub SwapValues(ByRef object1 As Object, ByRef object2 As Object)
-        Dim tempObject As Object = object1
-        object1 = object2
-        object2 = tempObject
-    End Sub
+	''' <summary>
+	''' Swaps the data between two objects
+	''' </summary>
+	Public Sub SwapValues(ByRef object1 As Object, ByRef object2 As Object)
+		Dim tempObject As Object = object1
+		object1 = object2
+		object2 = tempObject
+	End Sub
 
-    Private ReadOnly Property TargetFPS As Integer
-        Get
-            Dim checkedItem As ToolStripMenuItem = DefaultToolStripMenuItem
-            For Each objItem As ToolStripMenuItem In cmsFrameRate.Items
-                If objItem.Checked Then
-                    checkedItem = objItem
-                    Exit For
-                End If
-            Next
-            Select Case True
-                Case checkedItem Is TenFPSToolStripMenuItem
-                    Return 10
-                Case checkedItem Is FifteenFPSToolStripMenuItem
-                    Return 15
-                Case checkedItem Is TwentyFPSToolStripMenuItem
-                    Return 20
-                Case checkedItem Is ThirtyFPSToolStripMenuItem
-                    Return 30
-                Case checkedItem Is SixtyFPSToolStripMenuItem
-                    Return 60
-                Case Else
-                    Return 0
-            End Select
-        End Get
-    End Property
+	Private ReadOnly Property TargetFPS As Integer
+		Get
+			Dim checkedItem As ToolStripMenuItem = DefaultToolStripMenuItem
+			For Each objItem As ToolStripMenuItem In cmsFrameRate.Items
+				If objItem.Checked Then
+					checkedItem = objItem
+					Exit For
+				End If
+			Next
+			Select Case True
+				Case checkedItem Is TenFPSToolStripMenuItem
+					Return 10
+				Case checkedItem Is FifteenFPSToolStripMenuItem
+					Return 15
+				Case checkedItem Is TwentyFPSToolStripMenuItem
+					Return 20
+				Case checkedItem Is ThirtyFPSToolStripMenuItem
+					Return 30
+				Case checkedItem Is SixtyFPSToolStripMenuItem
+					Return 60
+				Case Else
+					Return 0
+			End Select
+		End Get
+	End Property
 #End Region
 
-    ''' <summary>
-    ''' Captures key events before everything else, and uses them to modify the video trimming picRangeSlider control.
-    ''' </summary>
-    Protected Overrides Function ProcessCmdKey(ByRef message As Message, ByVal keys As Keys) As Boolean
-        Select Case keys
-            Case Keys.A
-                ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
-                ctlVideoSeeker.Invalidate()
-                'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
-                Return True
-            Case Keys.D
-                ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
-                ctlVideoSeeker.Invalidate()
-                'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
-                Return True
-            Case Keys.Left
-                ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
-                ctlVideoSeeker.Invalidate()
-                'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
-                Return True
-            Case Keys.Right
-                ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
-                ctlVideoSeeker.Invalidate()
-                'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
-                Return True
-        End Select
-        Return MyBase.ProcessCmdKey(message, keys)
-    End Function
+	''' <summary>
+	''' Captures key events before everything else, and uses them to modify the video trimming picRangeSlider control.
+	''' </summary>
+	Protected Overrides Function ProcessCmdKey(ByRef message As Message, ByVal keys As Keys) As Boolean
+		Select Case keys
+			Case Keys.A
+				ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
+				ctlVideoSeeker.Invalidate()
+				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
+				Return True
+			Case Keys.D
+				ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
+				ctlVideoSeeker.Invalidate()
+				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
+				Return True
+			Case Keys.Left
+				ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
+				ctlVideoSeeker.Invalidate()
+				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
+				Return True
+			Case Keys.Right
+				ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
+				ctlVideoSeeker.Invalidate()
+				'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
+				Return True
+		End Select
+		Return MyBase.ProcessCmdKey(message, keys)
+	End Function
 
-    ''' <summary>
-    ''' Show company and development information
-    ''' </summary>
-    Private Sub SimpleVideoEditor_HelpButtonClicked(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles MyBase.HelpButtonClicked
+	''' <summary>
+	''' Show company and development information
+	''' </summary>
+	Private Sub SimpleVideoEditor_HelpButtonClicked(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles MyBase.HelpButtonClicked
 		AboutForm.Show(Me)
 		AboutForm.Location = Me.Location 'Shift to place over the current window
 		AboutForm.Focus()
 		e.Cancel = True
-    End Sub
+	End Sub
 
-    ''' <summary>
-    ''' Changes the display text when muting/unmuting a video
-    ''' </summary>
-    Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckChanged
-        For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
-            objItem.Checked = False
-        Next
-        If chkMute.Checked Then
-            mdblPlaybackVolume = 0
-            MuteToolStripMenuItem.Checked = True
-        Else
-            mdblPlaybackVolume = 1
-            UnmuteToolStripMenuItem.Checked = True
-        End If
-        Dim volumeString As String = If(mdblPlaybackVolume = 0, "muted.", If(mdblPlaybackVolume = 1, "unmuted.", $"{mdblPlaybackVolume}%"))
-        mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & " the videos audio track. Currently " & If(chkMute.Checked, "muted.", volumeString))
-    End Sub
+	''' <summary>
+	''' Changes the display text when muting/unmuting a video
+	''' </summary>
+	Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckChanged
+		For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
+			objItem.Checked = False
+		Next
+		If chkMute.Checked Then
+			mdblPlaybackVolume = 0
+			MuteToolStripMenuItem.Checked = True
+		Else
+			mdblPlaybackVolume = 1
+			UnmuteToolStripMenuItem.Checked = True
+		End If
+		Dim volumeString As String = If(mdblPlaybackVolume = 0, "muted.", If(mdblPlaybackVolume = 1, "unmuted.", $"{mdblPlaybackVolume}%"))
+		mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & " the videos audio track. Currently " & If(chkMute.Checked, "muted.", volumeString))
+	End Sub
 
 
-    ''' <summary>
-    ''' Changes the display text when changing quality check control
-    ''' </summary>
-    Private Sub chkQuality_CheckedChanged(sender As Object, e As EventArgs) Handles chkQuality.CheckChanged
-        mobjGenericToolTip.SetToolTip(chkQuality, If(chkQuality.Checked, "Automatic quality.", "Force equivalent quality. WARNING: Slow processing and large file size may occur.") & " Currently " & If(chkQuality.Checked, "forced equivalent (slow and large).", "automatic (fast and small)."))
-    End Sub
+	''' <summary>
+	''' Changes the display text when changing quality check control
+	''' </summary>
+	Private Sub chkQuality_CheckedChanged(sender As Object, e As EventArgs) Handles chkQuality.CheckChanged
+		mobjGenericToolTip.SetToolTip(chkQuality, If(chkQuality.Checked, "Automatic quality.", "Force equivalent quality. WARNING: Slow processing and large file size may occur.") & " Currently " & If(chkQuality.Checked, "forced equivalent (slow and large).", "automatic (fast and small)."))
+	End Sub
 
-    ''' <summary>
-    ''' Toggles whether the video will be decimated or not, and changes the image to make it obvious
-    ''' </summary>
-    Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
-        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync.") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
-    End Sub
+	''' <summary>
+	''' Toggles whether the video will be decimated or not, and changes the image to make it obvious
+	''' </summary>
+	Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
+		mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync.") & " Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
+	End Sub
 
-    ''' <summary>
-    ''' Rotates the final video by 90 degrees per click, and updates the graphic
-    ''' </summary>
-    Private Sub imgRotate_Click(sender As Object, e As EventArgs) Handles imgRotate.Click
-        Select Case mobjRotation
-            Case RotateFlipType.RotateNoneFlipNone
-                mobjRotation = RotateFlipType.Rotate90FlipNone
-                mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 180°. Currently 90°.")
-            Case RotateFlipType.Rotate90FlipNone
-                mobjRotation = RotateFlipType.Rotate180FlipNone
-                mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 270°. Currently 180°.")
-            Case RotateFlipType.Rotate180FlipNone
-                mobjRotation = RotateFlipType.Rotate270FlipNone
-                mobjGenericToolTip.SetToolTip(imgRotate, "Do not rotate. Currently will rotate 270°.")
-            Case RotateFlipType.Rotate270FlipNone
-                mobjRotation = RotateFlipType.RotateNoneFlipNone
-                mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
-            Case Else
-                mobjRotation = RotateFlipType.RotateNoneFlipNone
-        End Select
-        Dim rotatedIcon As Image = New Bitmap(My.Resources.Rotate)
-        rotatedIcon.RotateFlip(mobjRotation)
-        imgRotate.Image = rotatedIcon
-        imgRotate.Refresh()
-    End Sub
+	''' <summary>
+	''' Rotates the final video by 90 degrees per click, and updates the graphic
+	''' </summary>
+	Private Sub imgRotate_Click(sender As Object, e As EventArgs) Handles imgRotate.Click
+		Select Case mobjRotation
+			Case RotateFlipType.RotateNoneFlipNone
+				mobjRotation = RotateFlipType.Rotate90FlipNone
+				mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 180°. Currently 90°.")
+			Case RotateFlipType.Rotate90FlipNone
+				mobjRotation = RotateFlipType.Rotate180FlipNone
+				mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 270°. Currently 180°.")
+			Case RotateFlipType.Rotate180FlipNone
+				mobjRotation = RotateFlipType.Rotate270FlipNone
+				mobjGenericToolTip.SetToolTip(imgRotate, "Do not rotate. Currently will rotate 270°.")
+			Case RotateFlipType.Rotate270FlipNone
+				mobjRotation = RotateFlipType.RotateNoneFlipNone
+				mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
+			Case Else
+				mobjRotation = RotateFlipType.RotateNoneFlipNone
+		End Select
+		Dim rotatedIcon As Image = New Bitmap(My.Resources.Rotate)
+		rotatedIcon.RotateFlip(mobjRotation)
+		imgRotate.Image = rotatedIcon
+		imgRotate.Refresh()
+	End Sub
 
-    ''' <summary>
-    ''' Clears the crop settings from the main picVideo control
-    ''' </summary>
-    ''' <param name="sender"></param>
-    ''' <param name="e"></param>
-    Private Sub cmsPicVideoClear_Click(sender As Object, e As EventArgs) Handles cmsPicVideoClear.Click
-        mptStartCrop = New Point(0, 0)
-        mptEndCrop = New Point(0, 0)
-        picVideo.Refresh()
-    End Sub
+	''' <summary>
+	''' Clears the crop settings from the main picVideo control
+	''' </summary>
+	''' <param name="sender"></param>
+	''' <param name="e"></param>
+	Private Sub cmsPicVideoClear_Click(sender As Object, e As EventArgs) Handles cmsPicVideoClear.Click
+		mptStartCrop = New Point(0, 0)
+		mptEndCrop = New Point(0, 0)
+		picVideo.Refresh()
+	End Sub
 
-    ''' <summary>
-    ''' User right clicked on the big image and wants to export that frame
-    ''' </summary>
-    Private Sub cmsPicVideoExportFrame_Click(sender As Object, e As EventArgs) Handles cmsPicVideoExportFrame.Click
+	''' <summary>
+	''' User right clicked on the big image and wants to export that frame
+	''' </summary>
+	Private Sub cmsPicVideoExportFrame_Click(sender As Object, e As EventArgs) Handles cmsPicVideoExportFrame.Click
         Using sfdExportFrame As New SaveFileDialog
             sfdExportFrame.Title = "Select Frame Save Location"
             sfdExportFrame.Filter = "PNG|*.png|BMP|*.bmp|All files (*.*)|*.*"
