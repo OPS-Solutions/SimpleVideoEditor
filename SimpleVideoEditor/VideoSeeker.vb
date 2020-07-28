@@ -11,8 +11,8 @@
             Return pRangeMinValue
         End Get
         Set(value As Integer)
-            pRangeMinValue = Math.Max(value, mRangeMin)
-            If pRangeMinValue >= RangeMaxValue Then
+            pRangeMinValue = Math.Min(Math.Max(value, mRangeMin), RangeMax)
+            If pRangeMinValue > RangeMaxValue Then
                 RangeMaxValue = pRangeMinValue + 1
                 If RangeMaxValue = pRangeMinValue Then
                     pRangeMinValue = RangeMaxValue - 1
@@ -32,8 +32,8 @@
             Return pRangeMaxValue
         End Get
         Set(value As Integer)
-            pRangeMaxValue = Math.Min(value, mRangeMax)
-            If pRangeMaxValue <= RangeMinValue Then
+            pRangeMaxValue = Math.Max(0, Math.Min(value, mRangeMax))
+            If pRangeMaxValue < RangeMinValue Then
                 RangeMinValue = pRangeMaxValue - 1
                 If RangeMinValue = pRangeMaxValue Then
                     pRangeMaxValue = RangeMinValue + 1
@@ -328,9 +328,17 @@
 
 			If potentialCollisions.Count > 0 Then
 				potentialCollisions.Sort(Function(obj1, obj2) CollisionRect(obj1).DistanceToCenter(e.Location).CompareTo(CollisionRect(obj2).DistanceToCenter(e.Location)))
-				menmSelectedSlider = potentialCollisions(0)
-			Else
-				menmSelectedSlider = SliderID.Preview
+                menmSelectedSlider = potentialCollisions(0)
+                If menmSelectedSlider = SliderID.Preview Then
+                    'Give priority to trim slider
+                    If RangeMinValue = PreviewLocation Then
+                        menmSelectedSlider = SliderID.LeftTrim
+                    ElseIf RangeMaxValue = SliderID.Preview Then
+                        menmSelectedSlider = SliderID.RightTrim
+                    End If
+                End If
+            Else
+                menmSelectedSlider = SliderID.Preview
 			End If
 			If Me.Cursor = Cursors.Default Then
 				Me.Cursor = Cursors.SizeWE

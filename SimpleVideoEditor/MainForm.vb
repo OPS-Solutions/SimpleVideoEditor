@@ -754,25 +754,25 @@ Public Class MainForm
             Case Keys.A
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
                 ctlVideoSeeker.Invalidate()
-                'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
-                Return True
             Case Keys.D
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
                 ctlVideoSeeker.Invalidate()
-                'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
-                Return True
+            Case Keys.A Or Keys.Shift
+                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation - 1
+                ctlVideoSeeker.Invalidate()
+            Case Keys.D Or Keys.Shift
+                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation + 1
+                ctlVideoSeeker.Invalidate()
             Case Keys.Left
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
                 ctlVideoSeeker.Invalidate()
-                'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
-                Return True
             Case Keys.Right
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
                 ctlVideoSeeker.Invalidate()
-                'picRangeSlider_SlowValueChanged(New Object, New System.EventArgs)
-                Return True
+            Case Else
+                Return MyBase.ProcessCmdKey(message, keys)
         End Select
-        Return MyBase.ProcessCmdKey(message, keys)
+        Return True
     End Function
 
     ''' <summary>

@@ -176,14 +176,14 @@ Public Class VideoData
         If targetCache(frame).Image IsNot Nothing AndAlso cacheSize >= 0 Then
             'If we are at the edge of the cached items, try to expand it a little in advance
             If targetCache(Math.Min(frame + 4, mobjMetaData.totalFrames - 4)).Status = ImageCache.CacheStatus.None Then
-                ThreadPool.QueueUserWorkItem(Sub()
-                                                 GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
-                                             End Sub)
+                Task.Run(Sub()
+                             GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
+                         End Sub)
             End If
             If targetCache(Math.Max(0, frame - 4)).Status = ImageCache.CacheStatus.None Then
-                ThreadPool.QueueUserWorkItem(Sub()
-                                                 GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
-                                             End Sub)
+                Task.Run(Sub()
+                             GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
+                         End Sub)
             End If
             Return targetCache(frame).Image
         End If
@@ -225,7 +225,7 @@ Public Class VideoData
         tempWatch.Start()
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = " -ss " & FormatHHMMSSm((startFrame) / Me.Framerate)
+        processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)} -r {Me.Framerate}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         If frameSize.Width = 0 AndAlso frameSize.Height = 0 Then
             frameSize.Width = 288
@@ -298,7 +298,7 @@ Public Class VideoData
         'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = " -ss " & FormatHHMMSSm((frame) / Me.Framerate)
+        processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)} -r {Me.Framerate}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
         processInfo.Arguments += " -vframes 1 " & """" & targetFilePath & """"
