@@ -176,14 +176,14 @@ Public Class VideoData
         If targetCache(frame).Image IsNot Nothing AndAlso cacheSize >= 0 Then
             'If we are at the edge of the cached items, try to expand it a little in advance
             If targetCache(Math.Min(frame + 4, Math.Max(0, mobjMetaData.totalFrames - 4))).Status = ImageCache.CacheStatus.None Then
-                Task.Run(Sub()
-                             GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
-                         End Sub)
+                Dim tempTask As Task = Task.Run(Async Function()
+                                                    Await GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
+                                                End Function)
             End If
             If targetCache(Math.Max(0, frame - 4)).Status = ImageCache.CacheStatus.None Then
-                Task.Run(Sub()
-                             GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
-                         End Sub)
+                Dim tempTask As Task = Task.Run(Async Function()
+                                                    Await GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
+                                                End Function)
             End If
             Return targetCache(frame).Image
         End If

@@ -13,10 +13,7 @@
         Set(value As Integer)
             pRangeMinValue = Math.Min(Math.Max(value, mRangeMin), RangeMax)
             If pRangeMinValue > RangeMaxValue Then
-                RangeMaxValue = pRangeMinValue + 1
-                If RangeMaxValue = pRangeMinValue Then
-                    pRangeMinValue = RangeMaxValue - 1
-                End If
+                RangeMaxValue = pRangeMinValue
             End If
             PreviewLocation = pRangeMinValue
         End Set
@@ -34,10 +31,7 @@
         Set(value As Integer)
             pRangeMaxValue = Math.Max(0, Math.Min(value, mRangeMax))
             If pRangeMaxValue < RangeMinValue Then
-                RangeMinValue = pRangeMaxValue - 1
-                If RangeMinValue = pRangeMaxValue Then
-                    pRangeMaxValue = RangeMinValue + 1
-                End If
+                RangeMinValue = pRangeMaxValue
             End If
             PreviewLocation = pRangeMaxValue
         End Set

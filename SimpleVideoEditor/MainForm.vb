@@ -262,89 +262,95 @@ Public Class MainForm
     End Sub
 
     ''' <summary>
-    ''' Asynchronously polls for keyframe image data from ffmpeg, gives a loading cursor
+    ''' Polls for keyframe image data from ffmpeg, gives a loading cursor
     ''' </summary>
-    Private Async Sub PollPreviewFrames()
-		'Make sure the user is notified that the application is working
-		If Cursor = Cursors.Arrow Then
-			Cursor = Cursors.WaitCursor
-		End If
+    Private Sub PollPreviewFrames()
+        'Make sure the user is notified that the application is working
+        If Cursor = Cursors.Arrow Then
+            Cursor = Cursors.WaitCursor
+        End If
 
-		'Try to read from file, otherwise go ahead and extract them
-		If Not mobjMetaData.ReadScenesFromFile Then
-			ThreadPool.QueueUserWorkItem(Async Sub()
-											 Await mobjMetaData.ExtractSceneChanges()
-											 Me.BeginInvoke(Sub()
-																If mobjMetaData.SceneFrames IsNot Nothing Then
-																	'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
-																	ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
-																End If
-															End Sub)
-										 End Sub)
-			'mobjMetaData.SaveScenesToFile()
-		End If
-		'Grab compressed frames
-		If Not mobjMetaData.ReadThumbsFromFile Then
-			ThreadPool.QueueUserWorkItem(Async Sub()
-											 Await mobjMetaData.ExtractThumbFrames()
-										 End Sub)
-			'mobjMetaData.SaveThumbsToFile()
-		End If
+        'Create temporary task to supress warnings for async usage in Task.Run()
+        Dim tempTask As Task
 
-		'Grab keyframes in a parallel manner
-		'Spin up a thread for each set of frame grabs so they can be done at the same time
-		'Update the images via invoking the main thread to avoid cross thread UI access
-		'Signal barrer to synchronize completion between all keyframes
-		Dim imageGrabBarrier As New Barrier(5)
-		ThreadPool.QueueUserWorkItem(Sub()
-										 mobjMetaData.GetFfmpegFrame(0)
-										 Me.Invoke(Sub()
-													   picFrame1.Image = mobjMetaData.GetFfmpegFrame(0)
-												   End Sub)
-										 imageGrabBarrier.SignalAndWait()
-									 End Sub)
-		ThreadPool.QueueUserWorkItem(Sub()
-										 mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25)
-										 Me.Invoke(Sub()
-													   picFrame2.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.25)
-												   End Sub)
-										 imageGrabBarrier.SignalAndWait()
-									 End Sub)
-		ThreadPool.QueueUserWorkItem(Sub()
-										 mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5)
-										 Me.Invoke(Sub()
-													   picFrame3.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.5)
-												   End Sub)
-										 imageGrabBarrier.SignalAndWait()
-									 End Sub)
-		ThreadPool.QueueUserWorkItem(Sub()
-										 mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75)
-										 Me.Invoke(Sub()
-													   picFrame4.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames * 0.75)
-												   End Sub)
-										 imageGrabBarrier.SignalAndWait()
-									 End Sub)
-		ThreadPool.QueueUserWorkItem(Sub()
-										 mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 1)
-										 Me.Invoke(Sub()
-													   picFrame5.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 1)
-													   If picFrame5.Image Is Nothing Then
-														   picFrame5.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 2)
-													   End If
-												   End Sub)
-										 'Wait until all keyframes have been grabbed in their seperate threads
-										 imageGrabBarrier.SignalAndWait()
-										 Me.Invoke(Sub()
-													   'Application is finished searching for images, reset cursor
-													   Cursor = Cursors.Arrow
-												   End Sub)
-									 End Sub)
-	End Sub
+        'Try to read from file, otherwise go ahead and extract them
+        If Not mobjMetaData.ReadScenesFromFile Then
+            tempTask = Task.Run(Async Function()
+                                    Await mobjMetaData.ExtractSceneChanges()
+                                    Me.BeginInvoke(Sub()
+                                                       If mobjMetaData.SceneFrames IsNot Nothing Then
+                                                           'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
+                                                           ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+                                                       End If
+                                                   End Sub)
+                                End Function)
+            'mobjMetaData.SaveScenesToFile()
+        End If
+        'Grab compressed frames
+        If Not mobjMetaData.ReadThumbsFromFile Then
+            ThreadPool.QueueUserWorkItem(Async Sub()
+                                             Await mobjMetaData.ExtractThumbFrames()
+                                         End Sub)
+            'mobjMetaData.SaveThumbsToFile()
+        End If
 
-	''' <summary>
-	''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
-	''' </summary>
-	Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
+        'Grab keyframes in a parallel manner
+        'Spin up a thread for each set of frame grabs so they can be done at the same time
+        'Update the images via invoking the main thread to avoid cross thread UI access
+        'Signal barrer to synchronize completion between all keyframes
+        Dim imageGrabBarrier As New Barrier(5)
+        tempTask = Task.Run(Sub()
+                                mobjMetaData.GetFfmpegFrame(0)
+                                Me.Invoke(Sub()
+                                              picFrame1.Image = mobjMetaData.GetFfmpegFrame(0)
+                                          End Sub)
+                                imageGrabBarrier.SignalAndWait()
+                            End Sub)
+        tempTask = Task.Run(Sub()
+                                Dim targetFrame As Integer = Math.Floor(mobjMetaData.TotalFrames * 0.25)
+                                mobjMetaData.GetFfmpegFrame(targetFrame)
+                                Me.Invoke(Sub()
+                                              picFrame2.Image = mobjMetaData.GetFfmpegFrame(targetFrame)
+                                          End Sub)
+                                imageGrabBarrier.SignalAndWait()
+                            End Sub)
+        tempTask = Task.Run(Sub()
+                                Dim targetFrame As Integer = Math.Floor(mobjMetaData.TotalFrames * 0.5)
+                                mobjMetaData.GetFfmpegFrame(targetFrame)
+                                Me.Invoke(Sub()
+                                              picFrame3.Image = mobjMetaData.GetFfmpegFrame(targetFrame)
+                                          End Sub)
+                                imageGrabBarrier.SignalAndWait()
+                            End Sub)
+        tempTask = Task.Run(Sub()
+                                Dim targetFrame As Integer = Math.Floor(mobjMetaData.TotalFrames * 0.75)
+                                mobjMetaData.GetFfmpegFrame(targetFrame)
+                                Me.Invoke(Sub()
+                                              picFrame4.Image = mobjMetaData.GetFfmpegFrame(targetFrame)
+                                          End Sub)
+                                imageGrabBarrier.SignalAndWait()
+                            End Sub)
+        tempTask = Task.Run(Sub()
+                                mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 1)
+                                Me.Invoke(Sub()
+                                              picFrame5.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 1)
+                                              If picFrame5.Image Is Nothing Then
+                                                  picFrame5.Image = mobjMetaData.GetFfmpegFrame(mobjMetaData.TotalFrames - 2)
+                                              End If
+                                          End Sub)
+                                'Wait until all keyframes have been grabbed in their seperate threads
+                                imageGrabBarrier.SignalAndWait()
+                                Me.Invoke(Sub()
+                                              'Application is finished searching for images, reset cursor
+                                              Cursor = Cursors.Arrow
+                                          End Sub)
+                            End Sub)
+    End Sub
+
+    ''' <summary>
+    ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
+    ''' </summary>
+    Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal startSS As Double, ByVal endSS As Double, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
         Dim duration As String = (endSS) - (startSS)
         If specProperties?.PlaybackSpeed <> 0 Then
             duration /= specProperties.PlaybackSpeed
@@ -355,7 +361,7 @@ Public Class MainForm
         '-vf "vflip,hflip"
         'Cropping
         '-filter:v "crop=out_w:out_h:x:y"
-        processInfo.Arguments = "-i """ & inputFile & """"
+        processInfo.Arguments += $"-r {mobjMetaData.Framerate} -i ""{inputFile}"""
         If duration > 0 Then
             Dim startHHMMSS As String = FormatHHMMSSm(startSS / specProperties.PlaybackSpeed)
             processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
