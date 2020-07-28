@@ -148,7 +148,7 @@ Public Class MainForm
         Dim isMP4 As Boolean = IO.Path.GetExtension(outputPath) = ".mp4"
         Dim intermediateFilePath As String = mstrVideoPath
         mproFfmpegProcess = Nothing
-        Dim useIntermediate As Boolean = postCropOperation AndAlso willCrop OrElse isMP4
+        Dim useIntermediate As Boolean = (postCropOperation AndAlso willCrop) OrElse (sProperties.Decimate AndAlso isMP4)
         If useIntermediate Then
             intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
             If isMP4 Then
