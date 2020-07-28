@@ -361,7 +361,7 @@ Public Class MainForm
         '-vf "vflip,hflip"
         'Cropping
         '-filter:v "crop=out_w:out_h:x:y"
-        processInfo.Arguments += $"-r {mobjMetaData.Framerate} -i ""{inputFile}"""
+        processInfo.Arguments += $"-i ""{inputFile}"""
         If duration > 0 Then
             Dim startHHMMSS As String = FormatHHMMSSm(startSS / specProperties.PlaybackSpeed)
             processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString

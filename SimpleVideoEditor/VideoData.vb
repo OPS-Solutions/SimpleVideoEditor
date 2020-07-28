@@ -225,7 +225,7 @@ Public Class VideoData
         tempWatch.Start()
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)} -r {Me.Framerate}"
+        processInfo.Arguments = $" -ss {FormatHHMMSSm((startFrame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         If frameSize.Width = 0 AndAlso frameSize.Height = 0 Then
             frameSize.Width = 288
@@ -298,10 +298,10 @@ Public Class VideoData
         'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)} -r {Me.Framerate}"
+        processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
-        processInfo.Arguments += " -vframes 1 " & """" & targetFilePath & """"
+        processInfo.Arguments += $" -r {Me.Framerate} -vframes 1 ""{targetFilePath}"""
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
         Dim tempProcess As Process = Process.Start(processInfo)
