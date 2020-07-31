@@ -599,6 +599,9 @@ Public Class MainForm
             Next
         End If
 
+        'Change window title to current version
+        Me.Text = Me.Text & $" {Application.ProductVersion} - Open Source"
+
         'Start render decay timer
         ThreadPool.QueueUserWorkItem(Sub()
                                          While (True)
@@ -789,10 +792,8 @@ Public Class MainForm
     ''' Show company and development information
     ''' </summary>
     Private Sub SimpleVideoEditor_HelpButtonClicked(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles MyBase.HelpButtonClicked
-		AboutForm.Show(Me)
-		AboutForm.Location = Me.Location 'Shift to place over the current window
-		AboutForm.Focus()
-		e.Cancel = True
+        AboutForm.ShowDialog(Me)
+        e.Cancel = True
     End Sub
 
     ''' <summary>
