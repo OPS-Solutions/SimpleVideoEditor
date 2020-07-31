@@ -14,6 +14,8 @@ Public Class ImageCache
         Public Image As Bitmap
         ''' <summary>Time that the image was first queued up for retrieval</summary>
         Public QueueTime As DateTime?
+        ''' <summary>Presentation time of the image</summary>
+        Public PTSTime As Double?
 
         ''' <summary>
         ''' Gets bytes from bitmap. Created for serialization

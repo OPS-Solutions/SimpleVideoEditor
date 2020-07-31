@@ -168,6 +168,10 @@ Public Class VideoData
         Return mobjThumbCache.ImageCacheStatus(imageIndex)
     End Function
 
+    Public Function ThumbImageCachePTS(imageIndex As Integer) As Double
+        Return mobjThumbCache.Item(imageIndex).PTSTime
+    End Function
+
     ''' <summary>
     ''' Polls ffmpeg for the given frame asynchrounously
     ''' </summary>
@@ -250,22 +254,24 @@ Public Class VideoData
             frameSize.Width = 288
         End If
         'processInfo.Arguments += $" -r {Me.Framerate} -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
-        processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)} -vsync 0 -f image2pipe -vcodec bmp -"
+        processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -f image2pipe -vcodec bmp -"
         processInfo.UseShellExecute = False
         processInfo.CreateNoWindow = True
         processInfo.RedirectStandardOutput = True
-        'processInfo.RedirectStandardError = True
+        processInfo.RedirectStandardError = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
-		Dim tempProcess As Process = Process.Start(processInfo)
-		RaiseEvent QueuedFrames(Me, startFrame, endFrame)
+        Dim tempProcess As Process = Process.Start(processInfo)
+        RaiseEvent QueuedFrames(Me, startFrame, endFrame)
 
         'Grab each frame as they are output from ffmpeg in real time as fast as possible
         'Don't wait for the entire thing to complete
         'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
         'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
-        'Dim fullDataRead As String = ""
+#If DEBUG Then
+        Dim fullDataRead As String = ""
+#End If
         Dim currentFrame As Integer = startFrame
-        'Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
+        Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
         Dim framesRetrieved As New List(Of Integer)
         'Dim frameRegex As New Regex("frame=\s*(\d*)")
         While True
@@ -295,38 +301,34 @@ Public Class VideoData
                 targetCache(currentFrame).Image = New Bitmap(recievedstream)
                 framesRetrieved.Add(currentFrame)
             End Using
-            'Read StandardError for the showinfo result for PTS_Time
-            'Look for "frame = currentFrame" while keeping track of last pts_Time found
 
-            'Dim dataRead As String = ""
-            'Dim lineRead As String = ""
-            'Do
-            '    lineRead = Await tempProcess.StandardError.ReadLineAsync()
-            '    'dataRead += lineRead + vbCrLf
-            '    Dim infoMatch As Match = showInfoRegex.Match(lineRead)
-            '    If infoMatch.Success Then
-            '        Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
-            '        Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
-            '        If (matchValue + startFrame) = currentFrame Then
-            '            targetCache(currentFrame).PTS_Time = matchPTS
-            '            Exit Do
-            '        End If
-            '    End If
-            '    'dataRead += lineRead + vbCrLf
-            '    'Dim frameMatch As Match = frameRegex.Match(lineRead)
-            '    'If frameMatch.Success Then
-            '    '    Dim matchValue As Integer = Integer.Parse(frameMatch.Groups(1).Value)
-            '    '    If (matchValue + startFrame - 1) = currentFrame Then
-            '    '        targetCache(currentFrame).PTS_Time = lastPTS
-            '    '        Exit Do
-            '    '    End If
-            '    'End If
-            '    'Failsafe
-            '    If tempProcess.StandardError.EndOfStream Then
-            '        Exit Do
-            '    End If
-            'Loop
-            'fullDataRead += dataRead
+            'Read StandardError for the showinfo result for PTS_Time
+#If DEBUG Then
+            Dim dataRead As String = ""
+#End If
+            Dim lineRead As String = ""
+            Do
+                lineRead = Await tempProcess.StandardError.ReadLineAsync()
+#If DEBUG Then
+                dataRead += lineRead + vbCrLf
+#End If
+                Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+                If infoMatch.Success Then
+                    Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
+                    Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
+                    If (matchValue + startFrame) = currentFrame Then
+                        targetCache(currentFrame).PTSTime = matchPTS
+                        Exit Do
+                    End If
+                End If
+
+                If tempProcess.StandardError.EndOfStream Then
+                    Exit Do
+                End If
+            Loop
+#If DEBUG Then
+            fullDataRead += dataRead
+#End If
 
             targetCache(currentFrame).QueueTime = Nothing
             currentFrame += 1

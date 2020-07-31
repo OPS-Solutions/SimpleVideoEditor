@@ -76,7 +76,7 @@ Module Extensions
     ''' <summary>
     ''' Converts a double like 100.5 seconds to HHMMSSm... like "00:01:40.5"
     ''' </summary>
-    Public Function FormatHHMMSSm(ByVal totalSS As Double) As String
+    Public Function FormatHHMMSSm(ByVal totalSS As Decimal) As String
         Dim hours As Double = ((totalSS / 60) / 60)
         Dim minutes As Double = (hours Mod 1) * 60
         Dim seconds As Double = (minutes Mod 1) * 60
