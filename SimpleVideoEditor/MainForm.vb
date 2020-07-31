@@ -764,22 +764,22 @@ Public Class MainForm
     ''' </summary>
     Protected Overrides Function ProcessCmdKey(ByRef message As Message, ByVal keys As Keys) As Boolean
         Select Case keys
-            Case keys.A
+            Case Keys.A
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
                 ctlVideoSeeker.Invalidate()
-            Case keys.D
+            Case Keys.D
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
                 ctlVideoSeeker.Invalidate()
-            Case keys.A Or keys.Shift
+            Case Keys.A Or Keys.Shift
                 ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation - 1
                 ctlVideoSeeker.Invalidate()
-            Case keys.D Or keys.Shift
+            Case Keys.D Or Keys.Shift
                 ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation + 1
                 ctlVideoSeeker.Invalidate()
-            Case keys.Left
+            Case Keys.Left
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
                 ctlVideoSeeker.Invalidate()
-            Case keys.Right
+            Case Keys.Right
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
                 ctlVideoSeeker.Invalidate()
             Case Else
