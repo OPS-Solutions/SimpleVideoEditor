@@ -109,10 +109,11 @@ Partial Class MainForm
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.lblFileName.BackColor = System.Drawing.SystemColors.ControlLight
         Me.lblFileName.Font = New System.Drawing.Font("Microsoft Sans Serif", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblFileName.Location = New System.Drawing.Point(11, 10)
+        Me.lblFileName.Location = New System.Drawing.Point(11, 11)
         Me.lblFileName.Name = "lblFileName"
-        Me.lblFileName.Size = New System.Drawing.Size(227, 22)
+        Me.lblFileName.Size = New System.Drawing.Size(227, 20)
         Me.lblFileName.TabIndex = 1
+        Me.lblFileName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
         'cmbDefinition
         '
