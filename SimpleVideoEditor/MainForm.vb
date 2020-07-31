@@ -641,9 +641,9 @@ Public Class MainForm
         picFrame2.Image = Nothing
         picFrame3.Image = Nothing
         picFrame4.Image = Nothing
-		picFrame5.Image = Nothing
-		ctlVideoSeeker.SceneFrames = Nothing
-		ctlVideoSeeker.Enabled = False
+        picFrame5.Image = Nothing
+        ctlVideoSeeker.SceneFrames = Nothing
+        ctlVideoSeeker.Enabled = False
         btnいくよ.Enabled = False
         lblFileName.Text = ""
     End Sub
@@ -764,22 +764,22 @@ Public Class MainForm
     ''' </summary>
     Protected Overrides Function ProcessCmdKey(ByRef message As Message, ByVal keys As Keys) As Boolean
         Select Case keys
-            Case Keys.A
+            Case keys.A
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
                 ctlVideoSeeker.Invalidate()
-            Case Keys.D
+            Case keys.D
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
                 ctlVideoSeeker.Invalidate()
-            Case Keys.A Or Keys.Shift
+            Case keys.A Or keys.Shift
                 ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation - 1
                 ctlVideoSeeker.Invalidate()
-            Case Keys.D Or Keys.Shift
+            Case keys.D Or keys.Shift
                 ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation + 1
                 ctlVideoSeeker.Invalidate()
-            Case Keys.Left
+            Case keys.Left
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
                 ctlVideoSeeker.Invalidate()
-            Case Keys.Right
+            Case keys.Right
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
                 ctlVideoSeeker.Invalidate()
             Case Else
@@ -826,7 +826,7 @@ Public Class MainForm
     ''' Toggles whether the video will be decimated or not, and changes the image to make it obvious
     ''' </summary>
     Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
-        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync.") & ". Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
+        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync.") & " Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
     End Sub
 
     ''' <summary>
@@ -898,61 +898,61 @@ Public Class MainForm
         Return compressedSceneChanges
     End Function
 
-	Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
-		If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
-			If Not mintCurrentFrame = newVal Then
-				mintCurrentFrame = newVal
-				If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-					'Grab immediate
-					picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
-				Else
-					If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-						'Check for low res thumbnail if we have it
-						picVideo.Image = mobjMetaData.GetImageFromThumbCache(mintCurrentFrame)
-					Else
-						'Loading image...
-						picVideo.Image = Nothing
-					End If
-					'Queue, event will change the image for us
-					If mobjSlideQueue Is Nothing OrElse Not mobjSlideQueue.IsAlive Then
-						mobjSlideQueue = New Thread(Sub()
-														Dim startFrame As Integer
-														Do
-															startFrame = mintCurrentFrame
-															mobjMetaData.GetFfmpegFrame(mintCurrentFrame)
-														Loop While startFrame <> mintCurrentFrame
-													End Sub)
-						mobjSlideQueue.Start()
-					End If
-				End If
-			Else
-				If mobjSlideQueue IsNot Nothing AndAlso mobjSlideQueue.IsAlive AndAlso ctlVideoSeeker.SelectedSlider = VideoSeeker.SliderID.None Then
-					'Force frame grab because the user let go
-					ThreadPool.QueueUserWorkItem(Sub()
-													 mobjMetaData.GetFfmpegFrame(mintCurrentFrame)
-												 End Sub)
-				End If
-			End If
-			mintDisplayInfo = RENDER_DECAY_TIME
-		End If
-	End Sub
+    Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
+        If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
+            If Not mintCurrentFrame = newVal Then
+                mintCurrentFrame = newVal
+                If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+                    'Grab immediate
+                    picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+                Else
+                    If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+                        'Check for low res thumbnail if we have it
+                        picVideo.Image = mobjMetaData.GetImageFromThumbCache(mintCurrentFrame)
+                    Else
+                        'Loading image...
+                        picVideo.Image = Nothing
+                    End If
+                    'Queue, event will change the image for us
+                    If mobjSlideQueue Is Nothing OrElse Not mobjSlideQueue.IsAlive Then
+                        mobjSlideQueue = New Thread(Sub()
+                                                        Dim startFrame As Integer
+                                                        Do
+                                                            startFrame = mintCurrentFrame
+                                                            mobjMetaData.GetFfmpegFrame(mintCurrentFrame)
+                                                        Loop While startFrame <> mintCurrentFrame
+                                                    End Sub)
+                        mobjSlideQueue.Start()
+                    End If
+                End If
+            Else
+                If mobjSlideQueue IsNot Nothing AndAlso mobjSlideQueue.IsAlive AndAlso ctlVideoSeeker.SelectedSlider = VideoSeeker.SliderID.None Then
+                    'Force frame grab because the user let go
+                    ThreadPool.QueueUserWorkItem(Sub()
+                                                     mobjMetaData.GetFfmpegFrame(mintCurrentFrame)
+                                                 End Sub)
+                End If
+            End If
+            mintDisplayInfo = RENDER_DECAY_TIME
+        End If
+    End Sub
 
-	Private mobjSlideQueue As Thread
+    Private mobjSlideQueue As Thread
 
 
-	Private Sub NewFrameCached(sender As Object, startFrame As Integer, endFrame As Integer) Handles mobjMetaData.RetrievedFrames
-		If mintCurrentFrame >= startFrame AndAlso mintCurrentFrame <= endFrame Then
-			'Ensure we avoid cross thread GDI access of the bitmap
-			If Me.InvokeRequired Then
-				Me.BeginInvoke(Sub()
-								   picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
-							   End Sub)
-			Else
-				'Grab immediate
-				picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
-			End If
-		End If
-	End Sub
+    Private Sub NewFrameCached(sender As Object, startFrame As Integer, endFrame As Integer) Handles mobjMetaData.RetrievedFrames
+        If mintCurrentFrame >= startFrame AndAlso mintCurrentFrame <= endFrame Then
+            'Ensure we avoid cross thread GDI access of the bitmap
+            If Me.InvokeRequired Then
+                Me.BeginInvoke(Sub()
+                                   picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+                               End Sub)
+            Else
+                'Grab immediate
+                picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+            End If
+        End If
+    End Sub
 
     Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click
 
@@ -1017,12 +1017,12 @@ Public Class MainForm
         HolePuncherForm.Show()
     End Sub
 
-	Private Sub picPlaybackSpeed_Click(sender As Object, e As EventArgs) Handles picPlaybackSpeed.Click
+    Private Sub picPlaybackSpeed_Click(sender As Object, e As EventArgs) Handles picPlaybackSpeed.Click
 
-	End Sub
+    End Sub
 
-	Private Sub InjectCustomArgumentsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles InjectCustomArgumentsToolStripMenuItem.Click
-		mblnUserInjection = True
-		SaveAs()
-	End Sub
+    Private Sub InjectCustomArgumentsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles InjectCustomArgumentsToolStripMenuItem.Click
+        mblnUserInjection = True
+        SaveAs()
+    End Sub
 End Class
