@@ -105,7 +105,7 @@ Public Class MainForm
         picFrame3.Image = Nothing
         picFrame4.Image = Nothing
         picFrame5.Image = Nothing
-        LoadDefaultFrames()
+        LoadDefaultFrame()
         PollPreviewFrames()
         cmsPicVideoExportFrame.Enabled = True
     End Sub
@@ -182,10 +182,10 @@ Public Class MainForm
         End If
         'Now you can apply everything else
         RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, 0, ctlVideoSeeker.RangeMinValue / mintFrameRate), If(ignoreTrim, 0, (ctlVideoSeeker.RangeMaxValue + 1) / mintFrameRate), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(postCropOperation, New Point(0, 0), mptStartCrop), If(postCropOperation, New Point(0, 0), mptEndCrop))
-		If mproFfmpegProcess Is Nothing Then
-			Exit Sub
-		End If
-		mproFfmpegProcess.WaitForExit()
+        If mproFfmpegProcess Is Nothing Then
+            Exit Sub
+        End If
+        mproFfmpegProcess.WaitForExit()
         If overwriteOriginal Or (useIntermediate) Then
             My.Computer.FileSystem.DeleteFile(intermediateFilePath)
         End If
@@ -206,33 +206,33 @@ Public Class MainForm
         SaveFile(sfdVideoOut.FileName, System.IO.File.Exists(sfdVideoOut.FileName))
     End Sub
 
-	''' <summary>
-	''' sets up needed information and runs ffmpeg.exe to render the final video.
-	''' </summary>
-	Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
-		mblnUserInjection = My.Computer.Keyboard.CtrlKeyDown
-		SaveAs()
-	End Sub
+    ''' <summary>
+    ''' sets up needed information and runs ffmpeg.exe to render the final video.
+    ''' </summary>
+    Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
+        mblnUserInjection = My.Computer.Keyboard.CtrlKeyDown
+        SaveAs()
+    End Sub
 
-	Private Sub SaveAs()
-		sfdVideoOut.Filter = "MP4|*.mp4|GIF|*.gif|MKV|*.mkv|WMV|*.wmv|AVI|*.avi|MOV|*.mov|All files (*.*)|*.*"
-		Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
-		For index As Integer = 1 To validExtensions.Count - 1 Step 2
-			If System.IO.Path.GetExtension(mstrVideoPath).Contains(validExtensions(index).Replace("*", "")) Then
-				sfdVideoOut.FilterIndex = ((index - 1) \ 2) + 1
-				Exit For
-			End If
-		Next
-		sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
-		sfdVideoOut.OverwritePrompt = True
-		sfdVideoOut.ShowDialog()
-	End Sub
+    Private Sub SaveAs()
+        sfdVideoOut.Filter = "MP4|*.mp4|GIF|*.gif|MKV|*.mkv|WMV|*.wmv|AVI|*.avi|MOV|*.mov|All files (*.*)|*.*"
+        Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
+        For index As Integer = 1 To validExtensions.Count - 1 Step 2
+            If System.IO.Path.GetExtension(mstrVideoPath).Contains(validExtensions(index).Replace("*", "")) Then
+                sfdVideoOut.FilterIndex = ((index - 1) \ 2) + 1
+                Exit For
+            End If
+        Next
+        sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
+        sfdVideoOut.OverwritePrompt = True
+        sfdVideoOut.ShowDialog()
+    End Sub
 #End Region
 
-	''' <summary>
-	''' Loads default frames when called.
-	''' </summary>
-	Public Async Sub LoadDefaultFrames()
+    ''' <summary>
+    ''' Loads frame 0 into the image box and sets up aspect ratio.
+    ''' </summary>
+    Public Async Sub LoadDefaultFrame()
         'Make sure the user is notified that the application is working
         If Cursor = Cursors.Arrow Then
             Cursor = Cursors.WaitCursor
@@ -361,11 +361,11 @@ Public Class MainForm
         '-vf "vflip,hflip"
         'Cropping
         '-filter:v "crop=out_w:out_h:x:y"
-        processInfo.Arguments += $"-i ""{inputFile}"""
         If duration > 0 Then
             Dim startHHMMSS As String = FormatHHMMSSm(startSS / specProperties.PlaybackSpeed)
             processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
         End If
+        processInfo.Arguments += $" -i ""{inputFile}"""
 
         'CREATE LIST OF PARAMETERS FOR EACH FILTER
         Dim videoFilterParams As New List(Of String)

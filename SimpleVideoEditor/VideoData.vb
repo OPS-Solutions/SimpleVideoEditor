@@ -34,6 +34,8 @@ Public Class VideoData
     Private mobjImageCache As ImageCache
     Private mobjThumbCache As ImageCache
 
+    Private Shared mobjLock As String = "Lock"
+
 
     ''' <summary>Event for when some number of frames have been queued for retrieval</summary>
     Public Event QueuedFrames(sender As Object, startFrame As Integer, endFrame As Integer)
@@ -194,30 +196,47 @@ Public Class VideoData
         If cacheSize < 0 Then
             startFrame = 0
         End If
-        'Step backwards from the requested frame, preparing to get anything that hasn't been grabbed yet
-        For index As Integer = frame To earlyFrame Step -1
-            If targetCache(index).Image Is Nothing AndAlso targetCache(index).QueueTime Is Nothing Then
-                startFrame = index
-            Else
-                Exit For
-            End If
-        Next
-        Dim lateFrame As Integer = Math.Min(mobjMetaData.totalFrames - 1, startFrame + cacheSize)
         Dim endFrame As Integer = frame 'Last frame that is not cached
-        If cacheSize < 0 Then
-            endFrame = mobjMetaData.totalFrames - 1
-        End If
-        'Step forwards from the current frame, preparing to get anything that hasn't been grabbed yet
-        For index As Integer = frame To lateFrame
-            If targetCache(index).Image Is Nothing AndAlso targetCache(index).QueueTime Is Nothing Then
-                endFrame = index
-            Else
-                Exit For
+        Dim alreadyQueued As Boolean = False
+        SyncLock targetCache
+            'Step backwards from the requested frame, preparing to get anything that hasn't been grabbed yet
+            For index As Integer = frame To earlyFrame Step -1
+                If targetCache(index).Status = ImageCache.CacheStatus.None Then
+                    startFrame = index
+                Else
+                    Exit For
+                End If
+            Next
+            Dim lateFrame As Integer = Math.Min(mobjMetaData.totalFrames - 1, startFrame + cacheSize)
+            If cacheSize < 0 Then
+                endFrame = mobjMetaData.totalFrames - 1
             End If
-        Next
-        Debug.Print($"Working for frames:{startFrame}-{endFrame}")
-        'Mark images that we are looking for
-        targetCache.SetQueue(startFrame, endFrame)
+            'Step forwards from the current frame, preparing to get anything that hasn't been grabbed yet
+            For index As Integer = frame To lateFrame
+                If targetCache(index).Status = ImageCache.CacheStatus.None Then
+                    endFrame = index
+                Else
+                    Exit For
+                End If
+            Next
+            alreadyQueued = (startFrame = endFrame AndAlso targetCache(startFrame).Status = ImageCache.CacheStatus.Queued)
+            Debug.Print($"Working for frames:{startFrame}-{endFrame} (Size:{frameSize.ToString})")
+            'Mark images that we are looking for
+            targetCache.SetQueue(startFrame, endFrame)
+        End SyncLock
+        'If you are looking for only one frame, and it is queued, dont waste time trying to grab it again...
+        If alreadyQueued Then
+            Debug.Print($"Waiting on predicesor call for frame:{startFrame}")
+            Return Await Task.Run(Function()
+                                      Do
+                                          If Not targetCache(startFrame).Status = ImageCache.CacheStatus.Queued Then
+                                              Return targetCache(startFrame).Image
+                                          Else
+                                              Threading.Thread.Sleep(10)
+                                          End If
+                                      Loop
+                                  End Function)
+        End If
 
         Dim cacheTotal As Integer = endFrame - startFrame + 1
         Dim tempWatch As New Stopwatch
@@ -225,22 +244,30 @@ Public Class VideoData
         tempWatch.Start()
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = $" -ss {FormatHHMMSSm((startFrame) / Me.Framerate)}"
+        'processInfo.Arguments += $" -ss {FormatHHMMSSm((startFrame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         If frameSize.Width = 0 AndAlso frameSize.Height = 0 Then
             frameSize.Width = 288
         End If
-		processInfo.Arguments += $" -r {Me.Framerate} -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)} -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
-		processInfo.UseShellExecute = False
+        'processInfo.Arguments += $" -r {Me.Framerate} -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
+        processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)} -vsync 0 -f image2pipe -vcodec bmp -"
+        processInfo.UseShellExecute = False
         processInfo.CreateNoWindow = True
-		processInfo.RedirectStandardOutput = True
-		processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        processInfo.RedirectStandardOutput = True
+        'processInfo.RedirectStandardError = True
+        processInfo.WindowStyle = ProcessWindowStyle.Hidden
 		Dim tempProcess As Process = Process.Start(processInfo)
 		RaiseEvent QueuedFrames(Me, startFrame, endFrame)
 
-		'Grab each frame as they are output from ffmpeg in real time as fast as possible
-		'Don't wait for the entire thing to complete
-		Dim currentFrame As Integer = startFrame
+        'Grab each frame as they are output from ffmpeg in real time as fast as possible
+        'Don't wait for the entire thing to complete
+        'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
+        'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
+        'Dim fullDataRead As String = ""
+        Dim currentFrame As Integer = startFrame
+        'Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
+        Dim framesRetrieved As New List(Of Integer)
+        'Dim frameRegex As New Regex("frame=\s*(\d*)")
         While True
             Dim headerBuffer(5) As Char
             Dim readCount As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
@@ -266,7 +293,41 @@ Public Class VideoData
             Using recievedstream As New System.IO.MemoryStream
                 recievedstream.Write(imageBytes, 0, imageByteCount)
                 targetCache(currentFrame).Image = New Bitmap(recievedstream)
+                framesRetrieved.Add(currentFrame)
             End Using
+            'Read StandardError for the showinfo result for PTS_Time
+            'Look for "frame = currentFrame" while keeping track of last pts_Time found
+
+            'Dim dataRead As String = ""
+            'Dim lineRead As String = ""
+            'Do
+            '    lineRead = Await tempProcess.StandardError.ReadLineAsync()
+            '    'dataRead += lineRead + vbCrLf
+            '    Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+            '    If infoMatch.Success Then
+            '        Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
+            '        Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
+            '        If (matchValue + startFrame) = currentFrame Then
+            '            targetCache(currentFrame).PTS_Time = matchPTS
+            '            Exit Do
+            '        End If
+            '    End If
+            '    'dataRead += lineRead + vbCrLf
+            '    'Dim frameMatch As Match = frameRegex.Match(lineRead)
+            '    'If frameMatch.Success Then
+            '    '    Dim matchValue As Integer = Integer.Parse(frameMatch.Groups(1).Value)
+            '    '    If (matchValue + startFrame - 1) = currentFrame Then
+            '    '        targetCache(currentFrame).PTS_Time = lastPTS
+            '    '        Exit Do
+            '    '    End If
+            '    'End If
+            '    'Failsafe
+            '    If tempProcess.StandardError.EndOfStream Then
+            '        Exit Do
+            '    End If
+            'Loop
+            'fullDataRead += dataRead
+
             targetCache(currentFrame).QueueTime = Nothing
             currentFrame += 1
         End While
@@ -280,7 +341,9 @@ Public Class VideoData
         For index As Integer = startFrame To endFrame
             targetCache(index).QueueTime = Nothing
         Next
-        RaiseEvent RetrievedFrames(Me, startFrame, endFrame)
+        If framesRetrieved.Count > 0 Then
+            RaiseEvent RetrievedFrames(Me, framesRetrieved(0), framesRetrieved.Last)
+        End If
         Return targetCache(frame).Image
     End Function
 
@@ -298,10 +361,10 @@ Public Class VideoData
         'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
+        'processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
-        processInfo.Arguments += $" -r {Me.Framerate} -vframes 1 ""{targetFilePath}"""
+        processInfo.Arguments += $" -vf select='between(n,{frame},{frame})' -vsync 0 ""{targetFilePath}"""
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
         Dim tempProcess As Process = Process.Start(processInfo)

@@ -12,6 +12,7 @@ Public Class ImageCache
     Public Class CacheItem
         <XmlIgnore>
         Public Image As Bitmap
+        ''' <summary>Time that the image was first queued up for retrieval</summary>
         Public QueueTime As DateTime?
 
         ''' <summary>
@@ -182,7 +183,7 @@ Public Class ImageCache
         Next
     End Sub
 
-    Default ReadOnly Property Item(index As Integer)
+    Default ReadOnly Property Item(index As Integer) As CacheItem
         Get
             Return mobjCollection(index)
         End Get

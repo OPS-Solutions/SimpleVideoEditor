@@ -274,12 +274,12 @@
     Private Function CollisionRect(targetSlider As SliderID) As RectangleF
         Select Case targetSlider
             Case SliderID.LeftTrim
-                Dim leftPixel As Single = Math.Max(LeftSeekPixel - (SLIDER_COLLISION_WIDTH / 2), 0)
+                Dim leftPixel As Single = Math.Min(LeftSeekPixel - (SLIDER_COLLISION_WIDTH / 2), Me.Width - SLIDER_COLLISION_WIDTH - 1)
                 Dim rightpixel As Single = leftPixel + (SLIDER_COLLISION_WIDTH)
                 Return New RectangleF(leftPixel, 0, rightpixel - leftPixel, Me.Height)
             Case SliderID.RightTrim
-                Dim rightPixel As Single = Math.Min(RightSeekPixel + (SLIDER_COLLISION_WIDTH / 2), Me.Width - 1)
-                Dim leftpixel As Single = rightPixel - (SLIDER_COLLISION_WIDTH)
+                Dim rightpixel As Single = RightSeekPixel + (SLIDER_COLLISION_WIDTH / 2)
+                Dim leftPixel As Single = rightpixel - (SLIDER_COLLISION_WIDTH)
                 Return New RectangleF(leftpixel, 0, rightPixel - leftpixel, Me.Height)
             Case SliderID.Preview
                 Dim previewRect As RectangleF = PreviewBounds
