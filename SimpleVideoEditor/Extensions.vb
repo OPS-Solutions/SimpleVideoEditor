@@ -139,4 +139,26 @@ Module Extensions
             ILFree(idStructure)
         End If
     End Sub
+
+    ''' <summary>
+    ''' Creates a list of ranges (Min,Max) for the given list of integers
+    ''' </summary>
+    <Extension>
+    Public Function CreateRanges(numbers As List(Of Integer)) As List(Of List(Of Integer))
+        'Sanitize frames list to be in order
+        numbers.Sort()
+        'Extract continuous ranges like 4-17, 21-25
+        Dim ranges As New List(Of List(Of Integer))
+        ranges.Add(New List(Of Integer)({numbers(0), numbers(0)})) 'Min and Max range
+        Dim rangeIndex As Integer = 0
+        For Each intValue In numbers
+            If intValue = ranges(rangeIndex)(1) + 1 Then
+                ranges(rangeIndex)(1) = intValue
+            ElseIf intValue > ranges(rangeIndex)(1) + 1 Then
+                ranges.Add(New List(Of Integer)({intValue, intValue}))
+                rangeIndex += 1
+            End If
+        Next
+        Return ranges
+    End Function
 End Module

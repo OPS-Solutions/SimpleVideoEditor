@@ -398,12 +398,12 @@
 #End Region
 
 
-    Private Sub CacheUpdated(sender As Object, starframe As Integer, endFrame As Integer) Handles mobjMetaData.QueuedFrames, mobjMetaData.RetrievedFrames
+    Private Sub CacheUpdated(sender As Object, ranges As List(Of List(Of Integer))) Handles mobjMetaData.QueuedFrames, mobjMetaData.RetrievedFrames
         Me.Invalidate()
     End Sub
 
 
-	Private Sub VideoSeeker_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
+    Private Sub VideoSeeker_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
 		Me.Invalidate()
 	End Sub
 End Class
