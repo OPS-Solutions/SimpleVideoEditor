@@ -238,33 +238,33 @@ Public Class MainForm
 	''' Loads frame 0 into the image box and sets up aspect ratio.
 	''' </summary>
 	Public Async Sub LoadDefaultFrame()
-		'Make sure the user is notified that the application is working
-		If Cursor = Cursors.Arrow Then
-			Cursor = Cursors.WaitCursor
-		End If
+        'Make sure the user is notified that the application is working
+        'If Cursor = Cursors.Arrow Then
+        '	Cursor = Cursors.WaitCursor
+        'End If
 
-		'Use ffmpeg to grab images into a temporary folder
-		Dim tempImage As Bitmap = Await mobjMetaData.GetFfmpegFrameAsync(0)
-		mintCurrentFrame = 0
-		picVideo.Image = tempImage
-		mintAspectWidth = mobjMetaData.Width
-		mintAspectHeight = mobjMetaData.Height
-		If picVideo.Image IsNot Nothing Then
-			'If the resolution failed to load, put in something
-			If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
-				mintAspectWidth = tempImage.Width
-				mintAspectHeight = tempImage.Height
-			End If
-			'If the aspect ratio was somehow saved wrong, fix it
-			'Try flipping the known aspect, if its closer to what was loaded, change it
-			If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
-				SwapValues(mintAspectWidth, mintAspectHeight)
-			End If
-		End If
-		Cursor = Cursors.Arrow
-		ctlVideoSeeker.Enabled = True
-		btnいくよ.Enabled = True
-	End Sub
+        '      'Use ffmpeg to grab images into a temporary folder
+        '      Dim tempImage As Bitmap = Await mobjMetaData.GetFfmpegFrameAsync(0, 1)
+        '      mintCurrentFrame = 0
+        'picVideo.Image = tempImage
+        'mintAspectWidth = mobjMetaData.Width
+        'mintAspectHeight = mobjMetaData.Height
+        'If picVideo.Image IsNot Nothing Then
+        '	'If the resolution failed to load, put in something
+        '	If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
+        '		mintAspectWidth = tempImage.Width
+        '		mintAspectHeight = tempImage.Height
+        '	End If
+        '	'If the aspect ratio was somehow saved wrong, fix it
+        '	'Try flipping the known aspect, if its closer to what was loaded, change it
+        '	If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
+        '		SwapValues(mintAspectWidth, mintAspectHeight)
+        '	End If
+        'End If
+        'Cursor = Cursors.Arrow
+        'ctlVideoSeeker.Enabled = True
+        'btnいくよ.Enabled = True
+    End Sub
 
     ''' <summary>
     ''' Polls for keyframe image data from ffmpeg, gives a loading cursor
@@ -275,6 +275,7 @@ Public Class MainForm
         If Cursor = Cursors.Arrow Then
             Cursor = Cursors.WaitCursor
         End If
+        mintCurrentFrame = 0
 
         'Create temporary task to supress warnings for async usage in Task.Run()
         Dim tempTask As Task
@@ -321,7 +322,9 @@ Public Class MainForm
         tempTask = Task.Run(Sub()
                                 multiGrabBarrier.SignalAndWait()
                                 Me.Invoke(Sub()
-                                              picFrame1.Image = mobjMetaData.GetFfmpegFrame(previewFrames(0), 1)
+                                              Dim tempImage As Bitmap = mobjMetaData.GetFfmpegFrame(previewFrames(0), 1)
+                                              picVideo.Image = tempImage
+                                              picFrame1.Image = tempImage
                                               picFrame2.Image = mobjMetaData.GetFfmpegFrame(previewFrames(1), 1)
                                               picFrame3.Image = mobjMetaData.GetFfmpegFrame(previewFrames(2), 1)
                                               picFrame4.Image = mobjMetaData.GetFfmpegFrame(previewFrames(3), 1)
@@ -329,7 +332,23 @@ Public Class MainForm
                                               If picFrame5.Image Is Nothing Then
                                                   picFrame5.Image = mobjMetaData.GetFfmpegFrame(previewFrames(4), 1)
                                               End If
-                                              Me.Cursor = Cursors.Default
+                                              mintAspectWidth = mobjMetaData.Width
+                                              mintAspectHeight = mobjMetaData.Height
+                                              If picVideo.Image IsNot Nothing Then
+                                                  'If the resolution failed to load, put in something
+                                                  If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
+                                                      mintAspectWidth = tempImage.Width
+                                                      mintAspectHeight = tempImage.Height
+                                                  End If
+                                                  'If the aspect ratio was somehow saved wrong, fix it
+                                                  'Try flipping the known aspect, if its closer to what was loaded, change it
+                                                  If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
+                                                      SwapValues(mintAspectWidth, mintAspectHeight)
+                                                  End If
+                                              End If
+                                              Cursor = Cursors.Arrow
+                                              ctlVideoSeeker.Enabled = True
+                                              btnいくよ.Enabled = True
                                           End Sub)
                             End Sub)
     End Sub
@@ -482,14 +501,14 @@ Public Class MainForm
 			Case sender Is picFrame1
 				ctlVideoSeeker.PreviewLocation = 0
 			Case sender Is picFrame2
-				ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.25
-			Case sender Is picFrame3
-				ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.5
-			Case sender Is picFrame4
-				ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames * 0.75
-			Case sender Is picFrame5
-				ctlVideoSeeker.PreviewLocation = mobjMetaData.TotalFrames - 1
-		End Select
+                ctlVideoSeeker.PreviewLocation = Math.Floor(mobjMetaData.TotalFrames * 0.25)
+            Case sender Is picFrame3
+                ctlVideoSeeker.PreviewLocation = Math.Floor(mobjMetaData.TotalFrames * 0.5)
+            Case sender Is picFrame4
+                ctlVideoSeeker.PreviewLocation = Math.Floor(mobjMetaData.TotalFrames * 0.75)
+            Case sender Is picFrame5
+                ctlVideoSeeker.PreviewLocation = Math.Floor(mobjMetaData.TotalFrames - 1)
+        End Select
 	End Sub
 
 	''' <summary>

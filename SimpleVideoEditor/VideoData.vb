@@ -146,7 +146,7 @@ Public Class VideoData
         End Using
         Me.mdblSceneFrames = sceneValues
         tempWatch.Stop()
-        Debug.Print($"Extracted {currentFrame} scene frames in {tempWatch.ElapsedTicks} ticks.")
+        Debug.Print($"Extracted {currentFrame} scene frames in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
         Return Me.mdblSceneFrames
     End Function
 
@@ -192,7 +192,6 @@ Public Class VideoData
             targetCache = mobjImageCache
         End If
         Dim ranges As List(Of List(Of Integer)) = frames.CreateRanges()
-
 
         SyncLock targetCache
             For Each objRange In ranges
@@ -303,7 +302,7 @@ Public Class VideoData
 
         tempWatch.Stop()
         For Each objRange In ranges
-            Debug.Print($"Grabbed frames {objRange(0)}-{objRange(1)} in {tempWatch.ElapsedTicks} ticks.")
+            Debug.Print($"Grabbed frames {objRange(0)}-{objRange(1)} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
 
             'unmark in case there was an issue
             For index As Integer = objRange(0) To objRange(1)
@@ -488,7 +487,7 @@ Public Class VideoData
         End While
 
         tempWatch.Stop()
-        Debug.Print($"Grabbed frames {startFrame}-{endFrame} in {tempWatch.ElapsedTicks} ticks.")
+        Debug.Print($"Grabbed frames {startFrame}-{endFrame} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
 
         'With a video of 14.92fps and 35 total frames, the total returned images ended up being less than expected
 
