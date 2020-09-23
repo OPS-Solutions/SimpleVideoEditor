@@ -397,9 +397,9 @@ Public Class MainForm
 				scale = 240
 			Case "360p"
 				scale = 360
-			Case "460p"
-				scale = 460
-			Case "720p"
+            Case "480p"
+                scale = 480
+            Case "720p"
 				scale = 720
 			Case "1080p"
 				scale = 1080
