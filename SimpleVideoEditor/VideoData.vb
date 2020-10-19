@@ -243,6 +243,9 @@ Public Class VideoData
         'Dim frameRegex As New Regex("frame=\s*(\d*)")
         While True
             Dim headerBuffer(5) As Char
+            If tempProcess.StandardOutput.EndOfStream Then
+                Exit While
+            End If
             Dim readCount As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
             If readCount < 6 Then
                 Exit While
@@ -428,6 +431,13 @@ Public Class VideoData
         'Dim frameRegex As New Regex("frame=\s*(\d*)")
         While True
             Dim headerBuffer(5) As Char
+            'Must check end of stream, because otherwise, reablockasync can potentially hang the application due to the process failing to grab the frame
+            If tempProcess.StandardOutput.EndOfStream Then
+                Exit While
+            End If
+            'If tempProcess.StandardOutput.Peek() < 0 Then
+            '    Exit While
+            'End If
             Dim readCount As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
             If readCount < 6 Then
                 Exit While
