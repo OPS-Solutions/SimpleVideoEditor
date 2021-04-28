@@ -136,8 +136,13 @@ Public Class VideoData
                 End If
                 Dim matchAttempt As Match = sceneMatcher.Match(currentLine)
                 If matchAttempt.Success Then
-                    sceneValues(currentFrame) = Double.Parse(matchAttempt.Value)
-                    currentFrame += 1
+                    If currentFrame >= sceneValues.Count Then
+                        'Problem
+                        Debug.Print($"Scene score parse issue. Number of scene scores {currentFrame} exceeds number of frames {sceneValues.Count}.")
+                    Else
+                        sceneValues(currentFrame) = Double.Parse(matchAttempt.Value)
+                        currentFrame += 1
+                    End If
                 End If
 #If DEBUG Then
                 fullDataRead += currentLine & vbCrLf
@@ -187,7 +192,7 @@ Public Class VideoData
     ''' <summary>
     ''' Polls ffmpeg for each given frame, all in the same ffmpeg call
     ''' </summary>
-    Public Async Function GetFfmpegFramesAsync(ByVal frames As List(Of Integer), Optional frameSize As Size = Nothing, Optional targetCache As ImageCache = Nothing) As Task(Of Boolean)
+    Public Async Function GetFfmpegFrameRangesAsync(ByVal frames As List(Of Integer), Optional frameSize As Size = Nothing, Optional targetCache As ImageCache = Nothing) As Task(Of Boolean)
         If targetCache Is Nothing Then
             targetCache = mobjImageCache
         End If
@@ -223,98 +228,131 @@ Public Class VideoData
         processInfo.RedirectStandardOutput = True
         processInfo.RedirectStandardError = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
-        Dim tempProcess As Process = Process.Start(processInfo)
-        For Each objRange In ranges
-            RaiseEvent QueuedFrames(Me, ranges)
-        Next
 
-        'Grab each frame as they are output from ffmpeg in real time as fast as possible
-        'Don't wait for the entire thing to complete
-        'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
-        'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
-#If DEBUG Then
-        Dim fullDataRead As String = ""
-        'Do
-        '    Debug.Print(tempProcess.StandardError.ReadLine)
-        'Loop While Not tempProcess.StandardError.EndOfStream
-#End If
-        Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
-        Dim framesRetrieved As New List(Of Integer)
-        'Dim frameRegex As New Regex("frame=\s*(\d*)")
-        While True
-            Dim headerBuffer(5) As Char
-            If tempProcess.StandardOutput.EndOfStream Then
-                Exit While
-            End If
-            Dim readCount As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
-            If readCount < 6 Then
-                Exit While
-            End If
-            Dim imageByteCount As Integer
-            If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
-                imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
-            End If
-            Dim imageBuffer(imageByteCount - 1) As Char
-            'Copy header
-            For index As Integer = 0 To 5
-                imageBuffer(index) = headerBuffer(index)
+        Using tempProcess As Process = Process.Start(processInfo)
+            For Each objRange In ranges
+                RaiseEvent QueuedFrames(Me, ranges)
             Next
-            Dim readImageBytes As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 6, imageByteCount - 6)
-            If readImageBytes < imageByteCount - 6 Then
-                Exit While
-            End If
-            Dim imageBytes(imageByteCount - 1) As Byte
-            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
-            Dim currentFrame As Integer = -1
 
-            'Read StandardError for the showinfo result for PTS_Time
+            'Grab each frame as they are output from ffmpeg in real time as fast as possible
+            'Don't wait for the entire thing to complete
+            'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
+            'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
 #If DEBUG Then
-            Dim dataRead As String = ""
+            Dim fullDataRead As String = ""
+            'Do
+            '    Debug.Print(tempProcess.StandardError.ReadLine)
+            'Loop While Not tempProcess.StandardError.EndOfStream
 #End If
-            Dim lineRead As String = ""
-            Do
-                lineRead = Await tempProcess.StandardError.ReadLineAsync()
+            Dim currentFrame As Integer = frames(0)
+            Dim currentErrorFrame As Integer = frames(0)
+            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
+            Dim framesRetrieved As New List(Of Integer)
+            'Dim frameRegex As New Regex("frame=\s*(\d*)")
+            'tempProcess.BeginErrorReadLine()
+
+            While True
+                Dim headerBuffer(5) As Char
+
+                'TODO Maybe we have to read progressively on error and output at the same time
+
+                Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
+                Dim readOutputImage As Task(Of Integer) = Nothing
+                Dim readError As Task(Of String) = tempProcess.StandardError.ReadLineAsync
+
+                'TODO This seems to work, maybe we can use this method to increase stability
+                Dim outputText As String = Nothing
+                Dim errorText As String = Nothing
+                Dim imageByteCount As Integer = 0
+                Dim imageBuffer() As Char = Nothing
+                Dim errEnd As Boolean = False
+                Dim outEnd As Boolean = False
+                Do
+                    If readOutputHeader?.IsCompleted Then
+                        If readOutputHeader.Result < 6 Then
+                            outEnd = True
+                        Else
+                            If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
+                                imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
+                                ReDim imageBuffer(imageByteCount - 1)
+                            End If
+                            readOutputHeader = Nothing
+                            readOutputImage = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 6, imageByteCount - 6)
+                        End If
+                    End If
+                    If readOutputImage?.IsCompleted Then
+                        'Copy header
+                        For index As Integer = 0 To 5
+                            imageBuffer(index) = headerBuffer(index)
+                        Next
+                        Dim readImageBytes As Integer = readOutputImage.Result
+                        If readImageBytes < imageByteCount - 6 Then
+                            outEnd = True
+                        Else
+                            Dim imageBytes(imageByteCount - 1) As Byte
+                            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+
+                            Using recievedstream As New System.IO.MemoryStream
+                                recievedstream.Write(imageBytes, 0, imageByteCount)
+                                targetCache(frames(currentFrame)).Image = New Bitmap(recievedstream)
+                                targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
+                                framesRetrieved.Add(frames(currentFrame))
+                            End Using
+                            currentFrame += 1
+                            readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
+                        End If
+                        readOutputImage = Nothing
+                    End If
+                    If readError?.IsCompleted Then
+                        'Read StandardError for the showinfo result for PTS_Time
+                        Dim lineRead As String = readError.Result
+                        If lineRead IsNot Nothing Then
 #If DEBUG Then
-                dataRead += lineRead + vbCrLf
+                            fullDataRead += lineRead + vbCrLf
 #End If
-                Dim infoMatch As Match = showInfoRegex.Match(lineRead)
-                If infoMatch.Success Then
-                    Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
-                    Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
-                    currentFrame = frames(matchValue)
-                    targetCache(currentFrame).PTSTime = matchPTS
-                    Using recievedstream As New System.IO.MemoryStream
-                        recievedstream.Write(imageBytes, 0, imageByteCount)
-                        targetCache(currentFrame).Image = New Bitmap(recievedstream)
-                        framesRetrieved.Add(currentFrame)
-                    End Using
-                    Exit Do
-                End If
+                            Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+                            If infoMatch.Success Then
+                                Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
+                                Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
+                                If frames(matchValue) = frames(currentErrorFrame) Then
+                                    targetCache(frames(currentErrorFrame)).PTSTime = matchPTS
+                                    targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
+                                    currentErrorFrame += 1
+                                End If
+                            End If
+                            readError = tempProcess.StandardError.ReadLineAsync
+                        Else
+                            readError = Nothing
+                            errEnd = True
+                        End If
+                    End If
+                    'Must check end of stream, because otherwise, reablockasync can potentially hang the application due to the process failing to grab the frame
+                    If outEnd AndAlso errEnd Then
+                        Exit While
+                    End If
+                    'If tempProcess.StandardError.EndOfStream AndAlso tempProcess.StandardOutput.EndOfStream Then
+                    '    Exit Do
+                    'End If
+                    'Wait for one of them to be finished
+                    Dim taskList As New List(Of Task) From {readOutputHeader, readOutputImage, readError}
+                    taskList.RemoveAll(Function(obj) obj Is Nothing)
+                    Await Task.WhenAny(taskList)
+                Loop
+            End While
 
-                If tempProcess.StandardError.EndOfStream Then
-                    Exit Do
-                End If
-            Loop
-#If DEBUG Then
-            fullDataRead += dataRead
-#End If
+            tempWatch.Stop()
+            For Each objRange In ranges
+                Debug.Print($"Grabbed frames {objRange(0)}-{objRange(1)} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
 
-            targetCache(currentFrame).QueueTime = Nothing
-            currentFrame += 1
-        End While
-
-        tempWatch.Stop()
-        For Each objRange In ranges
-            Debug.Print($"Grabbed frames {objRange(0)}-{objRange(1)} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
-
-            'unmark in case there was an issue
-            For index As Integer = objRange(0) To objRange(1)
-                targetCache(index).QueueTime = Nothing
+                'unmark in case there was an issue
+                For index As Integer = objRange(0) To objRange(1)
+                    targetCache(index).QueueTime = Nothing
+                Next
             Next
-        Next
-        If framesRetrieved.Count > 0 Then
-            RaiseEvent RetrievedFrames(Me, framesRetrieved.CreateRanges)
-        End If
+            If framesRetrieved.Count > 0 Then
+                RaiseEvent RetrievedFrames(Me, framesRetrieved.CreateRanges)
+            End If
+        End Using
         Return True
     End Function
 
@@ -411,103 +449,132 @@ Public Class VideoData
         processInfo.CreateNoWindow = True
         processInfo.RedirectStandardOutput = True
         processInfo.RedirectStandardError = True
-        processInfo.WindowStyle = ProcessWindowStyle.Hidden
-        Dim tempProcess As Process = Process.Start(processInfo)
-        RaiseEvent QueuedFrames(Me, New List(Of List(Of Integer))({New List(Of Integer)({startFrame, endFrame})}))
+        'processInfo.RedirectStandardInput = True
+        'processInfo.WindowStyle = ProcessWindowStyle.Hidden
 
-        'Grab each frame as they are output from ffmpeg in real time as fast as possible
-        'Don't wait for the entire thing to complete
-        'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
-        'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
-#If DEBUG Then
-        Dim fullDataRead As String = ""
-        'Do
-        '    Debug.Print(tempProcess.StandardError.ReadLine)
-        'Loop While Not tempProcess.StandardError.EndOfStream
-#End If
-        Dim currentFrame As Integer = startFrame
-        Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
-        Dim framesRetrieved As New List(Of Integer)
-        'Dim frameRegex As New Regex("frame=\s*(\d*)")
-        While True
-            Dim headerBuffer(5) As Char
-            'Must check end of stream, because otherwise, reablockasync can potentially hang the application due to the process failing to grab the frame
-            If tempProcess.StandardOutput.EndOfStream Then
-                Exit While
-            End If
-            'If tempProcess.StandardOutput.Peek() < 0 Then
-            '    Exit While
-            'End If
-            Dim readCount As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
-            If readCount < 6 Then
-                Exit While
-            End If
-            Dim imageByteCount As Integer
-            If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
-                imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
-            End If
-            Dim imageBuffer(imageByteCount - 1) As Char
-            'Copy header
-            For index As Integer = 0 To 5
-                imageBuffer(index) = headerBuffer(index)
-            Next
-            Dim readImageBytes As Integer = Await tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 6, imageByteCount - 6)
-            If readImageBytes < imageByteCount - 6 Then
-                Exit While
-            End If
-            Dim imageBytes(imageByteCount - 1) As Byte
-            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+        Using tempProcess As Process = Process.Start(processInfo)
+            RaiseEvent QueuedFrames(Me, New List(Of List(Of Integer))({New List(Of Integer)({startFrame, endFrame})}))
 
-            Using recievedstream As New System.IO.MemoryStream
-                recievedstream.Write(imageBytes, 0, imageByteCount)
-                targetCache(currentFrame).Image = New Bitmap(recievedstream)
-                framesRetrieved.Add(currentFrame)
-            End Using
+            'Grab each frame as they are output from ffmpeg in real time as fast as possible
+            'Don't wait for the entire thing to complete
+            'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
+            'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
+#If DEBUG Then
+            Dim fullDataRead As String = ""
+            'Do
+            '    Debug.Print(tempProcess.StandardError.ReadLine)
+            'Loop While Not tempProcess.StandardError.EndOfStream
+#End If
+            Dim currentFrame As Integer = startFrame
+            Dim currentErrorFrame As Integer = startFrame
+            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
+            Dim framesRetrieved As New List(Of Integer)
+            'Dim frameRegex As New Regex("frame=\s*(\d*)")
+            'tempProcess.BeginErrorReadLine()
 
-            'Read StandardError for the showinfo result for PTS_Time
-#If DEBUG Then
-            Dim dataRead As String = ""
-#End If
-            Dim lineRead As String = ""
-            Do
-                lineRead = Await tempProcess.StandardError.ReadLineAsync()
-#If DEBUG Then
-                dataRead += lineRead + vbCrLf
-#End If
-                Dim infoMatch As Match = showInfoRegex.Match(lineRead)
-                If infoMatch.Success Then
-                    Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
-                    Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
-                    If (matchValue + startFrame) = currentFrame Then
-                        targetCache(currentFrame).PTSTime = matchPTS
-                        Exit Do
+            While True
+                Dim headerBuffer(5) As Char
+
+                'TODO Maybe we have to read progressively on error and output at the same time
+
+                Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
+                Dim readOutputImage As Task(Of Integer) = Nothing
+                Dim readError As Task(Of String) = tempProcess.StandardError.ReadLineAsync
+
+                'TODO This seems to work, maybe we can use this method to increase stability
+                Dim outputText As String = Nothing
+                Dim errorText As String = Nothing
+                Dim imageByteCount As Integer = 0
+                Dim imageBuffer() As Char = Nothing
+                Dim errEnd As Boolean = False
+                Dim outEnd As Boolean = False
+                Do
+                    If readOutputHeader?.IsCompleted Then
+                        If readOutputHeader.Result < 6 Then
+                            outEnd = True
+                        Else
+                            If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
+                                imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
+                                ReDim imageBuffer(imageByteCount - 1)
+                            End If
+                            readOutputHeader = Nothing
+                            readOutputImage = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 6, imageByteCount - 6)
+                        End If
                     End If
-                End If
+                    If readOutputImage?.IsCompleted Then
+                        'Copy header
+                        For index As Integer = 0 To 5
+                            imageBuffer(index) = headerBuffer(index)
+                        Next
+                        Dim readImageBytes As Integer = readOutputImage.Result
+                        If readImageBytes < imageByteCount - 6 Then
+                            outEnd = True
+                        Else
+                            Dim imageBytes(imageByteCount - 1) As Byte
+                            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
 
-                If tempProcess.StandardError.EndOfStream Then
-                    Exit Do
-                End If
-            Loop
+                            Using recievedstream As New System.IO.MemoryStream
+                                recievedstream.Write(imageBytes, 0, imageByteCount)
+                                targetCache(currentFrame).Image = New Bitmap(recievedstream)
+                                targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
+                                framesRetrieved.Add(currentFrame)
+                            End Using
+                            currentFrame += 1
+                            readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
+                        End If
+                        readOutputImage = Nothing
+                    End If
+                    If readError?.IsCompleted Then
+                        'Read StandardError for the showinfo result for PTS_Time
+                        Dim lineRead As String = readError.Result
+                        If lineRead IsNot Nothing Then
 #If DEBUG Then
-            fullDataRead += dataRead
+                            fullDataRead += lineRead + vbCrLf
 #End If
+                            Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+                            If infoMatch.Success Then
+                                Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
+                                Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
+                                If (matchValue + startFrame) = currentErrorFrame Then
+                                    targetCache(currentErrorFrame).PTSTime = matchPTS
+                                    targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
+                                    currentErrorFrame += 1
+                                End If
+                            End If
+                            readError = tempProcess.StandardError.ReadLineAsync
+                        Else
+                            readError = Nothing
+                            errEnd = True
+                        End If
+                    End If
+                    'Must check end of stream, because otherwise, reablockasync can potentially hang the application due to the process failing to grab the frame
+                    If outEnd AndAlso errEnd Then
+                        Exit While
+                    End If
+                    'If tempProcess.StandardError.EndOfStream AndAlso tempProcess.StandardOutput.EndOfStream Then
+                    '    Exit Do
+                    'End If
+                    'Wait for one of them to be finished
+                    Dim taskList As New List(Of Task) From {readOutputHeader, readOutputImage, readError}
+                    taskList.RemoveAll(Function(obj) obj Is Nothing)
+                    Await Task.WhenAny(taskList)
+                Loop
+            End While
 
-            targetCache(currentFrame).QueueTime = Nothing
-            currentFrame += 1
-        End While
+            tempWatch.Stop()
+            Debug.Print($"Grabbed frames {startFrame}-{endFrame} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
 
-        tempWatch.Stop()
-        Debug.Print($"Grabbed frames {startFrame}-{endFrame} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
+            'With a video of 14.92fps and 35 total frames, the total returned images ended up being less than expected
 
-        'With a video of 14.92fps and 35 total frames, the total returned images ended up being less than expected
+            'unmark in case there was an issue
+            For index As Integer = startFrame To endFrame
+                targetCache(index).QueueTime = Nothing
+            Next
+            If framesRetrieved.Count > 0 Then
+                RaiseEvent RetrievedFrames(Me, framesRetrieved.CreateRanges)
+            End If
+        End Using
 
-        'unmark in case there was an issue
-        For index As Integer = startFrame To endFrame
-            targetCache(index).QueueTime = Nothing
-        Next
-        If framesRetrieved.Count > 0 Then
-            RaiseEvent RetrievedFrames(Me, framesRetrieved.CreateRanges)
-        End If
         Return targetCache(frame).Image
     End Function
 

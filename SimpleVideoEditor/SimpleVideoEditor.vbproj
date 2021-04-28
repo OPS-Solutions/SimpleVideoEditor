@@ -29,6 +29,7 @@
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -217,9 +218,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ffmpeg.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="Play Button Old.ico" />
     <None Include="Resources\UserInjectionIcon.png" />
     <None Include="Resources\qscaleOn.png" />
@@ -272,6 +270,9 @@
     <PostBuildEvent>if $(ConfigurationName) == Release (
 "C:\Program Files\7-Zip\7z.exe" a "$(SolutionDir)Simple Video Editor.zip" "$(TargetPath)" "$(SolutionDir)License.txt" "$(SolutionDir)SimpleVideoEditor\ffmpeg.exe" -aoa
 )</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>xcopy "$(SolutionDir)packages\ffmpeg-4.4-full_build\ffmpeg.exe" "$(TargetDir)" /y /c /d /i</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -316,7 +316,7 @@ Public Class MainForm
         previewFrames.Add(mobjMetaData.TotalFrames - 1)
         Dim multiGrabBarrier As New Barrier(2)
         tempTask = Task.Run(Async Function()
-                                Await mobjMetaData.GetFfmpegFramesAsync(previewFrames)
+                                Await mobjMetaData.GetFfmpegFrameRangesAsync(previewFrames)
                                 multiGrabBarrier.SignalAndWait()
                             End Function)
         tempTask = Task.Run(Sub()
@@ -357,12 +357,14 @@ Public Class MainForm
     ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
     ''' </summary>
     Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal startSS As Decimal, ByVal endSS As Decimal, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
-		Dim duration As String = (endSS) - (startSS)
-		If specProperties?.PlaybackSpeed <> 0 Then
-			duration /= specProperties.PlaybackSpeed
-		End If
-		Dim processInfo As New ProcessStartInfo
-		processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+        If specProperties?.PlaybackSpeed <> 0 Then
+            'duration /= specProperties.PlaybackSpeed
+            endSS *= specProperties.PlaybackSpeed
+            startSS *= specProperties.PlaybackSpeed
+        End If
+        Dim duration As String = (endSS) - (startSS)
+        Dim processInfo As New ProcessStartInfo
+        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
 		'Flip vertical
 		'-vf "vflip,hflip"
 		'Cropping
@@ -1013,13 +1015,13 @@ Public Class MainForm
 		End If
 	End Sub
 
-	Private Async Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click
-		Me.Cursor = Cursors.WaitCursor
-		Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
-		Me.Cursor = Cursors.Default
-	End Sub
+    Private Async Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click
+        Me.Cursor = Cursors.WaitCursor
+        Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
+        Me.Cursor = Cursors.Default
+    End Sub
 
-	Private Sub HolePuncherToolToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles HolePuncherToolToolStripMenuItem.Click
+    Private Sub HolePuncherToolToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles HolePuncherToolToolStripMenuItem.Click
 		HolePuncherForm.Show()
 	End Sub
 
