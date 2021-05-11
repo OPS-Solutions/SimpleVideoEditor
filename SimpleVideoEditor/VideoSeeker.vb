@@ -215,7 +215,7 @@
                     Case ImageCache.CacheStatus.None
                         drawPen = Pens.DarkGray
                     Case ImageCache.CacheStatus.Queued
-                        drawPen = Pens.Blue
+                        drawPen = Pens.Orange
                     Case ImageCache.CacheStatus.Cached
                         drawPen = Pens.Black
                 End Select
@@ -398,7 +398,7 @@
 #End Region
 
 
-    Private Sub CacheUpdated(sender As Object, ranges As List(Of List(Of Integer))) Handles mobjMetaData.QueuedFrames, mobjMetaData.RetrievedFrames
+    Private Sub CacheUpdated(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.QueuedFrames, mobjMetaData.RetrievedFrames
         Me.Invalidate()
     End Sub
 

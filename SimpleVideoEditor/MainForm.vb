@@ -107,7 +107,6 @@ Public Class MainForm
         picFrame3.Image = Nothing
         picFrame4.Image = Nothing
         picFrame5.Image = Nothing
-        LoadDefaultFrame()
         PollPreviewFrames()
         cmsPicVideoExportFrame.Enabled = True
     End Sub
@@ -234,38 +233,6 @@ Public Class MainForm
 	End Sub
 #End Region
 
-	''' <summary>
-	''' Loads frame 0 into the image box and sets up aspect ratio.
-	''' </summary>
-	Public Async Sub LoadDefaultFrame()
-        'Make sure the user is notified that the application is working
-        'If Cursor = Cursors.Arrow Then
-        '	Cursor = Cursors.WaitCursor
-        'End If
-
-        '      'Use ffmpeg to grab images into a temporary folder
-        '      Dim tempImage As Bitmap = Await mobjMetaData.GetFfmpegFrameAsync(0, 1)
-        '      mintCurrentFrame = 0
-        'picVideo.Image = tempImage
-        'mintAspectWidth = mobjMetaData.Width
-        'mintAspectHeight = mobjMetaData.Height
-        'If picVideo.Image IsNot Nothing Then
-        '	'If the resolution failed to load, put in something
-        '	If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
-        '		mintAspectWidth = tempImage.Width
-        '		mintAspectHeight = tempImage.Height
-        '	End If
-        '	'If the aspect ratio was somehow saved wrong, fix it
-        '	'Try flipping the known aspect, if its closer to what was loaded, change it
-        '	If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
-        '		SwapValues(mintAspectWidth, mintAspectHeight)
-        '	End If
-        'End If
-        'Cursor = Cursors.Arrow
-        'ctlVideoSeeker.Enabled = True
-        'btnいくよ.Enabled = True
-    End Sub
-
     ''' <summary>
     ''' Polls for keyframe image data from ffmpeg, gives a loading cursor
     ''' </summary>
@@ -293,11 +260,17 @@ Public Class MainForm
                                 End Function)
             'mobjMetaData.SaveScenesToFile()
         End If
+        Dim fullFrameGrab As Task(Of Bitmap) = Nothing
         'Grab compressed frames
         If Not mobjMetaData.ReadThumbsFromFile Then
-            ThreadPool.QueueUserWorkItem(Async Sub()
-                                             Await mobjMetaData.ExtractThumbFrames()
-                                         End Sub)
+            If mobjMetaData.DurationSeconds < 5 Then
+                'If the video is pretty short, just cache the whole thing
+                fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
+            Else
+                ThreadPool.QueueUserWorkItem(Async Sub()
+                                                 Await mobjMetaData.ExtractThumbFrames()
+                                             End Sub)
+            End If
             'mobjMetaData.SaveThumbsToFile()
         End If
 
@@ -312,45 +285,13 @@ Public Class MainForm
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.25))
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.5))
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.75))
-        previewFrames.Add(mobjMetaData.TotalFrames - 2)
-        previewFrames.Add(mobjMetaData.TotalFrames - 1)
-        Dim multiGrabBarrier As New Barrier(2)
-        tempTask = Task.Run(Async Function()
-                                Await mobjMetaData.GetFfmpegFrameRangesAsync(previewFrames)
-                                multiGrabBarrier.SignalAndWait()
-                            End Function)
-        tempTask = Task.Run(Sub()
-                                multiGrabBarrier.SignalAndWait()
-                                Me.Invoke(Sub()
-                                              Dim tempImage As Bitmap = mobjMetaData.GetFfmpegFrame(previewFrames(0), 1)
-                                              picVideo.Image = tempImage
-                                              picFrame1.Image = tempImage
-                                              picFrame2.Image = mobjMetaData.GetFfmpegFrame(previewFrames(1), 1)
-                                              picFrame3.Image = mobjMetaData.GetFfmpegFrame(previewFrames(2), 1)
-                                              picFrame4.Image = mobjMetaData.GetFfmpegFrame(previewFrames(3), 1)
-                                              picFrame5.Image = mobjMetaData.GetFfmpegFrame(previewFrames(5), 1)
-                                              If picFrame5.Image Is Nothing Then
-                                                  picFrame5.Image = mobjMetaData.GetFfmpegFrame(previewFrames(4), 1)
-                                              End If
-                                              mintAspectWidth = mobjMetaData.Width
-                                              mintAspectHeight = mobjMetaData.Height
-                                              If picVideo.Image IsNot Nothing Then
-                                                  'If the resolution failed to load, put in something
-                                                  If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
-                                                      mintAspectWidth = tempImage.Width
-                                                      mintAspectHeight = tempImage.Height
-                                                  End If
-                                                  'If the aspect ratio was somehow saved wrong, fix it
-                                                  'Try flipping the known aspect, if its closer to what was loaded, change it
-                                                  If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
-                                                      SwapValues(mintAspectWidth, mintAspectHeight)
-                                                  End If
-                                              End If
-                                              Cursor = Cursors.Arrow
-                                              ctlVideoSeeker.Enabled = True
-                                              btnいくよ.Enabled = True
-                                          End Sub)
-                            End Sub)
+        previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 3))
+        previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 2))
+        previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 1))
+        'Dim multiGrabBarrier As New Barrier(2)
+        If fullFrameGrab Is Nothing Then
+            mobjMetaData.GetFfmpegFrameRangesAsync(previewFrames)
+        End If
     End Sub
 
     ''' <summary>
@@ -495,28 +436,37 @@ Public Class MainForm
 
 
 #Region "CROPPING CLICK AND DRAG"
-	''' <summary>
-	''' Updates the main image with one of the pre-selected images from the picture box clicked.
-	''' </summary>
-	Private Sub picFrame_Click(sender As PictureBox, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
-		Select Case True
-			Case sender Is picFrame1
-				ctlVideoSeeker.PreviewLocation = 0
-			Case sender Is picFrame2
-                ctlVideoSeeker.PreviewLocation = Math.Floor(mobjMetaData.TotalFrames * 0.25)
+    ''' <summary>
+    ''' Updates the main image with one of the pre-selected images from the picture box clicked.
+    ''' </summary>
+    Private Sub picFrame_Click(sender As PictureBox, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
+        Dim newPreview As Integer = 0
+        Select Case True
+            Case sender Is picFrame1
+                newPreview = 0
+            Case sender Is picFrame2
+                newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.25)
             Case sender Is picFrame3
-                ctlVideoSeeker.PreviewLocation = Math.Floor(mobjMetaData.TotalFrames * 0.5)
+                newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.5)
             Case sender Is picFrame4
-                ctlVideoSeeker.PreviewLocation = Math.Floor(mobjMetaData.TotalFrames * 0.75)
+                newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.75)
             Case sender Is picFrame5
-                ctlVideoSeeker.PreviewLocation = Math.Floor(mobjMetaData.TotalFrames - 1)
+                newPreview = Math.Floor(mobjMetaData.TotalFrames - 1)
         End Select
-	End Sub
+        'Find nearest available frame because the totalframes may have been modified slightly
+        For index As Integer = Math.Max(0, newPreview - 2) To newPreview + 2
+            If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                ctlVideoSeeker.PreviewLocation = index
+                Exit Sub
+            End If
+        Next
+        ctlVideoSeeker.PreviewLocation = newPreview
+    End Sub
 
-	''' <summary>
-	''' Draws cropping graphics over the main video picturebox.
-	''' </summary>
-	Private Sub picVideo_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles picVideo.Paint
+    ''' <summary>
+    ''' Draws cropping graphics over the main video picturebox.
+    ''' </summary>
+    Private Sub picVideo_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles picVideo.Paint
 		Using pen As New Pen(Color.White, 1)
 			If Not (mptStartCrop.X = 0 AndAlso mptStartCrop.X = mptEndCrop.X) Then
 				e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, picVideo.Height))
@@ -945,21 +895,93 @@ Public Class MainForm
 	Private mobjSlideQueue As Thread
 
 
-    Private Sub NewFrameCached(sender As Object, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
+    Private Sub NewFrameCached(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
         For Each objRange In ranges
             If mintCurrentFrame >= objRange(0) AndAlso mintCurrentFrame <= objRange(1) Then
                 'Ensure we avoid cross thread GDI access of the bitmap
                 If Me.InvokeRequired Then
-                    Me.BeginInvoke(Sub()
-                                       picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
-                                   End Sub)
+                    Me.Invoke(Sub()
+                                  NewFrameCached(sender, objCache, ranges)
+                              End Sub)
                 Else
                     'Grab immediate
-                    picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+                    Dim gotImage As Bitmap = mobjMetaData.GetImageFromCache(mintCurrentFrame, objCache)
+                    If picVideo.Image Is Nothing OrElse picVideo.Image.Width < gotimage.Width Then
+                        picVideo.Image = gotimage
+                    End If
                 End If
                 Exit For
             End If
         Next
+    End Sub
+
+    Private Sub PreviewsLoaded(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub()
+                          PreviewsLoaded(sender, objCache, ranges)
+                      End Sub)
+        Else
+            Dim previewFrames As New List(Of Integer)
+            previewFrames.Add(0)
+            previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.25))
+            previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.5))
+            previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.75))
+            previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 3))
+            previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 2))
+            previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 1))
+
+            For Each objRange In ranges
+                For previewIndex As Integer = 0 To 6
+                    Dim gotImage As Bitmap = Nothing
+                    If previewFrames(previewIndex) >= objRange(0) AndAlso previewFrames(previewIndex) <= objRange(1) Then
+                        gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
+                        Dim targetPreview As PictureBox = Nothing
+                        Select Case previewIndex
+                            Case 0
+                                targetPreview = picFrame1
+                            Case 1
+                                targetPreview = picFrame2
+                            Case 2
+                                targetPreview = picFrame3
+                            Case 3
+                                targetPreview = picFrame4
+                            Case 4, 5, 6
+                                targetPreview = picFrame5
+                                For index As Integer = previewFrames(6) To previewFrames(4) Step -1
+                                    If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                                        mobjMetaData.OverrideTotalFrames(index + 1)
+                                        RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+                                        ctlVideoSeeker.MetaData = mobjMetaData
+                                        AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+                                    End If
+                                Next
+                        End Select
+                        If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
+                            targetPreview.Image = gotImage
+                        End If
+                    End If
+                Next
+            Next
+            If picFrame5.Image IsNot Nothing Then
+                mintAspectWidth = mobjMetaData.Width
+                mintAspectHeight = mobjMetaData.Height
+                If picVideo.Image IsNot Nothing Then
+                    'If the resolution failed to load, put in something
+                    If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
+                        mintAspectWidth = picFrame1.Image.Width
+                        mintAspectHeight = picFrame1.Image.Height
+                    End If
+                    'If the aspect ratio was somehow saved wrong, fix it
+                    'Try flipping the known aspect, if its closer to what was loaded, change it
+                    If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
+                        SwapValues(mintAspectWidth, mintAspectHeight)
+                    End If
+                End If
+                Cursor = Cursors.Arrow
+                ctlVideoSeeker.Enabled = True
+                btnいくよ.Enabled = True
+            End If
+        End If
     End Sub
 
     Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click

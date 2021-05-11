@@ -225,11 +225,22 @@ Public Class ImageCache
         Next
     End Sub
 
-    Public Sub SetQueue(startFrame As Integer, endFrame As Integer)
+    ''' <summary>
+    ''' Attempts to set the range of frames queue times to now, returns the number that had their times set (were not already set)
+    ''' </summary>
+    ''' <param name="startFrame"></param>
+    ''' <param name="endFrame"></param>
+    ''' <returns></returns>
+    Public Function TryQueue(startFrame As Integer, endFrame As Integer) As Integer
+        Dim itemsQueued As Integer = 0
         For index As Integer = startFrame To endFrame
-            mobjCollection(index).QueueTime = Now
+            If mobjCollection(index).Status = CacheStatus.None Then
+                mobjCollection(index).QueueTime = Now
+                itemsQueued += 1
+            End If
         Next
-    End Sub
+        Return itemsQueued
+    End Function
 
 #Region "Serialization"
     ''' <summary>

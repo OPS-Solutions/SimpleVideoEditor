@@ -38,10 +38,10 @@ Public Class VideoData
 
 
     ''' <summary>Event for when some number of frames have been queued for retrieval</summary>
-    Public Event QueuedFrames(sender As Object, ranges As List(Of List(Of Integer)))
+    Public Event QueuedFrames(sender As Object, cache As ImageCache, ranges As List(Of List(Of Integer)))
 
     ''' <summary>Event for when some number of frames has finished retrieval, and can be accessed</summary>
-    Public Event RetrievedFrames(sender As Object, ranges As List(Of List(Of Integer)))
+    Public Event RetrievedFrames(sender As Object, cache As ImageCache, ranges As List(Of List(Of Integer)))
 
 
     ''' <summary>
@@ -52,7 +52,7 @@ Public Class VideoData
         'Request metadata from ffmpeg vis -i command
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments += "-i " & """" & fullPath & """" & " -c copy -f null null"
+        processInfo.Arguments += "-i " & """" & fullPath & """" & " -vsync 0 -c copy -f null null"
         processInfo.UseShellExecute = False
         processInfo.RedirectStandardError = True
         processInfo.CreateNoWindow = True
@@ -161,6 +161,14 @@ Public Class VideoData
         Return mobjThumbCache
     End Function
 
+    Public Function GetImageFromCache(imageIndex As Integer, targetCache As ImageCache) As Bitmap
+        If targetCache?.Items.Length > imageIndex AndAlso imageIndex >= 0 Then
+            Return targetCache(imageIndex).Image
+        Else
+            Return Nothing
+        End If
+    End Function
+
     Public Function GetImageFromCache(imageIndex As Integer) As Bitmap
         If mobjImageCache?.Items.Length > imageIndex AndAlso imageIndex >= 0 Then
             Return Me.mobjImageCache(imageIndex).Image
@@ -200,7 +208,7 @@ Public Class VideoData
 
         SyncLock targetCache
             For Each objRange In ranges
-                targetCache.SetQueue(objRange(0), objRange(1))
+                targetCache.TryQueue(objRange(0), objRange(1))
             Next
         End SyncLock
 
@@ -231,7 +239,7 @@ Public Class VideoData
 
         Using tempProcess As Process = Process.Start(processInfo)
             For Each objRange In ranges
-                RaiseEvent QueuedFrames(Me, ranges)
+                RaiseEvent QueuedFrames(Me, targetCache, ranges)
             Next
 
             'Grab each frame as they are output from ffmpeg in real time as fast as possible
@@ -297,6 +305,18 @@ Public Class VideoData
                                 targetCache(frames(currentFrame)).Image = New Bitmap(recievedstream)
                                 targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
                                 framesRetrieved.Add(frames(currentFrame))
+
+                                'If we have grabbed a range, it wouldn't hurt to update the UI
+                                Dim expectedFrameNumber As Integer = 0
+                                For rangeIndex As Integer = 0 To ranges.Count
+                                    expectedFrameNumber += (ranges(rangeIndex)(0) - ranges(rangeIndex)(0)) + 1
+
+                                    If expectedFrameNumber = framesRetrieved.Count Then
+                                        RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                        framesRetrieved.Clear()
+                                        Exit For
+                                    End If
+                                Next
                             End Using
                             currentFrame += 1
                             readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
@@ -350,7 +370,7 @@ Public Class VideoData
                 Next
             Next
             If framesRetrieved.Count > 0 Then
-                RaiseEvent RetrievedFrames(Me, framesRetrieved.CreateRanges)
+                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
             End If
         End Using
         Return True
@@ -368,12 +388,20 @@ Public Class VideoData
                 'If we are at the edge of the cached items, try to expand it a little in advance
                 If targetCache(Math.Min(frame + 4, Math.Max(0, mobjMetaData.totalFrames - 4))).Status = ImageCache.CacheStatus.None Then
                     Dim tempTask As Task = Task.Run(Async Function()
-                                                        Await GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
+                                                        Dim seedFrame As Integer = Math.Min(frame + 1, mobjMetaData.totalFrames - 1)
+                                                        If seedFrame = frame Then
+                                                            Return Nothing
+                                                        End If
+                                                        Await GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
                                                     End Function)
                 End If
                 If targetCache(Math.Max(0, frame - 4)).Status = ImageCache.CacheStatus.None Then
                     Dim tempTask As Task = Task.Run(Async Function()
-                                                        Await GetFfmpegFrameAsync(Math.Min(frame + 1, mobjMetaData.totalFrames - 1), cacheSize, frameSize, targetCache)
+                                                        Dim seedFrame As Integer = Math.Max(0, frame - 1)
+                                                        If seedFrame = frame Then
+                                                            Return Nothing
+                                                        End If
+                                                        Await GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
                                                     End Function)
                 End If
             End If
@@ -413,7 +441,7 @@ Public Class VideoData
             Debug.Print($"Working for frames:{startFrame}-{endFrame} (Size:{frameSize.ToString})")
             'Mark images that we are looking for
             If Not alreadyQueued Then
-                targetCache.SetQueue(startFrame, endFrame)
+                targetCache.TryQueue(startFrame, endFrame)
             End If
         End SyncLock
         'If you are looking for only one frame, and it is queued, dont waste time trying to grab it again...
@@ -453,7 +481,7 @@ Public Class VideoData
         'processInfo.WindowStyle = ProcessWindowStyle.Hidden
 
         Using tempProcess As Process = Process.Start(processInfo)
-            RaiseEvent QueuedFrames(Me, New List(Of List(Of Integer))({New List(Of Integer)({startFrame, endFrame})}))
+            RaiseEvent QueuedFrames(Me, targetCache, New List(Of List(Of Integer))({New List(Of Integer)({startFrame, endFrame})}))
 
             'Grab each frame as they are output from ffmpeg in real time as fast as possible
             'Don't wait for the entire thing to complete
@@ -492,6 +520,7 @@ Public Class VideoData
                     If readOutputHeader?.IsCompleted Then
                         If readOutputHeader.Result < 6 Then
                             outEnd = True
+                            readOutputHeader = Nothing
                         Else
                             If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
                                 imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
@@ -518,6 +547,12 @@ Public Class VideoData
                                 targetCache(currentFrame).Image = New Bitmap(recievedstream)
                                 targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
                                 framesRetrieved.Add(currentFrame)
+
+                                'If we have grabbed a few frames, it wouldn't hurt to update the UI
+                                If framesRetrieved.Count > 10 Then
+                                    RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                    framesRetrieved.Clear()
+                                End If
                             End Using
                             currentFrame += 1
                             readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
@@ -551,12 +586,11 @@ Public Class VideoData
                     If outEnd AndAlso errEnd Then
                         Exit While
                     End If
-                    'If tempProcess.StandardError.EndOfStream AndAlso tempProcess.StandardOutput.EndOfStream Then
-                    '    Exit Do
-                    'End If
+
                     'Wait for one of them to be finished
-                    Dim taskList As New List(Of Task) From {readOutputHeader, readOutputImage, readError}
+                    Dim taskList As New List(Of Task) From {readOutputHeader, readOutputImage, readError} ', timeoutTask}
                     taskList.RemoveAll(Function(obj) obj Is Nothing)
+
                     Await Task.WhenAny(taskList)
                 Loop
             End While
@@ -571,7 +605,7 @@ Public Class VideoData
                 targetCache(index).QueueTime = Nothing
             Next
             If framesRetrieved.Count > 0 Then
-                RaiseEvent RetrievedFrames(Me, framesRetrieved.CreateRanges)
+                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
             End If
         End Using
 
@@ -678,6 +712,14 @@ Public Class VideoData
             Return mobjMetaData.totalFrames
         End Get
     End Property
+
+    ''' <summary>
+    ''' Used to manually set the value of total frames if ffmpeg reported it incorrectly
+    ''' Be aware that many things that have already read the value may need to be changed
+    ''' </summary>
+    Public Sub OverrideTotalFrames(realFrames As Integer)
+        mobjMetaData.totalFrames = realFrames
+    End Sub
 
     ''' <summary>
     ''' The raw stream data given by ffmpeg for stream 0
