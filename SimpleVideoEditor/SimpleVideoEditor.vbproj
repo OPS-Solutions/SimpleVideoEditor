@@ -268,7 +268,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <PropertyGroup>
     <PostBuildEvent>if $(ConfigurationName) == Release (
-"C:\Program Files\7-Zip\7z.exe" a "$(SolutionDir)Simple Video Editor.zip" "$(TargetPath)" "$(SolutionDir)License.txt" "$(SolutionDir)SimpleVideoEditor\ffmpeg.exe" -aoa
+"C:\Program Files\7-Zip\7z.exe" a "$(SolutionDir)Simple Video Editor.zip" "$(TargetPath)" "$(SolutionDir)License.txt" "$(TargetDir)ffmpeg.exe" -aoa
 )</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
