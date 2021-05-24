@@ -821,29 +821,56 @@ Public Class MainForm
 		picVideo.Refresh()
 	End Sub
 
-	''' <summary>
-	''' User right clicked on the big image and wants to export that frame
-	''' </summary>
-	Private Sub cmsPicVideoExportFrame_Click(sender As Object, e As EventArgs) Handles cmsPicVideoExportFrame.Click
-		Using sfdExportFrame As New SaveFileDialog
-			sfdExportFrame.Title = "Select Frame Save Location"
-			sfdExportFrame.Filter = "PNG|*.png|BMP|*.bmp|All files (*.*)|*.*"
-			Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
-			sfdExportFrame.FileName = "frame_" & mintCurrentFrame.ToString & ".png"
-			sfdExportFrame.OverwritePrompt = True
-			Select Case sfdExportFrame.ShowDialog()
-				Case DialogResult.OK
-					mobjMetaData.ExportFfmpegFrame(mintCurrentFrame, sfdExportFrame.FileName)
-				Case Else
-					'Do nothing
-			End Select
-		End Using
-	End Sub
+    ''' <summary>
+    ''' User right clicked on the big image and wants to export that frame
+    ''' </summary>
+    Private Sub cmsPicVideoExportFrame_Click(sender As Object, e As EventArgs) Handles cmsPicVideoExportFrame.Click, CurrentToolStripMenuItem.Click
+        Using sfdExportFrame As New SaveFileDialog
+            sfdExportFrame.Title = "Select Frame Save Location"
+            sfdExportFrame.Filter = "PNG|*.png|BMP|*.bmp|All files (*.*)|*.*"
+            Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
+            sfdExportFrame.FileName = "frame_" & mintCurrentFrame.ToString & ".png"
+            sfdExportFrame.OverwritePrompt = True
+            Select Case sfdExportFrame.ShowDialog()
+                Case DialogResult.OK
+                    mobjMetaData.ExportFfmpegFrame(mintCurrentFrame, sfdExportFrame.FileName)
+                Case Else
+                    'Do nothing
+            End Select
+        End Using
+    End Sub
 
-	''' <summary>
-	''' Given an array of scene change values, compress the array into a new array of given size
-	''' </summary>
-	Public Shared Function CompressSceneChanges(ByRef sceneChanges As Double(), ByVal newTotalFrames As Integer) As Double()
+    ''' <summary>
+    ''' User right clicked on the big image and wants to export all frames within the range
+    ''' </summary>
+    Private Sub ExportFrameRange_Click(sender As Object, e As EventArgs) Handles SelectedRangeToolStripMenuItem.Click
+        Using sfdExportFrame As New SaveFileDialog
+            sfdExportFrame.Title = "Select Save Location and Name Style"
+            sfdExportFrame.Filter = "PNG|*.png|BMP|*.bmp|All files (*.*)|*.*"
+            Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
+            Dim startFrame As Integer = ctlVideoSeeker.RangeMinValue
+            Dim endFrame As Integer = ctlVideoSeeker.RangeMaxValue
+            sfdExportFrame.FileName = "frame_#.png"
+            sfdExportFrame.OverwritePrompt = True
+            Select Case sfdExportFrame.ShowDialog()
+                Case DialogResult.OK
+                    Dim chosenName As String = sfdExportFrame.FileName
+                    If chosenName.Contains("#") Then
+                        chosenName = chosenName.Replace("#", "%03d")
+                    Else
+                        chosenName = Path.Combine({Path.GetDirectoryName(chosenName), Path.GetFileNameWithoutExtension(chosenName), "%03d", ".png"})
+                    End If
+                    mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName)
+                Case Else
+                    'Do nothing
+            End Select
+        End Using
+    End Sub
+
+    ''' <summary>
+    ''' Given an array of scene change values, compress the array into a new array of given size
+    ''' </summary>
+    Public Shared Function CompressSceneChanges(ByRef sceneChanges As Double(), ByVal newTotalFrames As Integer) As Double()
 		Dim compressedSceneChanges(newTotalFrames - 1) As Double
 		'Local Maximums
 		For frameIndex As Integer = 0 To sceneChanges.Count - 1
@@ -1051,8 +1078,8 @@ Public Class MainForm
 
 	End Sub
 
-	Private Sub InjectCustomArgumentsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles InjectCustomArgumentsToolStripMenuItem.Click
-		mblnUserInjection = True
-		SaveAs()
-	End Sub
+    Private Sub InjectCustomArgumentsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles InjectCustomArgumentsToolStripMenuItem.Click
+        mblnUserInjection = True
+        SaveAs()
+    End Sub
 End Class

@@ -77,6 +77,8 @@ Partial Class MainForm
         Me.chkQuality = New SimpleVideoEditor.ImageSwitch()
         Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
         Me.chkMute = New SimpleVideoEditor.ImageSwitch()
+        Me.CurrentToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.SelectedRangeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -278,21 +280,22 @@ Partial Class MainForm
         '
         Me.cmsPicVideo.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.cmsPicVideoClear, Me.cmsPicVideoExportFrame})
         Me.cmsPicVideo.Name = "cmsPicVideo"
-        Me.cmsPicVideo.Size = New System.Drawing.Size(144, 48)
+        Me.cmsPicVideo.Size = New System.Drawing.Size(181, 70)
         '
         'cmsPicVideoClear
         '
         Me.cmsPicVideoClear.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
         Me.cmsPicVideoClear.Name = "cmsPicVideoClear"
-        Me.cmsPicVideoClear.Size = New System.Drawing.Size(143, 22)
+        Me.cmsPicVideoClear.Size = New System.Drawing.Size(180, 22)
         Me.cmsPicVideoClear.Text = "Clear"
         '
         'cmsPicVideoExportFrame
         '
+        Me.cmsPicVideoExportFrame.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.CurrentToolStripMenuItem, Me.SelectedRangeToolStripMenuItem})
         Me.cmsPicVideoExportFrame.Enabled = False
         Me.cmsPicVideoExportFrame.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.cmsPicVideoExportFrame.Name = "cmsPicVideoExportFrame"
-        Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(143, 22)
+        Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(180, 22)
         Me.cmsPicVideoExportFrame.Text = "Export Frame"
         '
         'dlgChromaColor
@@ -555,6 +558,18 @@ Partial Class MainForm
         Me.chkMute.TabStop = False
         Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
         '
+        'CurrentToolStripMenuItem
+        '
+        Me.CurrentToolStripMenuItem.Name = "CurrentToolStripMenuItem"
+        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.CurrentToolStripMenuItem.Text = "Current"
+        '
+        'SelectedRangeToolStripMenuItem
+        '
+        Me.SelectedRangeToolStripMenuItem.Name = "SelectedRangeToolStripMenuItem"
+        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.SelectedRangeToolStripMenuItem.Text = "Selected Range"
+        '
         'MainForm
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
@@ -658,4 +673,6 @@ Partial Class MainForm
     Friend WithEvents HolePuncherToolToolStripMenuItem As ToolStripMenuItem
 	Friend WithEvents cmsSaveOptions As ContextMenuStrip
 	Friend WithEvents InjectCustomArgumentsToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents CurrentToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents SelectedRangeToolStripMenuItem As ToolStripMenuItem
 End Class

@@ -636,6 +636,21 @@ Public Class VideoData
         tempProcess.WaitForExit(5000) 'Wait up to 5 seconds for the process to finish
         Return targetFilePath
     End Function
+
+    Public Function ExportFfmpegFrames(ByVal frameStart As Integer, ByVal frameEnd As Integer, targetFilePath As String) As String
+        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
+        Dim processInfo As New ProcessStartInfo
+        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+        'processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
+        processInfo.Arguments += " -i """ & Me.FullPath & """"
+        'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
+        processInfo.Arguments += $" -vf select='between(n,{frameStart},{frameEnd})' -vsync 0 ""{targetFilePath}"""
+        processInfo.UseShellExecute = True
+        processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        Dim tempProcess As Process = Process.Start(processInfo)
+        tempProcess.WaitForExit(20000) 'Wait up to 20 seconds for the process to finish
+        Return targetFilePath
+    End Function
 #End Region
 
 #Region "Properties"
