@@ -194,6 +194,9 @@ Public Class VideoData
     End Function
 
     Public Function ThumbImageCachePTS(imageIndex As Integer) As Double
+        If mobjThumbCache.Item(imageIndex).PTSTime Is Nothing Then
+            Return mobjImageCache.Item(imageIndex).PTSTime
+        End If
         Return mobjThumbCache.Item(imageIndex).PTSTime
     End Function
 
