@@ -148,14 +148,14 @@ Public Class MainForm
 		'MP4 does not work with decimate for some reason, so we should lossless convert to AVI first
 		Dim isMP4 As Boolean = IO.Path.GetExtension(outputPath) = ".mp4"
 		Dim intermediateFilePath As String = mstrVideoPath
-		mproFfmpegProcess = Nothing
-		Dim useIntermediate As Boolean = (postCropOperation AndAlso willCrop) OrElse (sProperties.Decimate AndAlso isMP4)
-		Dim startTrim As Decimal = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue)
+        mproFfmpegProcess = Nothing
+        Dim useIntermediate As Boolean = (postCropOperation AndAlso willCrop) OrElse (sProperties.Decimate AndAlso isMP4) OrElse (sProperties.PlaybackSpeed <> 1 AndAlso Not ignoreTrim)
+        Dim startTrim As Decimal = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue)
 		Dim endFrame As Integer = Math.Min(ctlVideoSeeker.RangeMaxValue + 1, mobjMetaData.TotalFrames)
 		Dim endTrim As Decimal = If(endFrame = mobjMetaData.TotalFrames, mobjMetaData.DurationSeconds, mobjMetaData.ThumbImageCachePTS(endFrame))
 		If useIntermediate Then
-			intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
-			If isMP4 Then
+            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", IO.Path.GetExtension(mstrVideoPath))
+            If isMP4 Then
 				intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
 			End If
 			'Don't pass in special properties yet, it would be better to decimate after cropping
