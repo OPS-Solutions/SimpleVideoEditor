@@ -3,6 +3,9 @@
     Public Event SeekChanged(ByVal newVal As Integer)
 
     Private pRangeMinValue As Integer = 0 'Value that should only be accessed by the property below
+    Private mobjPreviewForm As Form
+    Private mintHoveredFrameIndex As Integer? = Nothing
+
     ''' <summary>
     ''' Current value of the leftmost slider on the control
     ''' </summary>
@@ -149,9 +152,16 @@
             Return mobjMetaData
         End Get
         Set(value As VideoData)
+            If mobjMetaData?.Equals(value) Then
+                'Don't update to self and avoid resetting controls when not needed
+                Exit Property
+            End If
             mobjMetaData = value
             If mobjMetaData IsNot Nothing Then
                 Me.RangeMax = mobjMetaData.TotalFrames - 1
+                Dim previewAspect As Double = Math.Min(42 / mobjMetaData.Size.Width, 34 / mobjMetaData.Size.Height)
+                mobjPreviewForm.MinimumSize = New Size(mobjMetaData.Size.Width * previewAspect, mobjMetaData.Size.Height * previewAspect)
+                mobjPreviewForm.MaximumSize = mobjPreviewForm.MinimumSize
             End If
             Me.RangeMinValue = 0
             Me.RangeMaxValue = Me.RangeMax
@@ -161,11 +171,18 @@
 
     Public Sub New()
         Me.DoubleBuffered = True
+        InitializePreviewForm()
     End Sub
 
     Public Sub New(metaData As VideoData)
         Me.MetaData = metaData
         Me.DoubleBuffered = True
+        InitializePreviewForm()
+    End Sub
+
+    Private Sub InitializePreviewForm()
+        mobjPreviewForm = New Form With {.FormBorderStyle = FormBorderStyle.None, .MinimumSize = New Size(32, 32), .TopMost = True, .MaximumSize = New Size(32, 32)}
+        mobjPreviewForm.Controls.Add(New PictureBox With {.SizeMode = PictureBoxSizeMode.Zoom, .Dock = DockStyle.Fill})
     End Sub
 
     Private Const COLOR_HEIGHT As Integer = 12
@@ -231,7 +248,7 @@
 
         'Draw preview frame
         Using pen As New Pen(Color.LimeGreen, 1)
-            'Draw preview differently if it is attacked to a trim bar
+            'Draw preview differently if it is attached to a trim bar
             If LeftSeekPixel = leftPreview Then
                 e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(leftPreview, 0))
             ElseIf RightSeekPixel = rightPreview Then
@@ -239,8 +256,23 @@
             Else
                 e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(leftPreview, 0))
                 e.Graphics.DrawLine(pen, New Point(rightPreview, Me.Height - 3), New Point(rightPreview, 0))
+                e.Graphics.DrawLine(pen, New Point(leftPreview, 0), New Point(rightPreview, 0))
+                e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(rightPreview, Me.Height - 3))
             End If
         End Using
+
+        'Draw preview hover
+        If mintHoveredFrameIndex IsNot Nothing Then
+            Dim hoveredFrameIndex As Integer = ((mRangeMax - mRangeMin) / Me.Width) * Me.PointToClient(Cursor.Position).X
+            Dim leftHoverPreview As Single = ((hoveredFrameIndex / FullRange) * (Me.Width - 1))
+            Dim rightHoverPreview As Single = (((hoveredFrameIndex + 1) / FullRange) * (Me.Width - 1))
+            Using pen As New Pen(Color.Red, 1)
+                e.Graphics.DrawLine(pen, New Point(leftHoverPreview, Me.Height - 3), New Point(leftHoverPreview, 0))
+                e.Graphics.DrawLine(pen, New Point(rightHoverPreview, Me.Height - 3), New Point(rightHoverPreview, 0))
+                e.Graphics.DrawLine(pen, New Point(leftHoverPreview, 0), New Point(rightHoverPreview, 0))
+                e.Graphics.DrawLine(pen, New Point(leftHoverPreview, Me.Height - 3), New Point(rightHoverPreview, Me.Height - 3))
+            End Using
+        End If
     End Sub
 
     Private ReadOnly Property FullRange As Integer
@@ -334,11 +366,11 @@
             Else
                 menmSelectedSlider = SliderID.Preview
 			End If
-			If Me.Cursor = Cursors.Default Then
-				Me.Cursor = Cursors.SizeWE
-			End If
+            If menmSelectedSlider <> SliderID.Preview AndAlso Me.Cursor = Cursors.Hand Then
+                Me.Cursor = Cursors.SizeWE
+            End If
 
-			Me.OnMouseMove(e)
+            Me.OnMouseMove(e)
 			Me.Invalidate()
 		End If
 	End Sub
@@ -350,37 +382,59 @@
         MyBase.OnMouseMove(e)
         If Me.Enabled Then
             If menmSelectedSlider = SliderID.None Then
-                If Me.PotentialCollisions(e.Location).Count > 0 Then
-                    If Me.Cursor = Cursors.Default Then
+                Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
+                If potentialCollisions.Count > 0 Then
+                    If Not (potentialCollisions.Count = 1 AndAlso potentialCollisions(0) = SliderID.Preview) AndAlso Me.Cursor = Cursors.Hand Then
                         Me.Cursor = Cursors.SizeWE
                     End If
                 Else
-                    If Not Me.Cursor = Cursors.Default Then
-                        Me.Cursor = Cursors.Default
+                    If Not Me.Cursor = Cursors.Hand Then
+                        Me.Cursor = Cursors.Hand
                     End If
                 End If
             End If
+            Dim newHoverIndex As Integer = ((mRangeMax - mRangeMin) / Me.Width) * Me.PointToClient(Cursor.Position).X
+            If mintHoveredFrameIndex Is Nothing OrElse newHoverIndex <> mintHoveredFrameIndex Then
+                mintHoveredFrameIndex = newHoverIndex
+                Me.Invalidate()
+            End If
             If e.Button = Windows.Forms.MouseButtons.Left Then
                 'Move range sliders
-                Dim newValue As Integer = ((mRangeMax - mRangeMin) / Me.Width) * e.X
                 Select Case menmSelectedSlider
                     Case SliderID.LeftTrim
-                        If Not RangeMinValue = newValue Then
-                            RangeMinValue = newValue
+                        If Not RangeMinValue = mintHoveredFrameIndex Then
+                            RangeMinValue = mintHoveredFrameIndex
                         End If
                     Case SliderID.RightTrim
-                        If Not RangeMaxValue = newValue Then
-                            RangeMaxValue = newValue
+                        If Not RangeMaxValue = mintHoveredFrameIndex Then
+                            RangeMaxValue = mintHoveredFrameIndex
                         End If
                     Case SliderID.Preview
-                        If Not PreviewLocation = newValue Then
-                            PreviewLocation = newValue
+                        If Not PreviewLocation = mintHoveredFrameIndex Then
+                            PreviewLocation = mintHoveredFrameIndex
                         End If
                     Case SliderID.Hover
                         'TODO Maybe have a teeny display for cached images, scene change info, etc.
                     Case Else
                         'Ignore if nothing is selected
                 End Select
+            End If
+
+            If Me.mobjMetaData IsNot Nothing Then
+                Dim imageToPreview As Image = Nothing
+                If Me.mobjMetaData.ImageCacheStatus(mintHoveredFrameIndex) = ImageCache.CacheStatus.Cached Then
+                    imageToPreview = Me.mobjMetaData.GetImageFromCache(mintHoveredFrameIndex)
+                ElseIf Me.mobjMetaData.ThumbImageCacheStatus(mintHoveredFrameIndex) = ImageCache.CacheStatus.Cached Then
+                    imageToPreview = Me.mobjMetaData.GetImageFromThumbCache(mintHoveredFrameIndex)
+                End If
+                If imageToPreview IsNot Nothing Then
+                    'Setup preview frame
+                    CType(mobjPreviewForm.Controls(0), PictureBox).Image = imageToPreview
+                    mobjPreviewForm.Visible = True
+                    mobjPreviewForm.Location = Me.PointToScreen(New Point(e.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
+                Else
+                    mobjPreviewForm.Visible = False
+                End If
             End If
         End If
     End Sub
@@ -404,6 +458,12 @@
 
 
     Private Sub VideoSeeker_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
-		Me.Invalidate()
-	End Sub
+        Me.Invalidate()
+    End Sub
+
+    Private Sub VideoSeeker_MouseLeave(sender As Object, e As EventArgs) Handles MyBase.MouseLeave
+        mobjPreviewForm.Visible = False
+        mintHoveredFrameIndex = Nothing
+        Me.Invalidate()
+    End Sub
 End Class

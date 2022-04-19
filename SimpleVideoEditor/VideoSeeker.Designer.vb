@@ -22,17 +22,18 @@ Partial Class VideoSeeker
 	'Do not modify it using the code editor.
 	<System.Diagnostics.DebuggerStepThrough()> _
 	Private Sub InitializeComponent()
-		Me.SuspendLayout()
-		'
-		'VideoSeeker
-		'
-		Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
-		Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-		Me.DoubleBuffered = True
-		Me.Name = "VideoSeeker"
-		Me.Size = New System.Drawing.Size(197, 22)
-		Me.ResumeLayout(False)
+        Me.SuspendLayout()
+        '
+        'VideoSeeker
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.Cursor = System.Windows.Forms.Cursors.Default
+        Me.DoubleBuffered = True
+        Me.Name = "VideoSeeker"
+        Me.Size = New System.Drawing.Size(197, 22)
+        Me.ResumeLayout(False)
 
-	End Sub
+    End Sub
 
 End Class

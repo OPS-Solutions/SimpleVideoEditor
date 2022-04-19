@@ -1,31 +1,30 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class MainForm
-	Inherits System.Windows.Forms.Form
+    Inherits System.Windows.Forms.Form
 
-	'Form overrides dispose to clean up the component list.
-	<System.Diagnostics.DebuggerNonUserCode()>
-	Protected Overrides Sub Dispose(ByVal disposing As Boolean)
-		Try
-			If disposing AndAlso components IsNot Nothing Then
-				components.Dispose()
-			End If
-		Finally
-			MyBase.Dispose(disposing)
-		End Try
-	End Sub
+    'Form overrides dispose to clean up the component list.
+    <System.Diagnostics.DebuggerNonUserCode()>
+    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+        Try
+            If disposing AndAlso components IsNot Nothing Then
+                components.Dispose()
+            End If
+        Finally
+            MyBase.Dispose(disposing)
+        End Try
+    End Sub
 
-	'Required by the Windows Form Designer
-	Private components As System.ComponentModel.IContainer
+    'Required by the Windows Form Designer
+    Private components As System.ComponentModel.IContainer
 
-	'NOTE: The following procedure is required by the Windows Form Designer
-	'It can be modified using the Windows Form Designer.  
-	'Do not modify it using the code editor.
-	<System.Diagnostics.DebuggerStepThrough()>
-	Private Sub InitializeComponent()
+    'NOTE: The following procedure is required by the Windows Form Designer
+    'It can be modified using the Windows Form Designer.  
+    'Do not modify it using the code editor.
+    <System.Diagnostics.DebuggerStepThrough()>
+    Private Sub InitializeComponent()
         Me.components = New System.ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(MainForm))
         Me.ofdVideoIn = New System.Windows.Forms.OpenFileDialog()
-        Me.lblFileName = New System.Windows.Forms.Label()
         Me.cmbDefinition = New System.Windows.Forms.ComboBox()
         Me.cmsFrameRate = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.DefaultToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -45,10 +44,20 @@ Partial Class MainForm
         Me.ToolStripMenuItem13 = New System.Windows.Forms.ToolStripMenuItem()
         Me.UnmuteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.imgRotate = New System.Windows.Forms.PictureBox()
+        Me.cmsRotation = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.ToolStripMenuItem14 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripMenuItem15 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripMenuItem16 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripMenuItem17 = New System.Windows.Forms.ToolStripMenuItem()
         Me.sfdVideoOut = New System.Windows.Forms.SaveFileDialog()
         Me.cmsPicVideo = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.cmsPicVideoClear = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsPicVideoExportFrame = New System.Windows.Forms.ToolStripMenuItem()
+        Me.CurrentToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.SelectedRangeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.cmsAutoCrop = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ContractToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ExpandToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.dlgChromaColor = New System.Windows.Forms.ColorDialog()
         Me.cmsPlaybackSpeed = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.ToolStripMenuItem2 = New System.Windows.Forms.ToolStripMenuItem()
@@ -65,6 +74,10 @@ Partial Class MainForm
         Me.CacheAllFramesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsSaveOptions = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.InjectCustomArgumentsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.StatusStrip1 = New System.Windows.Forms.StatusStrip()
+        Me.lblStatusMousePosition = New System.Windows.Forms.ToolStripStatusLabel()
+        Me.lblStatusCropRect = New System.Windows.Forms.ToolStripStatusLabel()
+        Me.lblStatusResolution = New System.Windows.Forms.ToolStripStatusLabel()
         Me.picFrame5 = New System.Windows.Forms.PictureBox()
         Me.btnいくよ = New System.Windows.Forms.Button()
         Me.picFrame4 = New System.Windows.Forms.PictureBox()
@@ -77,19 +90,21 @@ Partial Class MainForm
         Me.chkQuality = New SimpleVideoEditor.ImageSwitch()
         Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
         Me.chkMute = New SimpleVideoEditor.ImageSwitch()
-        Me.CurrentToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.SelectedRangeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.cmsChromaKey = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.ClearToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picChromaKey, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsPlaybackVolume.SuspendLayout()
         CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.cmsRotation.SuspendLayout()
         Me.cmsPicVideo.SuspendLayout()
         Me.cmsPlaybackSpeed.SuspendLayout()
         Me.cmsBrowse.SuspendLayout()
         Me.cmsVideoSeeker.SuspendLayout()
         Me.cmsSaveOptions.SuspendLayout()
+        Me.StatusStrip1.SuspendLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -99,23 +114,13 @@ Partial Class MainForm
         CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.chkMute, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.cmsChromaKey.SuspendLayout()
         Me.SuspendLayout()
         '
         'ofdVideoIn
         '
         Me.ofdVideoIn.FileName = "Video"
-        '
-        'lblFileName
-        '
-        Me.lblFileName.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
-            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.lblFileName.BackColor = System.Drawing.SystemColors.ControlLight
-        Me.lblFileName.Font = New System.Drawing.Font("Microsoft Sans Serif", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblFileName.Location = New System.Drawing.Point(11, 11)
-        Me.lblFileName.Name = "lblFileName"
-        Me.lblFileName.Size = New System.Drawing.Size(227, 20)
-        Me.lblFileName.TabIndex = 1
-        Me.lblFileName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+        Me.ofdVideoIn.Multiselect = True
         '
         'cmbDefinition
         '
@@ -124,7 +129,7 @@ Partial Class MainForm
         Me.cmbDefinition.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cmbDefinition.FormattingEnabled = True
         Me.cmbDefinition.Items.AddRange(New Object() {"Original", "120p", "240p", "360p", "480p", "720p", "1080p"})
-        Me.cmbDefinition.Location = New System.Drawing.Point(6, 140)
+        Me.cmbDefinition.Location = New System.Drawing.Point(6, 129)
         Me.cmbDefinition.Name = "cmbDefinition"
         Me.cmbDefinition.Size = New System.Drawing.Size(75, 21)
         Me.cmbDefinition.TabIndex = 9
@@ -188,7 +193,7 @@ Partial Class MainForm
         Me.grpSettings.Controls.Add(Me.cmbDefinition)
         Me.grpSettings.Location = New System.Drawing.Point(244, 39)
         Me.grpSettings.Name = "grpSettings"
-        Me.grpSettings.Size = New System.Drawing.Size(87, 170)
+        Me.grpSettings.Size = New System.Drawing.Size(87, 156)
         Me.grpSettings.TabIndex = 17
         Me.grpSettings.TabStop = False
         Me.grpSettings.Text = "Settings"
@@ -197,7 +202,7 @@ Partial Class MainForm
         '
         Me.picPlaybackSpeed.Cursor = System.Windows.Forms.Cursors.Hand
         Me.picPlaybackSpeed.Image = Global.SimpleVideoEditor.My.Resources.Resources.StopWatch
-        Me.picPlaybackSpeed.Location = New System.Drawing.Point(52, 65)
+        Me.picPlaybackSpeed.Location = New System.Drawing.Point(52, 59)
         Me.picPlaybackSpeed.Margin = New System.Windows.Forms.Padding(0)
         Me.picPlaybackSpeed.Name = "picPlaybackSpeed"
         Me.picPlaybackSpeed.Size = New System.Drawing.Size(18, 18)
@@ -208,14 +213,14 @@ Partial Class MainForm
         'picChromaKey
         '
         Me.picChromaKey.BackColor = System.Drawing.Color.Lime
-        Me.picChromaKey.Enabled = False
+        Me.picChromaKey.ContextMenuStrip = Me.cmsChromaKey
+        Me.picChromaKey.Cursor = System.Windows.Forms.Cursors.Hand
         Me.picChromaKey.Image = Global.SimpleVideoEditor.My.Resources.Resources.ChromaKey
-        Me.picChromaKey.Location = New System.Drawing.Point(17, 102)
+        Me.picChromaKey.Location = New System.Drawing.Point(17, 95)
         Me.picChromaKey.Name = "picChromaKey"
         Me.picChromaKey.Size = New System.Drawing.Size(18, 18)
         Me.picChromaKey.TabIndex = 23
         Me.picChromaKey.TabStop = False
-        Me.picChromaKey.Visible = False
         '
         'cmsPlaybackVolume
         '
@@ -263,9 +268,10 @@ Partial Class MainForm
         '
         'imgRotate
         '
+        Me.imgRotate.ContextMenuStrip = Me.cmsRotation
         Me.imgRotate.Cursor = System.Windows.Forms.Cursors.Hand
         Me.imgRotate.Image = Global.SimpleVideoEditor.My.Resources.Resources.Rotate
-        Me.imgRotate.Location = New System.Drawing.Point(17, 28)
+        Me.imgRotate.Location = New System.Drawing.Point(17, 23)
         Me.imgRotate.Margin = New System.Windows.Forms.Padding(0)
         Me.imgRotate.Name = "imgRotate"
         Me.imgRotate.Size = New System.Drawing.Size(18, 18)
@@ -273,20 +279,52 @@ Partial Class MainForm
         Me.imgRotate.TabIndex = 20
         Me.imgRotate.TabStop = False
         '
+        'cmsRotation
+        '
+        Me.cmsRotation.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripMenuItem14, Me.ToolStripMenuItem15, Me.ToolStripMenuItem16, Me.ToolStripMenuItem17})
+        Me.cmsRotation.Name = "cmsRotation"
+        Me.cmsRotation.Size = New System.Drawing.Size(135, 92)
+        '
+        'ToolStripMenuItem14
+        '
+        Me.ToolStripMenuItem14.Checked = True
+        Me.ToolStripMenuItem14.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.ToolStripMenuItem14.Name = "ToolStripMenuItem14"
+        Me.ToolStripMenuItem14.Size = New System.Drawing.Size(134, 22)
+        Me.ToolStripMenuItem14.Text = "0° (Default)"
+        '
+        'ToolStripMenuItem15
+        '
+        Me.ToolStripMenuItem15.Name = "ToolStripMenuItem15"
+        Me.ToolStripMenuItem15.Size = New System.Drawing.Size(134, 22)
+        Me.ToolStripMenuItem15.Text = "90°"
+        '
+        'ToolStripMenuItem16
+        '
+        Me.ToolStripMenuItem16.Name = "ToolStripMenuItem16"
+        Me.ToolStripMenuItem16.Size = New System.Drawing.Size(134, 22)
+        Me.ToolStripMenuItem16.Text = "180"
+        '
+        'ToolStripMenuItem17
+        '
+        Me.ToolStripMenuItem17.Name = "ToolStripMenuItem17"
+        Me.ToolStripMenuItem17.Size = New System.Drawing.Size(134, 22)
+        Me.ToolStripMenuItem17.Text = "270°"
+        '
         'sfdVideoOut
         '
         '
         'cmsPicVideo
         '
-        Me.cmsPicVideo.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.cmsPicVideoClear, Me.cmsPicVideoExportFrame})
+        Me.cmsPicVideo.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.cmsPicVideoClear, Me.cmsPicVideoExportFrame, Me.cmsAutoCrop})
         Me.cmsPicVideo.Name = "cmsPicVideo"
-        Me.cmsPicVideo.Size = New System.Drawing.Size(181, 70)
+        Me.cmsPicVideo.Size = New System.Drawing.Size(144, 70)
         '
         'cmsPicVideoClear
         '
         Me.cmsPicVideoClear.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
         Me.cmsPicVideoClear.Name = "cmsPicVideoClear"
-        Me.cmsPicVideoClear.Size = New System.Drawing.Size(180, 22)
+        Me.cmsPicVideoClear.Size = New System.Drawing.Size(143, 22)
         Me.cmsPicVideoClear.Text = "Clear"
         '
         'cmsPicVideoExportFrame
@@ -295,11 +333,50 @@ Partial Class MainForm
         Me.cmsPicVideoExportFrame.Enabled = False
         Me.cmsPicVideoExportFrame.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.cmsPicVideoExportFrame.Name = "cmsPicVideoExportFrame"
-        Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(180, 22)
+        Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(143, 22)
         Me.cmsPicVideoExportFrame.Text = "Export Frame"
+        '
+        'CurrentToolStripMenuItem
+        '
+        Me.CurrentToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
+        Me.CurrentToolStripMenuItem.Name = "CurrentToolStripMenuItem"
+        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(154, 22)
+        Me.CurrentToolStripMenuItem.Text = "Current"
+        '
+        'SelectedRangeToolStripMenuItem
+        '
+        Me.SelectedRangeToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.ExportRange
+        Me.SelectedRangeToolStripMenuItem.Name = "SelectedRangeToolStripMenuItem"
+        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(154, 22)
+        Me.SelectedRangeToolStripMenuItem.Text = "Selected Range"
+        '
+        'cmsAutoCrop
+        '
+        Me.cmsAutoCrop.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ContractToolStripMenuItem, Me.ExpandToolStripMenuItem})
+        Me.cmsAutoCrop.Enabled = False
+        Me.cmsAutoCrop.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCrop
+        Me.cmsAutoCrop.Name = "cmsAutoCrop"
+        Me.cmsAutoCrop.Size = New System.Drawing.Size(143, 22)
+        Me.cmsAutoCrop.Text = "Auto Crop"
+        '
+        'ContractToolStripMenuItem
+        '
+        Me.ContractToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCrop_Contract
+        Me.ContractToolStripMenuItem.Name = "ContractToolStripMenuItem"
+        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
+        Me.ContractToolStripMenuItem.Text = "Contract"
+        '
+        'ExpandToolStripMenuItem
+        '
+        Me.ExpandToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCrop_Expand
+        Me.ExpandToolStripMenuItem.Name = "ExpandToolStripMenuItem"
+        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
+        Me.ExpandToolStripMenuItem.Text = "Expand"
         '
         'dlgChromaColor
         '
+        Me.dlgChromaColor.Color = System.Drawing.Color.FromArgb(CType(CType(0, Byte), Integer), CType(CType(1, Byte), Integer), CType(CType(1, Byte), Integer), CType(CType(1, Byte), Integer))
+        Me.dlgChromaColor.FullOpen = True
         Me.dlgChromaColor.SolidColorOnly = True
         '
         'cmsPlaybackSpeed
@@ -397,12 +474,49 @@ Partial Class MainForm
         Me.InjectCustomArgumentsToolStripMenuItem.Size = New System.Drawing.Size(210, 22)
         Me.InjectCustomArgumentsToolStripMenuItem.Text = "Inject Custom Arguments"
         '
+        'StatusStrip1
+        '
+        Me.StatusStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.lblStatusMousePosition, Me.lblStatusCropRect, Me.lblStatusResolution})
+        Me.StatusStrip1.Location = New System.Drawing.Point(0, 237)
+        Me.StatusStrip1.Name = "StatusStrip1"
+        Me.StatusStrip1.ShowItemToolTips = True
+        Me.StatusStrip1.Size = New System.Drawing.Size(344, 25)
+        Me.StatusStrip1.TabIndex = 22
+        Me.StatusStrip1.Text = "StatusStrip1"
+        '
+        'lblStatusMousePosition
+        '
+        Me.lblStatusMousePosition.AutoSize = False
+        Me.lblStatusMousePosition.BorderSides = System.Windows.Forms.ToolStripStatusLabelBorderSides.Right
+        Me.lblStatusMousePosition.Image = Global.SimpleVideoEditor.My.Resources.Resources.Cross
+        Me.lblStatusMousePosition.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft
+        Me.lblStatusMousePosition.Name = "lblStatusMousePosition"
+        Me.lblStatusMousePosition.Size = New System.Drawing.Size(80, 20)
+        '
+        'lblStatusCropRect
+        '
+        Me.lblStatusCropRect.AutoSize = False
+        Me.lblStatusCropRect.BorderSides = System.Windows.Forms.ToolStripStatusLabelBorderSides.Right
+        Me.lblStatusCropRect.Image = Global.SimpleVideoEditor.My.Resources.Resources.Crop
+        Me.lblStatusCropRect.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft
+        Me.lblStatusCropRect.Name = "lblStatusCropRect"
+        Me.lblStatusCropRect.Size = New System.Drawing.Size(90, 20)
+        '
+        'lblStatusResolution
+        '
+        Me.lblStatusResolution.AutoSize = False
+        Me.lblStatusResolution.Image = Global.SimpleVideoEditor.My.Resources.Resources.Resolution
+        Me.lblStatusResolution.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft
+        Me.lblStatusResolution.Name = "lblStatusResolution"
+        Me.lblStatusResolution.Size = New System.Drawing.Size(90, 20)
+        Me.lblStatusResolution.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+        '
         'picFrame5
         '
         Me.picFrame5.Anchor = System.Windows.Forms.AnchorStyles.Bottom
         Me.picFrame5.BackColor = System.Drawing.SystemColors.ControlDark
         Me.picFrame5.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.picFrame5.Location = New System.Drawing.Point(196, 215)
+        Me.picFrame5.Location = New System.Drawing.Point(196, 201)
         Me.picFrame5.Name = "picFrame5"
         Me.picFrame5.Size = New System.Drawing.Size(42, 33)
         Me.picFrame5.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
@@ -417,7 +531,7 @@ Partial Class MainForm
         Me.btnいくよ.Enabled = False
         Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnいくよ.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
-        Me.btnいくよ.Location = New System.Drawing.Point(244, 214)
+        Me.btnいくよ.Location = New System.Drawing.Point(244, 199)
         Me.btnいくよ.Name = "btnいくよ"
         Me.btnいくよ.Size = New System.Drawing.Size(88, 35)
         Me.btnいくよ.TabIndex = 19
@@ -428,7 +542,7 @@ Partial Class MainForm
         Me.picFrame4.Anchor = System.Windows.Forms.AnchorStyles.Bottom
         Me.picFrame4.BackColor = System.Drawing.SystemColors.ControlDark
         Me.picFrame4.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.picFrame4.Location = New System.Drawing.Point(150, 215)
+        Me.picFrame4.Location = New System.Drawing.Point(150, 201)
         Me.picFrame4.Name = "picFrame4"
         Me.picFrame4.Size = New System.Drawing.Size(42, 33)
         Me.picFrame4.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
@@ -440,7 +554,7 @@ Partial Class MainForm
         Me.picFrame3.Anchor = System.Windows.Forms.AnchorStyles.Bottom
         Me.picFrame3.BackColor = System.Drawing.SystemColors.ControlDark
         Me.picFrame3.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.picFrame3.Location = New System.Drawing.Point(104, 215)
+        Me.picFrame3.Location = New System.Drawing.Point(104, 201)
         Me.picFrame3.Name = "picFrame3"
         Me.picFrame3.Size = New System.Drawing.Size(42, 33)
         Me.picFrame3.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
@@ -452,7 +566,7 @@ Partial Class MainForm
         Me.picFrame2.Anchor = System.Windows.Forms.AnchorStyles.Bottom
         Me.picFrame2.BackColor = System.Drawing.SystemColors.ControlDark
         Me.picFrame2.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.picFrame2.Location = New System.Drawing.Point(58, 215)
+        Me.picFrame2.Location = New System.Drawing.Point(58, 201)
         Me.picFrame2.Name = "picFrame2"
         Me.picFrame2.Size = New System.Drawing.Size(42, 33)
         Me.picFrame2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
@@ -464,7 +578,7 @@ Partial Class MainForm
         Me.picFrame1.Anchor = System.Windows.Forms.AnchorStyles.Bottom
         Me.picFrame1.BackColor = System.Drawing.SystemColors.ControlDark
         Me.picFrame1.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.picFrame1.Location = New System.Drawing.Point(12, 215)
+        Me.picFrame1.Location = New System.Drawing.Point(12, 201)
         Me.picFrame1.Name = "picFrame1"
         Me.picFrame1.Size = New System.Drawing.Size(42, 33)
         Me.picFrame1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
@@ -479,7 +593,7 @@ Partial Class MainForm
         Me.picVideo.BackColor = System.Drawing.SystemColors.ControlDark
         Me.picVideo.ContextMenuStrip = Me.cmsPicVideo
         Me.picVideo.Cursor = System.Windows.Forms.Cursors.Cross
-        Me.picVideo.Location = New System.Drawing.Point(11, 52)
+        Me.picVideo.Location = New System.Drawing.Point(11, 38)
         Me.picVideo.Name = "picVideo"
         Me.picVideo.Size = New System.Drawing.Size(227, 157)
         Me.picVideo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom
@@ -506,7 +620,7 @@ Partial Class MainForm
         Me.ctlVideoSeeker.Cursor = System.Windows.Forms.Cursors.Arrow
         Me.ctlVideoSeeker.Enabled = False
         Me.ctlVideoSeeker.HolePunches = Nothing
-        Me.ctlVideoSeeker.Location = New System.Drawing.Point(11, 33)
+        Me.ctlVideoSeeker.Location = New System.Drawing.Point(12, 10)
         Me.ctlVideoSeeker.MetaData = Nothing
         Me.ctlVideoSeeker.Name = "ctlVideoSeeker"
         Me.ctlVideoSeeker.PreviewLocation = 0
@@ -515,7 +629,7 @@ Partial Class MainForm
         Me.ctlVideoSeeker.RangeMin = 0
         Me.ctlVideoSeeker.RangeMinValue = 0
         Me.ctlVideoSeeker.SceneFrames = Nothing
-        Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 18)
+        Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 23)
         Me.ctlVideoSeeker.TabIndex = 21
         '
         'chkQuality
@@ -524,7 +638,7 @@ Partial Class MainForm
         Me.chkQuality.Cursor = System.Windows.Forms.Cursors.Hand
         Me.chkQuality.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOff
         Me.chkQuality.Image = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOff
-        Me.chkQuality.Location = New System.Drawing.Point(52, 102)
+        Me.chkQuality.Location = New System.Drawing.Point(52, 95)
         Me.chkQuality.Name = "chkQuality"
         Me.chkQuality.Size = New System.Drawing.Size(18, 18)
         Me.chkQuality.TabIndex = 25
@@ -537,7 +651,7 @@ Partial Class MainForm
         Me.chkDeleteDuplicates.Cursor = System.Windows.Forms.Cursors.Hand
         Me.chkDeleteDuplicates.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
         Me.chkDeleteDuplicates.Image = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
-        Me.chkDeleteDuplicates.Location = New System.Drawing.Point(17, 65)
+        Me.chkDeleteDuplicates.Location = New System.Drawing.Point(17, 59)
         Me.chkDeleteDuplicates.Name = "chkDeleteDuplicates"
         Me.chkDeleteDuplicates.Size = New System.Drawing.Size(18, 18)
         Me.chkDeleteDuplicates.TabIndex = 22
@@ -551,30 +665,32 @@ Partial Class MainForm
         Me.chkMute.Cursor = System.Windows.Forms.Cursors.Hand
         Me.chkMute.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOn
         Me.chkMute.Image = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
-        Me.chkMute.Location = New System.Drawing.Point(52, 28)
+        Me.chkMute.Location = New System.Drawing.Point(52, 23)
         Me.chkMute.Name = "chkMute"
         Me.chkMute.Size = New System.Drawing.Size(18, 18)
         Me.chkMute.TabIndex = 21
         Me.chkMute.TabStop = False
         Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
         '
-        'CurrentToolStripMenuItem
+        'cmsChromaKey
         '
-        Me.CurrentToolStripMenuItem.Name = "CurrentToolStripMenuItem"
-        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.CurrentToolStripMenuItem.Text = "Current"
+        Me.cmsChromaKey.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ClearToolStripMenuItem})
+        Me.cmsChromaKey.Name = "cmsChromaKey"
+        Me.cmsChromaKey.Size = New System.Drawing.Size(102, 26)
         '
-        'SelectedRangeToolStripMenuItem
+        'ClearToolStripMenuItem
         '
-        Me.SelectedRangeToolStripMenuItem.Name = "SelectedRangeToolStripMenuItem"
-        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.SelectedRangeToolStripMenuItem.Text = "Selected Range"
+        Me.ClearToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
+        Me.ClearToolStripMenuItem.Name = "ClearToolStripMenuItem"
+        Me.ClearToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ClearToolStripMenuItem.Text = "Clear"
         '
         'MainForm
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
         Me.BackColor = System.Drawing.SystemColors.Control
         Me.ClientSize = New System.Drawing.Size(344, 262)
+        Me.Controls.Add(Me.StatusStrip1)
         Me.Controls.Add(Me.ctlVideoSeeker)
         Me.Controls.Add(Me.picFrame5)
         Me.Controls.Add(Me.btnいくよ)
@@ -585,9 +701,7 @@ Partial Class MainForm
         Me.Controls.Add(Me.picFrame1)
         Me.Controls.Add(Me.picVideo)
         Me.Controls.Add(Me.btnBrowse)
-        Me.Controls.Add(Me.lblFileName)
         Me.ForeColor = System.Drawing.SystemColors.ControlText
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle
         Me.HelpButton = True
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.KeyPreview = True
@@ -603,11 +717,14 @@ Partial Class MainForm
         CType(Me.picChromaKey, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsPlaybackVolume.ResumeLayout(False)
         CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.cmsRotation.ResumeLayout(False)
         Me.cmsPicVideo.ResumeLayout(False)
         Me.cmsPlaybackSpeed.ResumeLayout(False)
         Me.cmsBrowse.ResumeLayout(False)
         Me.cmsVideoSeeker.ResumeLayout(False)
         Me.cmsSaveOptions.ResumeLayout(False)
+        Me.StatusStrip1.ResumeLayout(False)
+        Me.StatusStrip1.PerformLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).EndInit()
@@ -617,62 +734,77 @@ Partial Class MainForm
         CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.chkMute, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.cmsChromaKey.ResumeLayout(False)
         Me.ResumeLayout(False)
+        Me.PerformLayout()
 
     End Sub
     Friend WithEvents ofdVideoIn As System.Windows.Forms.OpenFileDialog
-	Friend WithEvents lblFileName As System.Windows.Forms.Label
-	Friend WithEvents btnBrowse As System.Windows.Forms.Button
-	Friend WithEvents btnいくよ As System.Windows.Forms.Button
-	Friend WithEvents picVideo As System.Windows.Forms.PictureBox
-	Friend WithEvents picFrame1 As System.Windows.Forms.PictureBox
-	Friend WithEvents picFrame2 As System.Windows.Forms.PictureBox
-	Friend WithEvents picFrame3 As System.Windows.Forms.PictureBox
-	Friend WithEvents picFrame4 As System.Windows.Forms.PictureBox
-	Friend WithEvents cmbDefinition As System.Windows.Forms.ComboBox
-	Friend WithEvents grpSettings As System.Windows.Forms.GroupBox
-	Friend WithEvents picFrame5 As System.Windows.Forms.PictureBox
-	Friend WithEvents sfdVideoOut As System.Windows.Forms.SaveFileDialog
-	Friend WithEvents cmsPicVideo As ContextMenuStrip
-	Friend WithEvents cmsPicVideoClear As ToolStripMenuItem
-	Friend WithEvents cmsPicVideoExportFrame As ToolStripMenuItem
-	Friend WithEvents ctlVideoSeeker As VideoSeeker
-	Friend WithEvents imgRotate As PictureBox
-	Friend WithEvents chkMute As ImageSwitch
-	Friend WithEvents chkDeleteDuplicates As ImageSwitch
-	Friend WithEvents cmsFrameRate As ContextMenuStrip
-	Friend WithEvents DefaultToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents TenFPSToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents FifteenFPSToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents TwentyFPSToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents ThirtyFPSToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents SixtyFPSToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents picChromaKey As PictureBox
-	Friend WithEvents dlgChromaColor As ColorDialog
-	Friend WithEvents picPlaybackSpeed As PictureBox
-	Friend WithEvents cmsPlaybackSpeed As ContextMenuStrip
-	Friend WithEvents ToolStripMenuItem2 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem3 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem4 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem5 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem6 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem7 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem8 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem9 As ToolStripMenuItem
-	Friend WithEvents cmsPlaybackVolume As ContextMenuStrip
-	Friend WithEvents MuteToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem10 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem11 As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem12 As ToolStripMenuItem
-	Friend WithEvents UnmuteToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents ToolStripMenuItem13 As ToolStripMenuItem
-	Friend WithEvents chkQuality As ImageSwitch
+    Friend WithEvents btnBrowse As System.Windows.Forms.Button
+    Friend WithEvents btnいくよ As System.Windows.Forms.Button
+    Friend WithEvents picVideo As System.Windows.Forms.PictureBox
+    Friend WithEvents picFrame1 As System.Windows.Forms.PictureBox
+    Friend WithEvents picFrame2 As System.Windows.Forms.PictureBox
+    Friend WithEvents picFrame3 As System.Windows.Forms.PictureBox
+    Friend WithEvents picFrame4 As System.Windows.Forms.PictureBox
+    Friend WithEvents cmbDefinition As System.Windows.Forms.ComboBox
+    Friend WithEvents grpSettings As System.Windows.Forms.GroupBox
+    Friend WithEvents picFrame5 As System.Windows.Forms.PictureBox
+    Friend WithEvents sfdVideoOut As System.Windows.Forms.SaveFileDialog
+    Friend WithEvents cmsPicVideo As ContextMenuStrip
+    Friend WithEvents cmsPicVideoClear As ToolStripMenuItem
+    Friend WithEvents cmsPicVideoExportFrame As ToolStripMenuItem
+    Friend WithEvents ctlVideoSeeker As VideoSeeker
+    Friend WithEvents imgRotate As PictureBox
+    Friend WithEvents chkMute As ImageSwitch
+    Friend WithEvents chkDeleteDuplicates As ImageSwitch
+    Friend WithEvents cmsFrameRate As ContextMenuStrip
+    Friend WithEvents DefaultToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents TenFPSToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents FifteenFPSToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents TwentyFPSToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ThirtyFPSToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents SixtyFPSToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents picChromaKey As PictureBox
+    Friend WithEvents dlgChromaColor As ColorDialog
+    Friend WithEvents picPlaybackSpeed As PictureBox
+    Friend WithEvents cmsPlaybackSpeed As ContextMenuStrip
+    Friend WithEvents ToolStripMenuItem2 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem3 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem4 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem5 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem6 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem7 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem8 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem9 As ToolStripMenuItem
+    Friend WithEvents cmsPlaybackVolume As ContextMenuStrip
+    Friend WithEvents MuteToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem10 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem11 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem12 As ToolStripMenuItem
+    Friend WithEvents UnmuteToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem13 As ToolStripMenuItem
+    Friend WithEvents chkQuality As ImageSwitch
     Friend WithEvents cmsVideoSeeker As ContextMenuStrip
     Friend WithEvents CacheAllFramesToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents cmsBrowse As ContextMenuStrip
     Friend WithEvents HolePuncherToolToolStripMenuItem As ToolStripMenuItem
-	Friend WithEvents cmsSaveOptions As ContextMenuStrip
-	Friend WithEvents InjectCustomArgumentsToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents cmsSaveOptions As ContextMenuStrip
+    Friend WithEvents InjectCustomArgumentsToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents CurrentToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents SelectedRangeToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents cmsAutoCrop As ToolStripMenuItem
+    Friend WithEvents cmsRotation As ContextMenuStrip
+    Friend WithEvents ToolStripMenuItem14 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem15 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem16 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem17 As ToolStripMenuItem
+    Friend WithEvents StatusStrip1 As StatusStrip
+    Friend WithEvents lblStatusMousePosition As ToolStripStatusLabel
+    Friend WithEvents lblStatusCropRect As ToolStripStatusLabel
+    Friend WithEvents lblStatusResolution As ToolStripStatusLabel
+    Friend WithEvents ContractToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ExpandToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents cmsChromaKey As ContextMenuStrip
+    Friend WithEvents ClearToolStripMenuItem As ToolStripMenuItem
 End Class

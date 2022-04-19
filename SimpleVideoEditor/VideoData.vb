@@ -33,6 +33,7 @@ Public Class VideoData
 
     Private mobjImageCache As ImageCache
     Private mobjThumbCache As ImageCache
+    Private mblnInputMash As Boolean 'Data we set manaully saying the type of input we are using is actually a way to specify multiple files
 
     Private Shared mobjLock As String = "Lock"
 
@@ -48,7 +49,7 @@ Public Class VideoData
     ''' Gets metadata for video files using ffmpeg command line arguments, and parses it into an object
     ''' </summary>
     ''' <param name="fullPath"></param>
-    Public Shared Function FromFile(ByVal fullPath As String) As SimpleVideoEditor.VideoData
+    Public Shared Function FromFile(ByVal fullPath As String, Optional inputMash As Boolean = False) As SimpleVideoEditor.VideoData
         'Request metadata from ffmpeg vis -i command
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
@@ -66,7 +67,7 @@ Public Class VideoData
         tempProcess.WaitForExit(1000)
         tempProcess.Close()
 
-        Return New SimpleVideoEditor.VideoData(fullPath, output)
+        Return New SimpleVideoEditor.VideoData(fullPath, output) With {.mblnInputMash = inputMash}
     End Function
 
     ''' <summary>
@@ -474,7 +475,7 @@ Public Class VideoData
         End If
         'processInfo.Arguments += $" -r {Me.Framerate} -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
         'FFMPEG expression evaluation https://ffmpeg.org/ffmpeg-utils.html
-        processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -f image2pipe -vcodec bmp -"
+        processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vcodec png -f image2pipe -"
         'processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})*gte(scene,0)',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},metadata=print -vsync 0 -f image2pipe -vcodec bmp -"
         processInfo.UseShellExecute = False
         processInfo.CreateNoWindow = True
@@ -504,63 +505,73 @@ Public Class VideoData
             'tempProcess.BeginErrorReadLine()
 
             While True
-                Dim headerBuffer(5) As Char
+                Dim imageBuffer(15) As Char
 
                 'TODO Maybe we have to read progressively on error and output at the same time
 
-                Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
-                Dim readOutputImage As Task(Of Integer) = Nothing
+                Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
+                Dim readOutputChunk As Task(Of Integer) = Nothing
                 Dim readError As Task(Of String) = tempProcess.StandardError.ReadLineAsync
 
                 'TODO This seems to work, maybe we can use this method to increase stability
                 Dim outputText As String = Nothing
                 Dim errorText As String = Nothing
-                Dim imageByteCount As Integer = 0
-                Dim imageBuffer() As Char = Nothing
+                Dim bytePosition As Integer = 0
                 Dim errEnd As Boolean = False
                 Dim outEnd As Boolean = False
+                Dim gotAll As Boolean = False
                 Do
                     If readOutputHeader?.IsCompleted Then
-                        If readOutputHeader.Result < 6 Then
+                        If readOutputHeader.Result < 8 Then
                             outEnd = True
                             readOutputHeader = Nothing
                         Else
-                            If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
-                                imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
-                                ReDim imageBuffer(imageByteCount - 1)
+                            ReDim Preserve imageBuffer(15)
+                            If imageBuffer(1) = "P" AndAlso imageBuffer(2) = "N" AndAlso imageBuffer(3) = "G" Then
+                                bytePosition = 8
+                                readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, 8)
                             End If
                             readOutputHeader = Nothing
-                            readOutputImage = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 6, imageByteCount - 6)
                         End If
                     End If
-                    If readOutputImage?.IsCompleted Then
-                        'Copy header
-                        For index As Integer = 0 To 5
-                            imageBuffer(index) = headerBuffer(index)
-                        Next
-                        Dim readImageBytes As Integer = readOutputImage.Result
-                        If readImageBytes < imageByteCount - 6 Then
-                            outEnd = True
+                    If readOutputChunk?.IsCompleted And Not gotAll Then
+                        Dim identifier As String = System.Text.Encoding.ASCII.GetString(System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition + 4, 4))
+                        If identifier.Equals("IEND") Then
+                            'IEND
+                            gotAll = True
+                            bytePosition += 8
+                            ReDim Preserve imageBuffer(imageBuffer.Count + 4 - 1)
+                            readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, 4)
                         Else
-                            Dim imageBytes(imageByteCount - 1) As Byte
-                            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
-
-                            Using recievedstream As New System.IO.MemoryStream
-                                recievedstream.Write(imageBytes, 0, imageByteCount)
-                                targetCache(currentFrame).Image = New Bitmap(recievedstream)
-                                targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
-                                framesRetrieved.Add(currentFrame)
-
-                                'If we have grabbed a few frames, it wouldn't hurt to update the UI
-                                If framesRetrieved.Count > 10 Then
-                                    RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
-                                    framesRetrieved.Clear()
-                                End If
-                            End Using
-                            currentFrame += 1
-                            readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
+                            Dim chunkHeaderBytes() As Byte = System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition, 4)
+                            Dim chunkSize As Integer = BitConverter.ToUInt32({chunkHeaderBytes(3), chunkHeaderBytes(2), chunkHeaderBytes(1), chunkHeaderBytes(0)}, 0)
+                            bytePosition += 8
+                            ReDim Preserve imageBuffer(imageBuffer.Count + chunkSize + 12 - 1)
+                            readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, chunkSize + 12)
+                            bytePosition += chunkSize + 4
                         End If
-                        readOutputImage = Nothing
+                    End If
+                    If gotAll AndAlso readOutputChunk?.IsCompleted Then
+                        Dim imageBytes(imageBuffer.Count - 1) As Byte
+                        imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+
+                        Using recievedstream As New System.IO.MemoryStream
+                            recievedstream.Write(imageBytes, 0, imageBytes.Count)
+                            targetCache(currentFrame).Image = New Bitmap(recievedstream)
+                            targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
+                            framesRetrieved.Add(currentFrame)
+
+                            'If we have grabbed a few frames, it wouldn't hurt to update the UI
+                            If framesRetrieved.Count > 10 Then
+                                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                framesRetrieved.Clear()
+                            End If
+                        End Using
+                        currentFrame += 1
+                        ReDim imageBuffer(15)
+                        readOutputChunk = Nothing
+                        readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
+                        gotAll = False
                     End If
                     If readError?.IsCompleted Then
                         'Read StandardError for the showinfo result for PTS_Time
@@ -591,7 +602,7 @@ Public Class VideoData
                     End If
 
                     'Wait for one of them to be finished
-                    Dim taskList As New List(Of Task) From {readOutputHeader, readOutputImage, readError} ', timeoutTask}
+                    Dim taskList As New List(Of Task) From {readOutputHeader, readOutputChunk, readError} ', timeoutTask}
                     taskList.RemoveAll(Function(obj) obj Is Nothing)
 
                     Await Task.WhenAny(taskList)
@@ -625,14 +636,19 @@ Public Class VideoData
     ''' <summary>
     ''' Tells ffmpeg to make a file and returns the corresponding file path to the given seconds value, like 50.5 = "frame_000050.5.png".
     ''' </summary>
-    Public Function ExportFfmpegFrame(ByVal frame As Integer, targetFilePath As String) As String
+    Public Function ExportFfmpegFrame(ByVal frame As Integer, targetFilePath As String, Optional cropRect As Rectangle? = Nothing) As String
         'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
-        processInfo.Arguments += $" -vf select='between(n,{frame},{frame})' -vsync 0 ""{targetFilePath}"""
+        processInfo.Arguments += $" -vf select='between(n,{frame},{frame})' "
+        If cropRect?.Width > 0 AndAlso cropRect.Value.Height > 0 AndAlso cropRect.Value.Center <> New Point(0, 0) Then
+            processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}")
+        End If
+        processInfo.Arguments += "-vsync 0 ""{targetFilePath}"""
+
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
         Dim tempProcess As Process = Process.Start(processInfo)
@@ -640,14 +656,19 @@ Public Class VideoData
         Return targetFilePath
     End Function
 
-    Public Function ExportFfmpegFrames(ByVal frameStart As Integer, ByVal frameEnd As Integer, targetFilePath As String) As String
+    Public Function ExportFfmpegFrames(ByVal frameStart As Integer, ByVal frameEnd As Integer, targetFilePath As String, Optional cropRect As Rectangle? = Nothing) As String
         'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
-        processInfo.Arguments += $" -vf select='between(n,{frameStart},{frameEnd})' -vsync 0 ""{targetFilePath}"""
+        processInfo.Arguments += $" -vf select='between(n,{frameStart},{frameEnd})' "
+        If cropRect?.Width > 0 AndAlso cropRect.Value.Height > 0 AndAlso cropRect.Value.Center <> New Point(0, 0) Then
+            processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}")
+        End If
+        processInfo.Arguments += "-vsync 0 ""{targetFilePath}"""
+
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
         Dim tempProcess As Process = Process.Start(processInfo)
@@ -676,6 +697,16 @@ Public Class VideoData
     End Property
 
     ''' <summary>
+    ''' Argument formatted for input to ffmpeg. Normally just -i "FullPath", but when inputMash is in use, prepend with -framerate 20 to ensure all frames are used
+    ''' </summary>
+    ''' <returns></returns>
+    Public ReadOnly Property InputArg As String
+        Get
+            Return " -framerate 20 -i """ & Me.FullPath & """"
+        End Get
+    End Property
+
+    ''' <summary>
     ''' Width of the video, or horizontal resolution
     ''' </summary>
     Public ReadOnly Property Width As Integer
@@ -690,6 +721,15 @@ Public Class VideoData
     Public ReadOnly Property Height As Integer
         Get
             Return mobjMetaData.stream0.resolution.Height
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Resolution of the content
+    ''' </summary>
+    Public ReadOnly Property Size As Size
+        Get
+            Return New Size(mobjMetaData.stream0.resolution.Width, mobjMetaData.stream0.resolution.Height)
         End Get
     End Property
 
@@ -812,6 +852,16 @@ Public Class VideoData
     Private ReadOnly Property ThumbFramesPath As String
         Get
             Return Me.FullPath + "-thumbframes.xml"
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Whether or not the input file is a type where ffmpeg is going to try and read multiple files (specifically for things like image%d.png
+    ''' </summary>
+    ''' <returns></returns>
+    Public ReadOnly Property InputMash As Boolean
+        Get
+            Return mblnInputMash
         End Get
     End Property
 

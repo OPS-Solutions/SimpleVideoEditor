@@ -1,4 +1,5 @@
-﻿Imports System.Runtime.CompilerServices
+﻿Imports System.Drawing.Imaging
+Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports Shell32
 
@@ -160,5 +161,365 @@ Module Extensions
             End If
         Next
         Return ranges
+    End Function
+
+    ''' <summary>
+    ''' Get an array of bytes from the given image
+    ''' </summary>
+    <Extension>
+    Public Function GetBytes(image As Bitmap) As Byte()
+        Dim objData As BitmapData = image.LockBits(New Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb)
+
+        Dim scanLines As Integer = objData.Width * 4
+        Dim pxBytes(scanLines * objData.Height - 1) As Byte
+
+        For scanIndex As Integer = 0 To objData.Height - 1
+            Marshal.Copy(objData.Scan0 + scanIndex * objData.Stride, pxBytes, scanIndex * scanLines, scanLines)
+        Next
+
+        image.UnlockBits(objData)
+        Return pxBytes
+    End Function
+
+    ''' <summary>
+    ''' Write the given byte array to the image
+    ''' Image should be initialized to the proper size beforehand
+    ''' </summary>
+    <Extension>
+    Public Sub SetBytes(image As Bitmap, bytes As Byte())
+        Dim objData As BitmapData = image.LockBits(New Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb)
+
+        Dim scanLines As Integer = objData.Width * 4
+
+        For scanIndex As Integer = 0 To objData.Height - 1
+            Marshal.Copy(bytes, scanIndex * scanLines, objData.Scan0 + scanIndex * objData.Stride, scanLines)
+        Next
+
+        image.UnlockBits(objData)
+    End Sub
+
+    ''' <summary>
+    ''' Loop over an image to get the bounds of the contents based on the background color
+    ''' </summary>
+    ''' <param name="img1"></param>
+    ''' <param name="startingRectangle">Rectangle to bound based off. Bounding will be done as if the given starting rect is the outer bounds of the image.</param>
+    ''' <param name="backColor"></param>
+    ''' <returns></returns>
+    <Extension>
+    Public Function BoundContents(img1 As Bitmap, Optional startingRectangle As Rectangle? = Nothing, Optional backColor As Color? = Nothing, Optional alphaLimit As Integer = 0) As Rectangle
+        Dim img1Bytes() As Byte = img1.GetBytes
+
+        Dim imageData As BitmapData = img1.LockBits(New Rectangle(0, 0, img1.Width, img1.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
+        Dim stride As Integer = imageData.Stride
+        img1.UnlockBits(imageData)
+
+        If backColor Is Nothing Then
+            backColor = Color.FromArgb(img1Bytes(3), img1Bytes(0), img1Bytes(1), img1Bytes(2))
+        End If
+
+        Dim startingRect As Rectangle
+        If startingRectangle Is Nothing Then
+            startingRect = New Rectangle(0, 0, img1.Width, img1.Height)
+        Else
+            startingRect = startingRectangle.Value
+        End If
+        Dim left As Integer = startingRect.X + startingRect.Width - 1
+        Dim top As Integer = startingRect.Y + startingRect.Height - 1
+        Dim right As Integer = startingRect.X
+        Dim bottom As Integer = startingRect.Y
+        'Look for top/bottom
+        For xIndex As Integer = startingRect.X To startingRect.Right - 1
+            'Top edge
+            For yIndex As Integer = startingRect.Y To startingRect.Bottom - 1
+                Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
+                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                    'Good, this is the background still
+                Else
+                    'We found an edge
+                    top = Math.Min(top, yIndex)
+                    Exit For
+                End If
+            Next
+            'Bottom edge
+            For yIndex As Integer = startingRect.Bottom - 1 To startingRect.Y Step -1
+                Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
+                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                    'Good, this is the background still
+                Else
+                    'We found an edge
+                    bottom = Math.Max(bottom, yIndex)
+                    Exit For
+                End If
+            Next
+        Next
+        'Look for left/right
+        For yIndex As Integer = startingRect.Y To startingRect.Bottom - 1
+            'left edge
+            For xIndex As Integer = startingRect.X To startingRect.Right - 1
+                Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
+                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                    'Good, this is the background still
+                Else
+                    'We found an edge
+                    left = Math.Min(left, xIndex)
+                    Exit For
+                End If
+            Next
+            'right edge
+            For xIndex As Integer = startingRect.Right - 1 To startingRect.X Step -1
+                Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
+                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                    'Good, this is the background still
+                Else
+                    'We found an edge
+                    right = Math.Max(right, xIndex)
+                    Exit For
+                End If
+            Next
+        Next
+        Return New Rectangle(left, top, right - left, bottom - top)
+    End Function
+
+    ''' <summary>
+    ''' Expands the bounds until the closest solid borders that encapsulate the contents
+    ''' </summary>
+    <Extension>
+    Public Function ExpandContents(img1 As Bitmap, Optional startingRectangle As Rectangle? = Nothing, Optional alphaLimit As Integer = 0) As Rectangle
+        Dim img1Bytes() As Byte = img1.GetBytes
+
+        Dim imageData As BitmapData = img1.LockBits(New Rectangle(0, 0, img1.Width, img1.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
+        Dim stride As Integer = imageData.Stride
+        img1.UnlockBits(imageData)
+
+        Dim startingRect As Rectangle
+        If startingRectangle Is Nothing Then
+            startingRect = New Rectangle(0, 0, img1.Width, img1.Height)
+        Else
+            startingRect = startingRectangle
+        End If
+        Dim left As Integer = startingRect.X
+        Dim top As Integer = startingRect.Y
+        Dim right As Integer = startingRect.X + startingRect.Width - 1
+        Dim bottom As Integer = startingRect.Y + startingRect.Height - 1
+        Dim centerY As Integer = startingRect.Center.Y
+        Dim centerX As Integer = startingRect.Center.X
+
+        'Left line check
+        Dim hasExpanded As Integer = 1
+        Dim currentBounds As Rectangle = New Rectangle(left, top, right - left, bottom - top)
+        While hasExpanded > 0
+            hasExpanded = 0
+            Dim leftExp As Integer = ExpandBoundEdge(img1, currentBounds, 0)
+            If leftExp <> left Then
+                hasExpanded += 1
+                left = leftExp
+            End If
+            Dim topExp As Integer = ExpandBoundEdge(img1, currentBounds, 1)
+            If topExp <> top Then
+                hasExpanded += 1
+                top = topExp
+            End If
+            Dim rightExp As Integer = ExpandBoundEdge(img1, currentBounds, 2)
+            If rightExp <> right Then
+                hasExpanded += 1
+                right = rightExp
+            End If
+            Dim bottomExp As Integer = ExpandBoundEdge(img1, currentBounds, 3)
+            If bottomExp <> bottom Then
+                hasExpanded += 1
+                bottom = bottomExp
+            End If
+
+            currentBounds = New Rectangle(left, top, right - left, bottom - top)
+        End While
+
+        Return New Rectangle(left, top, right - left, bottom - top)
+    End Function
+
+    ''' <summary>
+    ''' Attempts to expand the given edge until the first connected line is hit
+    ''' side is 0=left, 1=top, 2=right, 3=bottom
+    ''' </summary>
+    ''' <returns></returns>
+    Private Function ExpandBoundEdge(img1 As Bitmap, boundRect As Rectangle, side As Integer) As Integer
+        Dim img1Bytes() As Byte = img1.GetBytes
+        Dim imageData As BitmapData = img1.LockBits(New Rectangle(0, 0, img1.Width, img1.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
+        Dim stride As Integer = imageData.Stride
+        img1.UnlockBits(imageData)
+
+        Dim startIndex As Integer = 0
+        Dim endIndex As Integer = 0
+        Dim boundCenter As Point = boundRect.Center
+        Dim isHorizontal As Boolean = False
+        Dim startPerp As Integer = 0
+        Dim endPerp1 As Integer = 0
+        Dim endPerp2 As Integer = 0
+        Select Case side
+            Case 0 'Left
+                startIndex = boundRect.Left
+                endIndex = 0
+            Case 1 'Top
+                startIndex = boundRect.Top
+                endIndex = 0
+            Case 2 'Right
+                startIndex = boundRect.Right
+                endIndex = img1.Width - 1
+            Case 3 'Bottom
+                startIndex = boundRect.Bottom
+                endIndex = img1.Height - 1
+        End Select
+
+        Select Case side
+            Case 0, 2 'Left,right
+                startPerp = boundCenter.Y
+                endPerp1 = boundRect.Top
+                endPerp2 = boundRect.Bottom
+                isHorizontal = True
+            Case 1, 3 'Top,bottom
+                startPerp = boundCenter.X
+                endPerp1 = boundRect.Left
+                endPerp2 = boundRect.Right
+                isHorizontal = False
+        End Select
+
+        For index As Integer = startIndex To endIndex Step (If(startIndex > endIndex, -1, 1))
+            Dim xIndex As Integer = If(isHorizontal, index, startPerp)
+            Dim yIndex As Integer = If(isHorizontal, startPerp, index)
+            Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
+            Dim startPixel As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+            Dim areEquivalent As Boolean = True
+            'Expand perpendicular
+            For perpIndex As Integer = startPerp To endPerp1 Step -1
+                xIndex = If(isHorizontal, index, perpIndex)
+                yIndex = If(isHorizontal, perpIndex, index)
+                pixIndex = (xIndex * 4) + yIndex * stride
+                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                If Not srcPix.Equivalent(startPixel, 5) Then
+                    areEquivalent = False
+                    Exit For
+                End If
+            Next
+            If Not areEquivalent Then
+                Continue For
+            End If
+            'Expand perpendicular the other way
+            For perpIndex As Integer = startPerp To endPerp2
+                xIndex = If(isHorizontal, index, perpIndex)
+                yIndex = If(isHorizontal, perpIndex, index)
+                pixIndex = (xIndex * 4) + yIndex * stride
+                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                If Not srcPix.Equivalent(startPixel, 5) Then
+                    areEquivalent = False
+                    Exit For
+                End If
+            Next
+            If areEquivalent Then
+                Return index
+            End If
+        Next
+        Return startIndex
+    End Function
+
+
+    '''' <summary>
+    '''' Converts a point in control coordinates to image coordinates
+    '''' </summary>
+    <Extension>
+    Public Function PointToImage(picControl As PictureBox, controlPoint As Point, Optional realSize As Size = Nothing) As Point
+        If picControl.Image Is Nothing Then
+            Return New Point(0, 0)
+        End If
+        Dim displaySize As Size = picControl.Image.Size
+        If realSize.Width > 0 AndAlso realSize.Height > 0 Then
+            displaySize = realSize
+        End If
+        'Calculate actual crop locations due to bars and aspect ratio changes
+        Dim actualAspectRatio As Double = (displaySize.Height / displaySize.Width)
+        Dim picVideoAspectRatio As Double = (picControl.Height / picControl.Width)
+        Dim fitRatio As Double = Math.Min(picControl.Height / displaySize.Height, picControl.Width / displaySize.Width)
+        Dim verticalBarSizeRealPx As Integer = If(actualAspectRatio < picVideoAspectRatio, (picControl.Height - displaySize.Height * fitRatio) / 2, 0)
+        Dim horizontalBarSizeRealPx As Integer = If(actualAspectRatio > picVideoAspectRatio, (picControl.Width - displaySize.Width * fitRatio) / 2, 0)
+        Return New Point(((controlPoint.X - horizontalBarSizeRealPx) / fitRatio), ((controlPoint.Y - verticalBarSizeRealPx) / fitRatio)).Bound(New Rectangle(New Point(0, 0), displaySize))
+    End Function
+
+    '''' <summary>
+    '''' Converts a point in image coordinates to control coordinates
+    '''' </summary>
+    <Extension>
+    Public Function ImagePointToClient(picControl As PictureBox, controlPoint As Point, Optional realSize As Size = Nothing) As Point
+        If picControl.Image Is Nothing Then
+            Return New Point(0, 0)
+        End If
+        Dim displaySize As Size = picControl.Image.Size
+        If realSize.Width > 0 AndAlso realSize.Height > 0 Then
+            displaySize = realSize
+        End If
+        'Calculate actual crop locations due to bars and aspect ratio changes
+        Dim actualAspectRatio As Double = (displaySize.Height / displaySize.Width)
+        Dim picVideoAspectRatio As Double = (picControl.Height / picControl.Width)
+        Dim fitRatio As Double = Math.Min(picControl.Height / displaySize.Height, picControl.Width / displaySize.Width)
+        Dim verticalBarSizeRealPx As Integer = If(actualAspectRatio < picVideoAspectRatio, (picControl.Height - displaySize.Height * fitRatio) / 2, 0)
+        Dim horizontalBarSizeRealPx As Integer = If(actualAspectRatio > picVideoAspectRatio, (picControl.Width - displaySize.Width * fitRatio) / 2, 0)
+        Return New Point(Math.Max(0, (controlPoint.X * fitRatio + horizontalBarSizeRealPx)), Math.Max(0, (controlPoint.Y * fitRatio + verticalBarSizeRealPx)))
+    End Function
+
+    ''' <summary>
+    ''' Ensures the given point falls within the rectangle
+    ''' </summary>
+    ''' <param name="pt"></param>
+    ''' <param name="rect"></param>
+    ''' <returns></returns>
+    <Extension>
+    Public Function Bound(pt As Point, rect As Rectangle) As Point
+        Return New Point(Math.Min(Math.Max(rect.Left, pt.X), rect.Right - 1), Math.Min(Math.Max(rect.Top, pt.Y), rect.Bottom - 1))
+    End Function
+
+    ''' <summary>
+    ''' Gets the coordinate of the bottom right of the rectangle
+    ''' </summary>
+    <Extension>
+    Public Function BottomRight(rect As Rectangle) As Point
+        Return New Point(rect.Right, rect.Bottom)
+    End Function
+
+    ''' <summary>
+    ''' Checks if the extension of the path is that of an image such as .png, .bmp, .jpg, .jpeg
+    ''' </summary>
+    <Extension>
+    Public Function IsVBImage(path As String) As Boolean
+        Select Case IO.Path.GetExtension(path).ToLower()
+            Case ".png", ".jpg", ".bmp", ".jpeg"
+                Return True
+            Case Else
+                Return False
+        End Select
+    End Function
+
+    ''' <summary>
+    ''' Center point of a rectangle
+    ''' </summary>
+    ''' <param name="rect"></param>
+    ''' <returns></returns>
+    <Extension>
+    Public Function Center(rect As Rectangle) As Point
+        Return New Point(rect.X + rect.Width / 2, rect.Y + rect.Height / 2)
+    End Function
+
+    ''' <summary>
+    ''' Checks if two colors have the same color values within a range
+    ''' Limit is per channel how far off the values can be from eachother
+    ''' 0 means they must be the exact same values
+    ''' </summary>
+    <Extension>
+    Public Function Equivalent(color1 As Color, color2 As Color, Optional differenceLimit As Integer = 0) As Boolean
+        Dim alphaDif As Integer = Math.Abs(CInt(color1.A) - color2.A)
+        Dim redDif As Integer = Math.Abs(CInt(color1.R) - color2.R)
+        Dim greenDif As Integer = Math.Abs(CInt(color1.G) - color2.G)
+        Dim blueDif As Integer = Math.Abs(CInt(color1.B) - color2.B)
+        Return alphaDif <= differenceLimit AndAlso redDif <= differenceLimit AndAlso greenDif <= differenceLimit AndAlso blueDif <= differenceLimit
     End Function
 End Module
