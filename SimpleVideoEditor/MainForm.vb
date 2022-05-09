@@ -1244,11 +1244,16 @@ Public Class MainForm
     ''' </summary>
     Public Shared Function CompressSceneChanges(ByRef sceneChanges As Double(), ByVal newTotalFrames As Integer) As Double()
         Dim compressedSceneChanges(newTotalFrames - 1) As Double
-        'Local Maximums
-        For frameIndex As Integer = 0 To sceneChanges.Count - 1
-            Dim compressedIndex As Integer = Math.Floor(frameIndex * newTotalFrames / sceneChanges.Count)
-            compressedSceneChanges(compressedIndex) = Math.Max(compressedSceneChanges(compressedIndex), sceneChanges(frameIndex))
-        Next
+        If sceneChanges.Length <= newTotalFrames Then
+            'No need to compress if we aren't using the full span anyways
+            Return sceneChanges.Clone
+        Else
+            'Local Maximums
+            For frameIndex As Integer = 0 To sceneChanges.Count - 1
+                Dim compressedIndex As Integer = Math.Floor(frameIndex * newTotalFrames / sceneChanges.Count)
+                compressedSceneChanges(compressedIndex) = Math.Max(compressedSceneChanges(compressedIndex), sceneChanges(frameIndex))
+            Next
+        End If
         Return compressedSceneChanges
     End Function
 

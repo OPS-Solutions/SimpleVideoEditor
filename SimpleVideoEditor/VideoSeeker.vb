@@ -205,7 +205,8 @@
             If mdblSceneChanges IsNot Nothing Then
                 Dim frameIndex As Integer = 0
                 For Each sceneChange As Single In mdblSceneChanges
-                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (sceneChange * COLOR_HEIGHT)))
+                    Dim pixelLocation As Integer = (frameIndex / Me.FullRange) * (Me.Width - 1)
+                    e.Graphics.DrawLine(pen, New Point(pixelLocation, Me.Height - 4), New Point(pixelLocation, (Me.Height - 4) - (sceneChange * COLOR_HEIGHT)))
                     frameIndex += 1
                 Next
             End If
@@ -355,14 +356,14 @@
 			If potentialCollisions.Count > 0 Then
 				potentialCollisions.Sort(Function(obj1, obj2) CollisionRect(obj1).DistanceToCenter(e.Location).CompareTo(CollisionRect(obj2).DistanceToCenter(e.Location)))
                 menmSelectedSlider = potentialCollisions(0)
-                If menmSelectedSlider = SliderID.Preview Then
-                    'Give priority to trim slider
-                    If RangeMinValue = PreviewLocation Then
-                        menmSelectedSlider = SliderID.LeftTrim
-                    ElseIf RangeMaxValue = SliderID.Preview Then
-                        menmSelectedSlider = SliderID.RightTrim
-                    End If
-                End If
+                'If menmSelectedSlider = SliderID.Preview Then
+                '    'Give priority to trim slider
+                '    If RangeMinValue = PreviewLocation Then
+                '        menmSelectedSlider = SliderID.LeftTrim
+                '    ElseIf RangeMaxValue = SliderID.Preview Then
+                '        menmSelectedSlider = SliderID.RightTrim
+                '    End If
+                'End If
             Else
                 menmSelectedSlider = SliderID.Preview
 			End If
@@ -384,8 +385,14 @@
             If menmSelectedSlider = SliderID.None Then
                 Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
                 If potentialCollisions.Count > 0 Then
-                    If Not (potentialCollisions.Count = 1 AndAlso potentialCollisions(0) = SliderID.Preview) AndAlso Me.Cursor = Cursors.Hand Then
-                        Me.Cursor = Cursors.SizeWE
+                    If (potentialCollisions.Count = 1 AndAlso potentialCollisions(0) = SliderID.Preview) Then
+                        If Me.Cursor <> Cursors.Hand Then
+                            Me.Cursor = Cursors.Hand
+                        End If
+                    Else
+                        If Me.Cursor <> Cursors.SizeWE Then
+                            Me.Cursor = Cursors.SizeWE
+                        End If
                     End If
                 Else
                     If Not Me.Cursor = Cursors.Hand Then
