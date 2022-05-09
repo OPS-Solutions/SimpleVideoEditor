@@ -557,7 +557,19 @@ Public Class VideoData
 
                         Using recievedstream As New System.IO.MemoryStream
                             recievedstream.Write(imageBytes, 0, imageBytes.Count)
-                            targetCache(currentFrame).Image = New Bitmap(recievedstream)
+
+                            'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
+                            Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
+                            If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb Then
+                                Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
+                                Using g As Graphics = Graphics.FromImage(newBitmap)
+                                    g.DrawImage(incomingBitmap, New Point(0, 0))
+                                End Using
+                                incomingBitmap.Dispose()
+                                incomingBitmap = newBitmap
+                            End If
+
+                            targetCache(currentFrame).Image = incomingBitmap
                             targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
                             framesRetrieved.Add(currentFrame)
 

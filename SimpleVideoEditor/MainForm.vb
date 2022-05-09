@@ -104,7 +104,7 @@ Public Class MainForm
         End While
 
         'Clear images
-        picVideo.Image = Nothing
+        picVideo.SetImage(Nothing)
         picFrame1.Image = Nothing
         picFrame2.Image = Nothing
         picFrame3.Image = Nothing
@@ -469,7 +469,7 @@ Public Class MainForm
     ''' <summary>
     ''' Updates the main image with one of the pre-selected images from the picture box clicked.
     ''' </summary>
-    Private Sub picFrame_Click(sender As PictureBox, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
+    Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
         Dim newPreview As Integer = 0
         Select Case True
             Case sender Is picFrame1
@@ -607,11 +607,16 @@ Public Class MainForm
         Dim top As Integer = Me.mobjMetaData.GetImageFromCache(0).Height - 1
         Dim bottom As Integer = 0
         Dim right As Integer = 0
+        Dim largestFrame As Integer = mintCurrentFrame
         Await Task.Run(Sub()
                            For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                    'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
                                    Dim boundRect As Rectangle = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 127)
+                                   Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
+                                   If boundRect.Area > currentRect.Area Then
+                                       largestFrame = index
+                                   End If
                                    left = Math.Min(boundRect.Left, left)
                                    top = Math.Min(boundRect.Top, top)
                                    right = Math.Max(boundRect.Right, right)
@@ -619,6 +624,7 @@ Public Class MainForm
                                End If
                            Next
                        End Sub)
+        ctlVideoSeeker.PreviewLocation = largestFrame
         If (left = 0 AndAlso top = 0 AndAlso right = Me.mobjMetaData.GetImageFromCache(0).Width - 1 AndAlso bottom = Me.mobjMetaData.GetImageFromCache(0).Height - 1) Then
             SetCropPoints(New Point(0, 0), New Point(0, 0))
         Else
@@ -653,11 +659,16 @@ Public Class MainForm
         Dim top As Integer = Me.mobjMetaData.GetImageFromCache(0).Height - 1
         Dim bottom As Integer = 0
         Dim right As Integer = 0
+        Dim largestFrame As Integer = mintCurrentFrame
         Await Task.Run(Sub()
                            For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                    'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
                                    Dim boundRect As Rectangle = Me.mobjMetaData.GetImageFromCache(index).ExpandContents(cropRect, 4)
+                                   Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
+                                   If boundRect.Area > currentRect.Area Then
+                                       largestFrame = index
+                                   End If
                                    left = Math.Min(boundRect.Left, left)
                                    top = Math.Min(boundRect.Top, top)
                                    right = Math.Max(boundRect.Right, right)
@@ -665,6 +676,7 @@ Public Class MainForm
                                End If
                            Next
                        End Sub)
+        ctlVideoSeeker.PreviewLocation = largestFrame
         If (left = 0 AndAlso top = 0 AndAlso right = Me.mobjMetaData.GetImageFromCache(0).Width - 1 AndAlso bottom = Me.mobjMetaData.GetImageFromCache(0).Height - 1) Then
             SetCropPoints(New Point(0, 0), New Point(0, 0))
         Else
@@ -770,7 +782,7 @@ Public Class MainForm
         mptStartCrop = New Point(0, 0)
         mptEndCrop = New Point(0, 0)
         UpdateCropStatus()
-        picVideo.Image = Nothing
+        picVideo.SetImage(Nothing)
         picFrame1.Image = Nothing
         picFrame2.Image = Nothing
         picFrame3.Image = Nothing
@@ -1242,14 +1254,14 @@ Public Class MainForm
                 mintCurrentFrame = newVal
                 If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
                     'Grab immediate
-                    picVideo.Image = mobjMetaData.GetImageFromCache(mintCurrentFrame)
+                    picVideo.SetImage(mobjMetaData.GetImageFromCache(mintCurrentFrame))
                 Else
                     If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
                         'Check for low res thumbnail if we have it
-                        picVideo.Image = mobjMetaData.GetImageFromThumbCache(mintCurrentFrame)
+                        picVideo.SetImage(mobjMetaData.GetImageFromThumbCache(mintCurrentFrame))
                     Else
                         'Loading image...
-                        picVideo.Image = Nothing
+                        picVideo.SetImage(Nothing)
                     End If
                     'Queue, event will change the image for us
                     If mobjSlideQueue Is Nothing OrElse Not mobjSlideQueue.IsAlive Then
@@ -1290,7 +1302,7 @@ Public Class MainForm
                     'Grab immediate
                     Dim gotImage As Bitmap = mobjMetaData.GetImageFromCache(mintCurrentFrame, objCache)
                     If picVideo.Image Is Nothing OrElse picVideo.Image.Width < gotImage.Width Then
-                        picVideo.Image = gotImage
+                        picVideo.SetImage(gotImage)
                     End If
                 End If
                 Exit For
@@ -1366,10 +1378,6 @@ Public Class MainForm
                 btnいくよ.Enabled = True
             End If
         End If
-    End Sub
-
-    Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame5.Click, picFrame4.Click, picFrame3.Click, picFrame2.Click, picFrame1.Click
-
     End Sub
 
     Private Async Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click

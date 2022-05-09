@@ -164,7 +164,7 @@ Module Extensions
     End Function
 
     ''' <summary>
-    ''' Get an array of bytes from the given image
+    ''' Get an array of bytes from the given image in 8888 ARGB form
     ''' </summary>
     <Extension>
     Public Function GetBytes(image As Bitmap) As Byte()
@@ -182,7 +182,7 @@ Module Extensions
     End Function
 
     ''' <summary>
-    ''' Write the given byte array to the image
+    ''' Write the given byte array to the image in 8888 ARGB form
     ''' Image should be initialized to the proper size beforehand
     ''' </summary>
     <Extension>
@@ -207,14 +207,14 @@ Module Extensions
     ''' <returns></returns>
     <Extension>
     Public Function BoundContents(img1 As Bitmap, Optional startingRectangle As Rectangle? = Nothing, Optional backColor As Color? = Nothing, Optional alphaLimit As Integer = 0) As Rectangle
-        Dim img1Bytes() As Byte = img1.GetBytes
+        Dim imageBytes() As Byte = img1.GetBytes
 
         Dim imageData As BitmapData = img1.LockBits(New Rectangle(0, 0, img1.Width, img1.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
         Dim stride As Integer = imageData.Stride
         img1.UnlockBits(imageData)
 
         If backColor Is Nothing Then
-            backColor = Color.FromArgb(img1Bytes(3), img1Bytes(0), img1Bytes(1), img1Bytes(2))
+            backColor = Color.FromArgb(imageBytes(3), imageBytes(0), imageBytes(1), imageBytes(2))
         End If
 
         Dim startingRect As Rectangle
@@ -232,7 +232,7 @@ Module Extensions
             'Top edge
             For yIndex As Integer = startingRect.Y To startingRect.Bottom - 1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex), imageBytes(pixIndex + 1), imageBytes(pixIndex + 2))
                 If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
@@ -244,7 +244,7 @@ Module Extensions
             'Bottom edge
             For yIndex As Integer = startingRect.Bottom - 1 To startingRect.Y Step -1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex), imageBytes(pixIndex + 1), imageBytes(pixIndex + 2))
                 If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
@@ -259,7 +259,7 @@ Module Extensions
             'left edge
             For xIndex As Integer = startingRect.X To startingRect.Right - 1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex), imageBytes(pixIndex + 1), imageBytes(pixIndex + 2))
                 If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
@@ -271,7 +271,7 @@ Module Extensions
             'right edge
             For xIndex As Integer = startingRect.Right - 1 To startingRect.X Step -1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex), imageBytes(pixIndex + 1), imageBytes(pixIndex + 2))
                 If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
@@ -346,7 +346,8 @@ Module Extensions
     ''' </summary>
     ''' <returns></returns>
     Private Function ExpandBoundEdge(img1 As Bitmap, boundRect As Rectangle, side As Integer) As Integer
-        Dim img1Bytes() As Byte = img1.GetBytes
+        Dim imageBytes() As Byte = img1.GetBytes
+
         Dim imageData As BitmapData = img1.LockBits(New Rectangle(0, 0, img1.Width, img1.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
         Dim stride As Integer = imageData.Stride
         img1.UnlockBits(imageData)
@@ -390,14 +391,14 @@ Module Extensions
             Dim xIndex As Integer = If(isHorizontal, index, startPerp)
             Dim yIndex As Integer = If(isHorizontal, startPerp, index)
             Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-            Dim startPixel As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+            Dim startPixel As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex), imageBytes(pixIndex + 1), imageBytes(pixIndex + 2))
             Dim areEquivalent As Boolean = True
             'Expand perpendicular
             For perpIndex As Integer = startPerp To endPerp1 Step -1
                 xIndex = If(isHorizontal, index, perpIndex)
                 yIndex = If(isHorizontal, perpIndex, index)
                 pixIndex = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex), imageBytes(pixIndex + 1), imageBytes(pixIndex + 2))
                 If Not srcPix.Equivalent(startPixel, 5) Then
                     areEquivalent = False
                     Exit For
@@ -411,7 +412,7 @@ Module Extensions
                 xIndex = If(isHorizontal, index, perpIndex)
                 yIndex = If(isHorizontal, perpIndex, index)
                 pixIndex = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(img1Bytes(pixIndex + 3), img1Bytes(pixIndex), img1Bytes(pixIndex + 1), img1Bytes(pixIndex + 2))
+                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex), imageBytes(pixIndex + 1), imageBytes(pixIndex + 2))
                 If Not srcPix.Equivalent(startPixel, 5) Then
                     areEquivalent = False
                     Exit For
@@ -421,6 +422,7 @@ Module Extensions
                 Return index
             End If
         Next
+
         Return startIndex
     End Function
 
@@ -522,4 +524,44 @@ Module Extensions
         Dim blueDif As Integer = Math.Abs(CInt(color1.B) - color2.B)
         Return alphaDif <= differenceLimit AndAlso redDif <= differenceLimit AndAlso greenDif <= differenceLimit AndAlso blueDif <= differenceLimit
     End Function
+
+    ''' <summary>
+    ''' Area of a rectangle W * H
+    ''' </summary>
+    <Extension>
+    Public Function Area(rect As Rectangle) As Integer
+        If rect.Width <= 0 OrElse rect.Height <= 0 Then
+            Return 0
+        Else
+            Return rect.Width * rect.Height
+        End If
+    End Function
+
+    ''' <summary>
+    ''' Area of a rectangle W * H
+    ''' </summary>
+    <Extension>
+    Public Function Area(rect As RectangleF) As Single
+        If rect.Width <= 0 OrElse rect.Height <= 0 Then
+            Return 0
+        Else
+            Return rect.Width * rect.Height
+        End If
+    End Function
+
+    ''' <summary>
+    ''' Sets the image of a picturebox using .Clone, ensuring whatever image was previously assigned to the picturebox is disposed
+    ''' This can help avoid situations where the image could get locked or otherwise corrupted, causing the picturebox to render a red X on a white back
+    ''' </summary>
+    <Extension>
+    Public Sub SetImage(pictureBox As PictureBox, newImage As Image)
+        If pictureBox.Image IsNot Nothing Then
+            pictureBox.Image.Dispose()
+        End If
+        If newImage IsNot Nothing Then
+            pictureBox.Image = newImage.Clone
+        Else
+            pictureBox.Image = Nothing
+        End If
+    End Sub
 End Module
