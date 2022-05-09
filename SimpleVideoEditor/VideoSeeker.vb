@@ -263,7 +263,7 @@
 
         'Draw preview hover
         If mintHoveredFrameIndex IsNot Nothing Then
-            Dim hoveredFrameIndex As Integer = ((mRangeMax - mRangeMin) / Me.Width) * Me.PointToClient(Cursor.Position).X
+            Dim hoveredFrameIndex As Integer = Math.Floor(((mRangeMax - mRangeMin + 1) / Me.Width) * Me.PointToClient(Cursor.Position).X)
             Dim leftHoverPreview As Single = ((hoveredFrameIndex / FullRange) * (Me.Width - 1))
             Dim rightHoverPreview As Single = (((hoveredFrameIndex + 1) / FullRange) * (Me.Width - 1))
             Using pen As New Pen(Color.Red, 1)
@@ -348,9 +348,9 @@
         MyBase.OnMouseDown(e)
 		'Convert mouse coordinates to increments, Grab closest slider
 		If Me.Enabled AndAlso e.Button = MouseButtons.Left Then
-			Dim newValue As Integer = ((mRangeMax - mRangeMin) / Me.Width) * e.X
+            Dim newValue As Integer = Math.Floor(((mRangeMax - mRangeMin) / Me.Width) * e.X)
 
-			Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
+            Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
 
 			If potentialCollisions.Count > 0 Then
 				potentialCollisions.Sort(Function(obj1, obj2) CollisionRect(obj1).DistanceToCenter(e.Location).CompareTo(CollisionRect(obj2).DistanceToCenter(e.Location)))
@@ -393,7 +393,7 @@
                     End If
                 End If
             End If
-            Dim newHoverIndex As Integer = ((mRangeMax - mRangeMin) / Me.Width) * Me.PointToClient(Cursor.Position).X
+            Dim newHoverIndex As Integer = Math.Floor(((mRangeMax - mRangeMin + 1) / Me.Width) * e.X)
             If mintHoveredFrameIndex Is Nothing OrElse newHoverIndex <> mintHoveredFrameIndex Then
                 mintHoveredFrameIndex = newHoverIndex
                 Me.Invalidate()
