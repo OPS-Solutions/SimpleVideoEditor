@@ -587,6 +587,8 @@ Public Class MainForm
     ''' Sets the crop start and end to a position based on bounding non-background contents of the current region
     ''' </summary>
     Private Async Sub AutoCropContractToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles cmsAutoCrop.Click, ContractToolStripMenuItem.Click
+        'Ensure context menu goes away when clicking on items that normally may not close it
+        cmsPicVideo.Close()
         'Loop through all images, find any pixel different than the respective corners
         Me.UseWaitCursor = True
         'Only grab frames we have confirmed the existence of so the function can return immediately
@@ -1193,6 +1195,8 @@ Public Class MainForm
     ''' User right clicked on the big image and wants to export that frame
     ''' </summary>
     Private Sub cmsPicVideoExportFrame_Click(sender As Object, e As EventArgs) Handles cmsPicVideoExportFrame.Click, CurrentToolStripMenuItem.Click
+        'Ensure context menu goes away when clicking on items that normally may not close it
+        cmsPicVideo.Close()
         Using sfdExportFrame As New SaveFileDialog
             sfdExportFrame.Title = "Select Frame Save Location"
             sfdExportFrame.Filter = "PNG|*.png|BMP|*.bmp|All files (*.*)|*.*"
