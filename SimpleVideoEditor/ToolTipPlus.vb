@@ -120,14 +120,19 @@ Public Class ToolTipPlus
             SyncLock mobjControlLock
                 If mobjLastControl IsNot Nothing Then
                     If mobjLastControl.InvokeRequired Then
-                        mobjLastControl.Invoke(Sub()
-                                                   Dim associatedTip As String = myTip.GetToolTip(mobjLastControl)
-                                                   mblnManualShow = True
-                                                   Dim controlBased As Point = CType(mobjLastControl, Control).PointToClient(Cursor.Position())
-                                                   myTip.Show(associatedTip, mobjLastControl, controlBased.X, controlBased.Y + Cursor.Current.Size.Height)
-                                                   mdatLastPopup = Now
-                                                   mblnManualShow = False
-                                               End Sub)
+                        mobjLastControl.BeginInvoke(Sub()
+                                                        'Done in 2 stages to avoid deadlocking
+                                                        SyncLock mobjControlLock
+                                                            If mobjLastControl IsNot Nothing Then
+                                                                Dim associatedTip As String = myTip.GetToolTip(mobjLastControl)
+                                                                mblnManualShow = True
+                                                                Dim controlBased As Point = CType(mobjLastControl, Control).PointToClient(Cursor.Position())
+                                                                myTip.Show(associatedTip, mobjLastControl, controlBased.X, controlBased.Y + Cursor.Current.Size.Height)
+                                                                mdatLastPopup = Now
+                                                                mblnManualShow = False
+                                                            End If
+                                                        End SyncLock
+                                                    End Sub)
                     End If
                 End If
             End SyncLock
