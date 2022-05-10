@@ -233,7 +233,7 @@ Public Class VideoData
             rangeExpression += $"between(n,{objRange(0)},{objRange(1)})+"
         Next
         rangeExpression = rangeExpression.Substring(0, rangeExpression.Length - 1)
-        processInfo.Arguments += $" -vf select='{rangeExpression}',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -f image2pipe -vcodec bmp -"
+        processInfo.Arguments += $" -vf select='{rangeExpression}',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vcodec png -f image2pipe -"
         'processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})*gte(scene,0)',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},metadata=print -vsync 0 -f image2pipe -vcodec bmp -"
         processInfo.UseShellExecute = False
         processInfo.CreateNoWindow = True
@@ -264,68 +264,85 @@ Public Class VideoData
             'tempProcess.BeginErrorReadLine()
 
             While True
-                Dim headerBuffer(5) As Char
+                Dim imageBuffer(15) As Char
 
                 'TODO Maybe we have to read progressively on error and output at the same time
 
-                Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
-                Dim readOutputImage As Task(Of Integer) = Nothing
+                Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
+                Dim readOutputChunk As Task(Of Integer) = Nothing
                 Dim readError As Task(Of String) = tempProcess.StandardError.ReadLineAsync
 
                 'TODO This seems to work, maybe we can use this method to increase stability
                 Dim outputText As String = Nothing
                 Dim errorText As String = Nothing
-                Dim imageByteCount As Integer = 0
-                Dim imageBuffer() As Char = Nothing
+                Dim bytePosition As Integer = 0
                 Dim errEnd As Boolean = False
                 Dim outEnd As Boolean = False
+                Dim gotAll As Boolean = False
                 Do
                     If readOutputHeader?.IsCompleted Then
-                        If readOutputHeader.Result < 6 Then
+                        If readOutputHeader.Result < 8 Then
                             outEnd = True
+                            readOutputHeader = Nothing
                         Else
-                            If headerBuffer(0) = "B" AndAlso headerBuffer(1) = "M" Then
-                                imageByteCount = BitConverter.ToInt32(System.Text.Encoding.Default.GetBytes(headerBuffer, 2, 4), 0)
-                                ReDim imageBuffer(imageByteCount - 1)
+                            ReDim Preserve imageBuffer(15)
+                            If imageBuffer(1) = "P" AndAlso imageBuffer(2) = "N" AndAlso imageBuffer(3) = "G" Then
+                                bytePosition = 8
+                                readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, 8)
                             End If
                             readOutputHeader = Nothing
-                            readOutputImage = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 6, imageByteCount - 6)
                         End If
                     End If
-                    If readOutputImage?.IsCompleted Then
-                        'Copy header
-                        For index As Integer = 0 To 5
-                            imageBuffer(index) = headerBuffer(index)
-                        Next
-                        Dim readImageBytes As Integer = readOutputImage.Result
-                        If readImageBytes < imageByteCount - 6 Then
-                            outEnd = True
+                    If readOutputChunk?.IsCompleted And Not gotAll Then
+                        Dim identifier As String = System.Text.Encoding.ASCII.GetString(System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition + 4, 4))
+                        If identifier.Equals("IEND") Then
+                            'IEND
+                            gotAll = True
+                            bytePosition += 8
+                            ReDim Preserve imageBuffer(imageBuffer.Count + 4 - 1)
+                            readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, 4)
                         Else
-                            Dim imageBytes(imageByteCount - 1) As Byte
-                            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
-
-                            Using recievedstream As New System.IO.MemoryStream
-                                recievedstream.Write(imageBytes, 0, imageByteCount)
-                                targetCache(frames(currentFrame)).Image = New Bitmap(recievedstream)
-                                targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
-                                framesRetrieved.Add(frames(currentFrame))
-
-                                'If we have grabbed a range, it wouldn't hurt to update the UI
-                                Dim expectedFrameNumber As Integer = 0
-                                For rangeIndex As Integer = 0 To ranges.Count
-                                    expectedFrameNumber += (ranges(rangeIndex)(0) - ranges(rangeIndex)(0)) + 1
-
-                                    If expectedFrameNumber = framesRetrieved.Count Then
-                                        RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
-                                        framesRetrieved.Clear()
-                                        Exit For
-                                    End If
-                                Next
-                            End Using
-                            currentFrame += 1
-                            readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(headerBuffer, 0, 6)
+                            Dim chunkHeaderBytes() As Byte = System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition, 4)
+                            Dim chunkSize As Integer = BitConverter.ToUInt32({chunkHeaderBytes(3), chunkHeaderBytes(2), chunkHeaderBytes(1), chunkHeaderBytes(0)}, 0)
+                            bytePosition += 8
+                            ReDim Preserve imageBuffer(imageBuffer.Count + chunkSize + 12 - 1)
+                            readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, chunkSize + 12)
+                            bytePosition += chunkSize + 4
                         End If
-                        readOutputImage = Nothing
+                    End If
+                    If gotAll AndAlso readOutputChunk?.IsCompleted Then
+                        Dim imageBytes(imageBuffer.Count - 1) As Byte
+                        imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+
+                        Using recievedstream As New System.IO.MemoryStream
+                            recievedstream.Write(imageBytes, 0, imageBytes.Count)
+
+                            'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
+                            Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
+                            If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb Then
+                                Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
+                                Using g As Graphics = Graphics.FromImage(newBitmap)
+                                    g.DrawImage(incomingBitmap, New Point(0, 0))
+                                End Using
+                                incomingBitmap.Dispose()
+                                incomingBitmap = newBitmap
+                            End If
+
+                            targetCache(frames(currentFrame)).Image = incomingBitmap
+                            targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
+                            framesRetrieved.Add(frames(currentFrame))
+
+                            'If we have grabbed a few frames, it wouldn't hurt to update the UI
+                            If framesRetrieved.Count > 10 Then
+                                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                framesRetrieved.Clear()
+                            End If
+                        End Using
+                        currentFrame += 1
+                        ReDim imageBuffer(15)
+                        readOutputChunk = Nothing
+                        readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
+                        gotAll = False
                     End If
                     If readError?.IsCompleted Then
                         'Read StandardError for the showinfo result for PTS_Time
@@ -354,12 +371,11 @@ Public Class VideoData
                     If outEnd AndAlso errEnd Then
                         Exit While
                     End If
-                    'If tempProcess.StandardError.EndOfStream AndAlso tempProcess.StandardOutput.EndOfStream Then
-                    '    Exit Do
-                    'End If
+
                     'Wait for one of them to be finished
-                    Dim taskList As New List(Of Task) From {readOutputHeader, readOutputImage, readError}
+                    Dim taskList As New List(Of Task) From {readOutputHeader, readOutputChunk, readError} ', timeoutTask}
                     taskList.RemoveAll(Function(obj) obj Is Nothing)
+
                     Await Task.WhenAny(taskList)
                 Loop
             End While
@@ -397,6 +413,7 @@ Public Class VideoData
                                                             Return Nothing
                                                         End If
                                                         Await GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
+                                                        Return Nothing
                                                     End Function)
                 End If
                 If targetCache(Math.Max(0, frame - 4)).Status = ImageCache.CacheStatus.None Then
@@ -406,6 +423,7 @@ Public Class VideoData
                                                             Return Nothing
                                                         End If
                                                         Await GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
+                                                        Return Nothing
                                                     End Function)
                 End If
             End If
