@@ -34,7 +34,7 @@ Public Class MainForm
     Private Class SpecialOutputProperties
         Public Decimate As Boolean
         Public FPS As Integer
-        Public ChromaKey As Color
+        Public ColorKey As Color
         Public PlaybackSpeed As Double
         Public PlaybackVolume As Double
         Public QScale As Double
@@ -139,7 +139,7 @@ Public Class MainForm
             .PlaybackSpeed = mdblPlaybackSpeed,
             .PlaybackVolume = mdblPlaybackVolume,
             .QScale = If(chkQuality.Checked, 0, -1),
-            .ChromaKey = dlgChromaColor.Color
+            .ColorKey = dlgColorKey.Color
         }
         'Limit GIF framerate if the default is assigned
         If Not Path.GetExtension(mstrVideoPath).Equals(".gif") AndAlso Path.GetExtension(outputPath).Equals(".gif") AndAlso sProperties.FPS = 0 Then
@@ -373,10 +373,10 @@ Public Class MainForm
             videoFilterParams.Add(decimateString)
         End If
 
-        'CHROMAKEY
-        If specProperties.ChromaKey.A <> 0 Then
-            With specProperties.ChromaKey
-                videoFilterParams.Add("chromakey=" & String.Format("0x{0:X2}{1:X2}{2:X2}", .R, .G, .B))
+        'COLORKEY
+        If specProperties.ColorKey.A <> 0 Then
+            With specProperties.ColorKey
+                videoFilterParams.Add("colorkey=" & String.Format("0x{0:X2}{1:X2}{2:X2}", .R, .G, .B))
             End With
         End If
 
@@ -392,7 +392,7 @@ Public Class MainForm
         End If
 
         'Maintain transparency when making a gif from images
-        If (mobjMetaData.InputMash OrElse specProperties.ChromaKey.A <> 0) AndAlso IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif") Then
+        If (mobjMetaData.InputMash OrElse specProperties.ColorKey.A <> 0) AndAlso IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif") Then
             videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=bayer")
             'processInfo.Arguments += " -filter_complex ""[0:v] split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=bayer"""
         End If
@@ -714,7 +714,7 @@ Public Class MainForm
         UpdateRotationButton()
         mobjGenericToolTip.SetToolTip(btnBrowse, "Browse for a video to edit." & vbNewLine & "Alternatively, select multiple images with the same name, but numbered like ""image0.png"", ""image1.png"", etc.")
         'mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
-        UpdateChromaKey()
+        UpdateColorKey()
         mobjGenericToolTip.SetToolTip(picPlaybackSpeed, "Playback speed multiplier.")
 
         'Status  tooltips
@@ -1117,29 +1117,29 @@ Public Class MainForm
         CType(e.ClickedItem, ToolStripMenuItem).Checked = True
     End Sub
 
-    Private Sub picChromaKey_Click(sender As Object, e As EventArgs) Handles picChromaKey.Click
-        Select Case dlgChromaColor.ShowDialog
+    Private Sub picColorKey_Click(sender As Object, e As EventArgs) Handles picColorKey.Click
+        Select Case dlgColorKey.ShowDialog
             Case DialogResult.OK
-                UpdateChromaKey()
+                UpdateColorKey()
         End Select
     End Sub
 
     Private Sub ClearToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ClearToolStripMenuItem.Click
-        dlgChromaColor.Color = Color.FromArgb(0, 1, 1, 1)
-        picChromaKey.BackColor = Color.Lime
-        UpdateChromaKey()
+        dlgColorKey.Color = Color.FromArgb(0, 1, 1, 1)
+        picColorKey.BackColor = Color.Lime
+        UpdateColorKey()
     End Sub
 
     ''' <summary>
-    ''' Updates the chroma tooltip and color to reflect the current selected chromakey
+    ''' Updates the color key tooltip and color to reflect the current selected color
     ''' </summary>
-    Private Sub UpdateChromaKey()
-        If dlgChromaColor.Color.A <> 0 Then
-            picChromaKey.BackColor = dlgChromaColor.Color
-            mobjGenericToolTip.SetToolTip(picChromaKey, $"Color that will be made transparent if the output file type supports it. Currently {dlgChromaColor.Color}.")
+    Private Sub UpdateColorKey()
+        If dlgColorKey.Color.A <> 0 Then
+            picColorKey.BackColor = dlgColorKey.Color
+            mobjGenericToolTip.SetToolTip(picColorKey, $"Color that will be made transparent if the output file type supports it. Currently {dlgColorKey.Color}.")
         Else
-            picChromaKey.BackColor = Color.Lime
-            mobjGenericToolTip.SetToolTip(picChromaKey, $"Color that will be made transparent if the output file type supports it. Currently not set.")
+            picColorKey.BackColor = Color.Lime
+            mobjGenericToolTip.SetToolTip(picColorKey, $"Color that will be made transparent if the output file type supports it. Currently not set.")
         End If
     End Sub
 

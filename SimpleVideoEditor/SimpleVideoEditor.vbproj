@@ -142,6 +142,11 @@
     <Compile Include="ManualEntryForm.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="My Project\Resources.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="ToolTipPlus.vb" />
     <Compile Include="VideoData.vb" />
     <Compile Include="MainForm.vb">
@@ -155,11 +160,6 @@
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
       <DependentUpon>Application.myapp</DependentUpon>
-    </Compile>
-    <Compile Include="My Project\Resources.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="My Project\Settings.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -191,9 +191,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
       <CustomToolNamespace>My.Resources</CustomToolNamespace>
       <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.vb</DependentUpon>
@@ -231,7 +231,7 @@
     <None Include="Resources\qscaleOn.png" />
     <None Include="Resources\qscaleOff.png" />
     <None Include="Resources\StopWatch.png" />
-    <None Include="Resources\ChromaKey.png" />
+    <None Include="Resources\ColorKey.png" />
     <None Include="Resources\DuplicatesOff.png" />
     <None Include="Resources\DuplicatesOn.png" />
     <None Include="Resources\HolePuncher.png" />

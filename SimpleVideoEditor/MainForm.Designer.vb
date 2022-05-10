@@ -35,7 +35,9 @@ Partial Class MainForm
         Me.SixtyFPSToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.grpSettings = New System.Windows.Forms.GroupBox()
         Me.picPlaybackSpeed = New System.Windows.Forms.PictureBox()
-        Me.picChromaKey = New System.Windows.Forms.PictureBox()
+        Me.picColorKey = New System.Windows.Forms.PictureBox()
+        Me.cmsColorKey = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.ClearToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsPlaybackVolume = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.MuteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripMenuItem10 = New System.Windows.Forms.ToolStripMenuItem()
@@ -58,7 +60,7 @@ Partial Class MainForm
         Me.cmsAutoCrop = New System.Windows.Forms.ToolStripMenuItem()
         Me.ContractToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ExpandToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.dlgChromaColor = New System.Windows.Forms.ColorDialog()
+        Me.dlgColorKey = New System.Windows.Forms.ColorDialog()
         Me.cmsPlaybackSpeed = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.ToolStripMenuItem2 = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripMenuItem3 = New System.Windows.Forms.ToolStripMenuItem()
@@ -90,12 +92,11 @@ Partial Class MainForm
         Me.chkQuality = New SimpleVideoEditor.ImageSwitch()
         Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
         Me.chkMute = New SimpleVideoEditor.ImageSwitch()
-        Me.cmsChromaKey = New System.Windows.Forms.ContextMenuStrip(Me.components)
-        Me.ClearToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.picChromaKey, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.picColorKey, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.cmsColorKey.SuspendLayout()
         Me.cmsPlaybackVolume.SuspendLayout()
         CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsRotation.SuspendLayout()
@@ -114,7 +115,6 @@ Partial Class MainForm
         CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.chkMute, System.ComponentModel.ISupportInitialize).BeginInit()
-        Me.cmsChromaKey.SuspendLayout()
         Me.SuspendLayout()
         '
         'ofdVideoIn
@@ -186,7 +186,7 @@ Partial Class MainForm
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.grpSettings.Controls.Add(Me.chkQuality)
         Me.grpSettings.Controls.Add(Me.picPlaybackSpeed)
-        Me.grpSettings.Controls.Add(Me.picChromaKey)
+        Me.grpSettings.Controls.Add(Me.picColorKey)
         Me.grpSettings.Controls.Add(Me.chkDeleteDuplicates)
         Me.grpSettings.Controls.Add(Me.chkMute)
         Me.grpSettings.Controls.Add(Me.imgRotate)
@@ -210,17 +210,30 @@ Partial Class MainForm
         Me.picPlaybackSpeed.TabIndex = 24
         Me.picPlaybackSpeed.TabStop = False
         '
-        'picChromaKey
+        'picColorKey
         '
-        Me.picChromaKey.BackColor = System.Drawing.Color.Lime
-        Me.picChromaKey.ContextMenuStrip = Me.cmsChromaKey
-        Me.picChromaKey.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.picChromaKey.Image = Global.SimpleVideoEditor.My.Resources.Resources.ChromaKey
-        Me.picChromaKey.Location = New System.Drawing.Point(17, 95)
-        Me.picChromaKey.Name = "picChromaKey"
-        Me.picChromaKey.Size = New System.Drawing.Size(18, 18)
-        Me.picChromaKey.TabIndex = 23
-        Me.picChromaKey.TabStop = False
+        Me.picColorKey.BackColor = System.Drawing.Color.Lime
+        Me.picColorKey.ContextMenuStrip = Me.cmsColorKey
+        Me.picColorKey.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.picColorKey.Image = Global.SimpleVideoEditor.My.Resources.Resources.ColorKey
+        Me.picColorKey.Location = New System.Drawing.Point(17, 95)
+        Me.picColorKey.Name = "picColorKey"
+        Me.picColorKey.Size = New System.Drawing.Size(18, 18)
+        Me.picColorKey.TabIndex = 23
+        Me.picColorKey.TabStop = False
+        '
+        'cmsColorKey
+        '
+        Me.cmsColorKey.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ClearToolStripMenuItem})
+        Me.cmsColorKey.Name = "cmsColorKey"
+        Me.cmsColorKey.Size = New System.Drawing.Size(102, 26)
+        '
+        'ClearToolStripMenuItem
+        '
+        Me.ClearToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
+        Me.ClearToolStripMenuItem.Name = "ClearToolStripMenuItem"
+        Me.ClearToolStripMenuItem.Size = New System.Drawing.Size(101, 22)
+        Me.ClearToolStripMenuItem.Text = "Clear"
         '
         'cmsPlaybackVolume
         '
@@ -373,11 +386,11 @@ Partial Class MainForm
         Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
         Me.ExpandToolStripMenuItem.Text = "Expand"
         '
-        'dlgChromaColor
+        'dlgColorKey
         '
-        Me.dlgChromaColor.Color = System.Drawing.Color.FromArgb(CType(CType(0, Byte), Integer), CType(CType(1, Byte), Integer), CType(CType(1, Byte), Integer), CType(CType(1, Byte), Integer))
-        Me.dlgChromaColor.FullOpen = True
-        Me.dlgChromaColor.SolidColorOnly = True
+        Me.dlgColorKey.Color = System.Drawing.Color.FromArgb(CType(CType(0, Byte), Integer), CType(CType(1, Byte), Integer), CType(CType(1, Byte), Integer), CType(CType(1, Byte), Integer))
+        Me.dlgColorKey.FullOpen = True
+        Me.dlgColorKey.SolidColorOnly = True
         '
         'cmsPlaybackSpeed
         '
@@ -672,19 +685,6 @@ Partial Class MainForm
         Me.chkMute.TabStop = False
         Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
         '
-        'cmsChromaKey
-        '
-        Me.cmsChromaKey.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ClearToolStripMenuItem})
-        Me.cmsChromaKey.Name = "cmsChromaKey"
-        Me.cmsChromaKey.Size = New System.Drawing.Size(102, 26)
-        '
-        'ClearToolStripMenuItem
-        '
-        Me.ClearToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
-        Me.ClearToolStripMenuItem.Name = "ClearToolStripMenuItem"
-        Me.ClearToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.ClearToolStripMenuItem.Text = "Clear"
-        '
         'MainForm
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
@@ -714,7 +714,8 @@ Partial Class MainForm
         Me.cmsFrameRate.ResumeLayout(False)
         Me.grpSettings.ResumeLayout(False)
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.picChromaKey, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.picColorKey, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.cmsColorKey.ResumeLayout(False)
         Me.cmsPlaybackVolume.ResumeLayout(False)
         CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsRotation.ResumeLayout(False)
@@ -734,7 +735,6 @@ Partial Class MainForm
         CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.chkMute, System.ComponentModel.ISupportInitialize).EndInit()
-        Me.cmsChromaKey.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -765,8 +765,8 @@ Partial Class MainForm
     Friend WithEvents TwentyFPSToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ThirtyFPSToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents SixtyFPSToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents picChromaKey As PictureBox
-    Friend WithEvents dlgChromaColor As ColorDialog
+    Friend WithEvents picColorKey As PictureBox
+    Friend WithEvents dlgColorKey As ColorDialog
     Friend WithEvents picPlaybackSpeed As PictureBox
     Friend WithEvents cmsPlaybackSpeed As ContextMenuStrip
     Friend WithEvents ToolStripMenuItem2 As ToolStripMenuItem
@@ -805,6 +805,6 @@ Partial Class MainForm
     Friend WithEvents lblStatusResolution As ToolStripStatusLabel
     Friend WithEvents ContractToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ExpandToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents cmsChromaKey As ContextMenuStrip
+    Friend WithEvents cmsColorKey As ContextMenuStrip
     Friend WithEvents ClearToolStripMenuItem As ToolStripMenuItem
 End Class
