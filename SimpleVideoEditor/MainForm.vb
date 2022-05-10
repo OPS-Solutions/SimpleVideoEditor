@@ -483,13 +483,15 @@ Public Class MainForm
             Case sender Is picFrame5
                 newPreview = Math.Floor(mobjMetaData.TotalFrames - 1)
         End Select
-        'Find nearest available frame because the totalframes may have been modified slightly
-        For index As Integer = Math.Max(0, newPreview - 2) To newPreview + 2
-            If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                ctlVideoSeeker.PreviewLocation = index
-                Exit Sub
-            End If
-        Next
+        'Find a nearby available frame because the totalframes may have been modified slightly
+        If Not mobjMetaData.ImageCacheStatus(newPreview) = ImageCache.CacheStatus.Cached Then
+            For index As Integer = Math.Max(0, newPreview - 2) To newPreview + 2
+                If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                    ctlVideoSeeker.PreviewLocation = index
+                    Exit Sub
+                End If
+            Next
+        End If
         ctlVideoSeeker.PreviewLocation = newPreview
     End Sub
 
