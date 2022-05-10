@@ -407,24 +407,22 @@ Public Class VideoData
             If cacheSize > 5 Then
                 'If we are at the edge of the cached items, try to expand it a little in advance
                 If targetCache(Math.Min(frame + 4, Math.Max(0, mobjMetaData.totalFrames - 4))).Status = ImageCache.CacheStatus.None Then
-                    Dim tempTask As Task = Task.Run(Async Function()
+                    Dim tempTask As Task = Task.Run(Sub()
                                                         Dim seedFrame As Integer = Math.Min(frame + 1, mobjMetaData.totalFrames - 1)
                                                         If seedFrame = frame Then
-                                                            Return Nothing
+                                                            Exit Sub
                                                         End If
-                                                        Await GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
-                                                        Return Nothing
-                                                    End Function)
+                                                        Dim getFrameTask As Task(Of Bitmap) = GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
+                                                    End Sub)
                 End If
                 If targetCache(Math.Max(0, frame - 4)).Status = ImageCache.CacheStatus.None Then
-                    Dim tempTask As Task = Task.Run(Async Function()
+                    Dim tempTask As Task = Task.Run(Sub()
                                                         Dim seedFrame As Integer = Math.Max(0, frame - 1)
                                                         If seedFrame = frame Then
-                                                            Return Nothing
+                                                            Exit Sub
                                                         End If
-                                                        Await GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
-                                                        Return Nothing
-                                                    End Function)
+                                                        Dim getFrameTask As Task(Of Bitmap) = GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
+                                                    End Sub)
                 End If
             End If
             Return targetCache(frame).Image

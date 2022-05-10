@@ -292,7 +292,7 @@ Public Class MainForm
         previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 1))
         'Dim multiGrabBarrier As New Barrier(2)
         If fullFrameGrab Is Nothing Then
-            mobjMetaData.GetFfmpegFrameRangesAsync(previewFrames)
+            Dim frameRangeTask As Task(Of Boolean) = mobjMetaData.GetFfmpegFrameRangesAsync(previewFrames)
         End If
     End Sub
 

@@ -73,9 +73,9 @@ Namespace My.Resources
         '''<summary>
         '''  Looks up a localized resource of type System.Drawing.Bitmap.
         '''</summary>
-        Friend ReadOnly Property AutoCrop_Contract() As System.Drawing.Bitmap
+        Friend ReadOnly Property AutoCropContract() As System.Drawing.Bitmap
             Get
-                Dim obj As Object = ResourceManager.GetObject("AutoCrop Contract", resourceCulture)
+                Dim obj As Object = ResourceManager.GetObject("AutoCropContract", resourceCulture)
                 Return CType(obj,System.Drawing.Bitmap)
             End Get
         End Property
@@ -83,9 +83,9 @@ Namespace My.Resources
         '''<summary>
         '''  Looks up a localized resource of type System.Drawing.Bitmap.
         '''</summary>
-        Friend ReadOnly Property AutoCrop_Expand() As System.Drawing.Bitmap
+        Friend ReadOnly Property AutoCropExpand() As System.Drawing.Bitmap
             Get
-                Dim obj As Object = ResourceManager.GetObject("AutoCrop Expand", resourceCulture)
+                Dim obj As Object = ResourceManager.GetObject("AutoCropExpand", resourceCulture)
                 Return CType(obj,System.Drawing.Bitmap)
             End Get
         End Property
@@ -193,9 +193,9 @@ Namespace My.Resources
         '''<summary>
         '''  Looks up a localized resource of type System.Drawing.Bitmap.
         '''</summary>
-        Friend ReadOnly Property Play_Button() As System.Drawing.Bitmap
+        Friend ReadOnly Property PlayButton() As System.Drawing.Bitmap
             Get
-                Dim obj As Object = ResourceManager.GetObject("Play Button", resourceCulture)
+                Dim obj As Object = ResourceManager.GetObject("PlayButton", resourceCulture)
                 Return CType(obj,System.Drawing.Bitmap)
             End Get
         End Property
