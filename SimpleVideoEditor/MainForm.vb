@@ -33,7 +33,7 @@ Public Class MainForm
 
     Private Class SpecialOutputProperties
         Public Decimate As Boolean
-        Public FPS As Integer
+        Public FPS As Double
         Public ColorKey As Color
         Public PlaybackSpeed As Double
         Public PlaybackVolume As Double
@@ -141,11 +141,19 @@ Public Class MainForm
             .QScale = If(chkQuality.Checked, 0, -1),
             .ColorKey = dlgColorKey.Color
         }
-        'Limit GIF framerate if the default is assigned
-        If Not Path.GetExtension(mstrVideoPath).Equals(".gif") AndAlso Path.GetExtension(outputPath).Equals(".gif") AndAlso sProperties.FPS = 0 Then
-            If (mobjMetaData.Framerate * sProperties.PlaybackSpeed) > 30 Then
-                sProperties.FPS = 25
-            End If
+        'Limit GIF framerate to whatever is closest to optimal since gif only supports certain equal frame pacing, and ffmpeg will set FPS to like 21.42 with some FPS like 60
+        If Not Path.GetExtension(mstrVideoPath).Equals(".gif") AndAlso Path.GetExtension(outputPath).Equals(".gif") Then
+            'Gif supports 100, 50, 33.3, 25, 20, 16.6, 14.2, and so on, as delay is set to #/100
+            Dim maxRate As Double = mobjMetaData.Framerate * sProperties.PlaybackSpeed
+            Dim currentRate As Double = If(sProperties.FPS = 0, maxRate, sProperties.FPS)
+            Dim optimalRate As Double = 25
+            For index As Integer = 1 To 10
+                Dim testRate As Double = 100 / index
+                If Math.Abs(currentRate - optimalRate) > Math.Abs(currentRate - testRate) Then
+                    optimalRate = testRate
+                End If
+            Next
+            sProperties.FPS = optimalRate
         End If
         Dim ignoreTrim As Boolean = ctlVideoSeeker.RangeMin = ctlVideoSeeker.RangeMinValue And ctlVideoSeeker.RangeMax = ctlVideoSeeker.RangeMaxValue
         'First check if something would conflict with cropping, if it will, just crop it first
@@ -383,10 +391,22 @@ Public Class MainForm
         'PLAYBACK SPEED
         If specProperties?.PlaybackSpeed <> 1 AndAlso specProperties?.PlaybackSpeed > 0 AndAlso specProperties?.PlaybackSpeed < 3 Then
             videoFilterParams.Add($"setpts={1 / specProperties.PlaybackSpeed}*PTS")
-            Dim audioPlaybackSpeed As String = $"atempo={specProperties.PlaybackSpeed}"
-            If specProperties.PlaybackSpeed = 0.25 Then
+            Dim audioPlaybackSpeed As String = ""
+            If specProperties.PlaybackSpeed < 0.5 Then
                 'atempo has a limit of between 0.5 and 2.0
-                audioPlaybackSpeed = $"atempo=0.5,atempo=0.5"
+                Dim atempoStack As New List(Of Double)
+                Dim currentTempo As Double = specProperties.PlaybackSpeed
+                While currentTempo < 0.5
+                    atempoStack.Add(0.5)
+                    currentTempo = currentTempo / 0.5
+                End While
+                atempoStack.Add(currentTempo)
+                For Each objTempo In atempoStack
+                    audioPlaybackSpeed += $"atempo={objTempo},"
+                Next
+                audioPlaybackSpeed = audioPlaybackSpeed.TrimEnd(",")
+            Else
+                audioPlaybackSpeed = $"atempo={specProperties.PlaybackSpeed}"
             End If
             audioFilterParams.Add(audioPlaybackSpeed)
         End If
@@ -915,20 +935,12 @@ Public Class MainForm
                     Exit For
                 End If
             Next
-            Select Case True
-                Case checkedItem Is TenFPSToolStripMenuItem
-                    Return 10
-                Case checkedItem Is FifteenFPSToolStripMenuItem
-                    Return 15
-                Case checkedItem Is TwentyFPSToolStripMenuItem
-                    Return 20
-                Case checkedItem Is ThirtyFPSToolStripMenuItem
-                    Return 30
-                Case checkedItem Is SixtyFPSToolStripMenuItem
-                    Return 60
-                Case Else
-                    Return 0
-            End Select
+            If checkedItem Is DefaultToolStripMenuItem Then
+                Return 0
+            Else
+                'Parse FPS
+                Return Integer.Parse(Regex.Match(checkedItem.Text, "\d*").Value)
+            End If
         End Get
     End Property
 
