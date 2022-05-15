@@ -675,7 +675,7 @@ Public Class VideoData
         If cropRect?.Width > 0 AndAlso cropRect.Value.Height > 0 AndAlso cropRect.Value.Center <> New Point(0, 0) Then
             processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}")
         End If
-        processInfo.Arguments += "-vsync 0 ""{targetFilePath}"""
+        processInfo.Arguments += $"-vsync 0 ""{targetFilePath}"""
 
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
@@ -695,7 +695,7 @@ Public Class VideoData
         If cropRect?.Width > 0 AndAlso cropRect.Value.Height > 0 AndAlso cropRect.Value.Center <> New Point(0, 0) Then
             processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}")
         End If
-        processInfo.Arguments += "-vsync 0 ""{targetFilePath}"""
+        processInfo.Arguments += $"-vsync 0 ""{targetFilePath}"""
 
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
