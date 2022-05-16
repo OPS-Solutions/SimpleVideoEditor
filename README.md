@@ -14,7 +14,7 @@ Run the SimpleVideoEditor.exe to open the main GUI.
 - Delete duplicate frames
 - Change playback speed
 - Reduce framerate
-- Chroma key
+- Color key
 
 **Advanced Features:**
 - Detect and remove duplicate content from multiple videos
