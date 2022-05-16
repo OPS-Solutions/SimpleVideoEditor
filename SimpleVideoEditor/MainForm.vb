@@ -114,6 +114,7 @@ Public Class MainForm
         cmsPicVideoExportFrame.Enabled = True
         cmsAutoCrop.Enabled = True
         lblStatusResolution.Text = $"{Me.mobjMetaData.Width} x {Me.mobjMetaData.Height}"
+        DefaultToolStripMenuItem.Text = $"Default ({Me.mobjMetaData.Framerate})"
     End Sub
 
 
@@ -745,7 +746,7 @@ Public Class MainForm
         lblStatusResolution.ToolTipText = "Original resolution Width x Height of the loaded content. Also shows more detailed stream information on hover."
 
         'Change window title to current version
-        Me.Text = Me.Text & $"- {ProductVersion} - Open Source"
+        Me.Text = Me.Text & $" - {ProductVersion} - Open Source"
 
         'Check if the program was started with a dragdrop exe
         Dim args() As String = Environment.GetCommandLineArgs()
@@ -816,6 +817,7 @@ Public Class MainForm
         ctlVideoSeeker.Enabled = False
         btnいくよ.Enabled = False
         Me.Text = Me.Text.Split("-")(0).Trim + " - Open Source"
+        DefaultToolStripMenuItem.Text = "Default"
     End Sub
 #End Region
 

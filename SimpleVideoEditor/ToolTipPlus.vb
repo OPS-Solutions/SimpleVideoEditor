@@ -32,6 +32,7 @@ Public Class ToolTipPlus
         AddHandler control.MouseLeave, AddressOf control_OnMouseLeave
         AddHandler control.MouseDown, AddressOf control_OnMouseDown
         AddHandler control.MouseEnter, AddressOf control_OnMouseEnter
+        AddHandler control.MouseCaptureChanged, AddressOf control_OnMouseCaptureChanged
     End Sub
 
     Public Sub RemoveAll()
@@ -40,6 +41,7 @@ Public Class ToolTipPlus
             RemoveHandler objControl.MouseLeave, AddressOf control_OnMouseLeave
             RemoveHandler objControl.MouseDown, AddressOf control_OnMouseDown
             RemoveHandler objControl.MouseEnter, AddressOf control_OnMouseEnter
+            RemoveHandler objControl.MouseCaptureChanged, AddressOf control_OnMouseCaptureChanged
         Next
         mblnAssociatedControls.Clear()
     End Sub
@@ -60,7 +62,7 @@ Public Class ToolTipPlus
     Private debugMove As Boolean = False
 
     ''' <summary>
-    ''' Ensures the tip disappears with mouse movement
+    ''' Ensures the tip disappears with mouse movement, and whatever control is being moved on is set as the thing we monitor for future hovers
     ''' </summary>
     Private Sub control_OnMouseMove(sender As Object, e As EventArgs)
         Dim positionChanged As Boolean = mptLastMouseMove Is Nothing OrElse (mptLastMouseMove.Value.X <> CType(e, MouseEventArgs).X AndAlso mptLastMouseMove.Value.Y <> CType(e, MouseEventArgs).Y)
@@ -77,15 +79,30 @@ Public Class ToolTipPlus
         ResetMotion(sender)
     End Sub
 
+    ''' <summary>
+    ''' Sets up the entered control to monitor for hovering
+    ''' </summary>
+    ''' <param name="sender"></param>
+    ''' <param name="e"></param>
     Private Sub control_OnMouseEnter(sender As Object, e As EventArgs)
+        DisableTip()
         SyncLock mobjControlLock
             mobjLastControl = sender
         End SyncLock
-        DisableTip()
         ResetMotion(sender)
     End Sub
 
     Private Sub control_OnMouseLeave(sender As Object, e As EventArgs)
+        DisableTip()
+        ResetMotion(sender)
+    End Sub
+
+    ''' <summary>
+    ''' Disables the tooltip when mouse capture changes, which can happen in cases like the context menu opening
+    ''' </summary>
+    ''' <param name="sender"></param>
+    ''' <param name="e"></param>
+    Private Sub control_OnMouseCaptureChanged(sender As Object, e As EventArgs)
         DisableTip()
         ResetMotion(sender)
     End Sub
@@ -95,6 +112,9 @@ Public Class ToolTipPlus
         ResetMotion(sender)
     End Sub
 
+    ''' <summary>
+    ''' Clears whatever control was last set to monitor for hovers
+    ''' </summary>
     Private Sub DisableTip()
         mptLastMouseMove = Nothing
         SyncLock mobjControlLock
@@ -110,6 +130,9 @@ Public Class ToolTipPlus
         End If
     End Sub
 
+    ''' <summary>
+    ''' Periodically checks if enough time has passed since the last mouse move on the target control before a tooltip is displayed
+    ''' </summary>
     Private Sub CheckTipOK() Handles mobjArmTimer.Elapsed
         Dim msElapsed As Integer = Now.Subtract(mdatLastMove).TotalMilliseconds
         If msElapsed < 500 Then
@@ -137,9 +160,5 @@ Public Class ToolTipPlus
                 End If
             End SyncLock
         End If
-
     End Sub
-
-
-    'TODO Get fancy and slow down the hover by arming another thread, resetting in on things like mousemove, or mouseleave, showing when the time runs out
 End Class
