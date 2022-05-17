@@ -56,16 +56,7 @@ Public Class MainForm
     ''' </summary>
     Private Sub ofdVideoIn_FileOk(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles ofdVideoIn.FileOk
         Try
-            ClearControls()
-            'TODO Detect if user selected a bunch of images that weren't in proper format, and then ask the user if they want to rename them to a proper format
-            Dim dummyArgs As List(Of String) = ofdVideoIn.FileNames.ToList
-            dummyArgs.Insert(0, "")
-            Dim mash As String = GetInputMash(dummyArgs.ToArray)
-            If mash IsNot Nothing Then
-                LoadFile(mash)
-            Else
-                LoadFile(ofdVideoIn.FileNames(0))
-            End If
+            LoadFiles(ofdVideoIn.FileNames)
         Catch ex As Exception
             MessageBox.Show(ex.Message & vbNewLine & ex.StackTrace)
         End Try
@@ -115,6 +106,22 @@ Public Class MainForm
         cmsAutoCrop.Enabled = True
         lblStatusResolution.Text = $"{Me.mobjMetaData.Width} x {Me.mobjMetaData.Height}"
         DefaultToolStripMenuItem.Text = $"Default ({Me.mobjMetaData.Framerate})"
+    End Sub
+
+    ''' <summary>
+    ''' Attempts to get the input mash from an array of files and open it, if it fails, it will just open the first file
+    ''' </summary>
+    ''' <param name="files"></param>
+    Private Sub LoadFiles(files As String())
+        'TODO Detect if user selected a bunch of images that weren't in proper format, and then ask the user if they want to rename them to a proper format
+        Dim dummyArgs As List(Of String) = files.ToList
+        dummyArgs.Insert(0, "")
+        Dim mash As String = GetInputMash(dummyArgs.ToArray)
+        If mash Is Nothing Then
+            mash = files(0)
+        End If
+        ClearControls()
+        LoadFile(mash)
     End Sub
 
 
@@ -746,7 +753,7 @@ Public Class MainForm
         lblStatusResolution.ToolTipText = "Original resolution Width x Height of the loaded content. Also shows more detailed stream information on hover."
 
         'Change window title to current version
-        Me.Text = Me.Text & $" - {ProductVersion} - Open Source"
+        Me.Text &= $" - {ProductVersion} - Open Source"
 
         'Check if the program was started with a dragdrop exe
         Dim args() As String = Environment.GetCommandLineArgs()
@@ -1207,6 +1214,8 @@ Public Class MainForm
         picVideo.Invalidate()
     End Sub
 
+#Region "Frame Export"
+
     ''' <summary>
     ''' User right clicked on the big image and wants to export that frame
     ''' </summary>
@@ -1254,6 +1263,7 @@ Public Class MainForm
             End Select
         End Using
     End Sub
+#End Region
 
     ''' <summary>
     ''' Given an array of scene change values, compress the array into a new array of given size
@@ -1437,4 +1447,24 @@ Public Class MainForm
             mrectLastCrop = GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size)
         End If
     End Sub
+
+#Region "DragDrop"
+    Private Sub MainForm_DragDrop(sender As Object, e As DragEventArgs) Handles MyBase.DragDrop
+        Dim files() As String = e.Data.GetData(DataFormats.FileDrop)
+        Select Case MessageBox.Show(Me, $"Open {files.Count} file(s)?", "Open File(s)?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
+            Case DialogResult.OK
+                LoadFiles(files)
+            Case Else
+                Exit Sub
+        End Select
+    End Sub
+
+    Private Sub MainForm_DragEnter(sender As Object, e As DragEventArgs) Handles MyBase.DragEnter
+        If e.Data.GetDataPresent(DataFormats.FileDrop) Then
+            'Change the cursor and enable the DragDrop event
+            e.Effect = DragDropEffects.Copy
+        End If
+    End Sub
+#End Region
+
 End Class
