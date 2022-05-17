@@ -91,6 +91,8 @@ Partial Class MainForm
         Me.ExpandToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.HolePuncherToolToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.InjectCustomArgumentsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
+        Me.MotionInterpolationToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
         Me.chkQuality = New SimpleVideoEditor.ImageSwitch()
         Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
@@ -139,60 +141,60 @@ Partial Class MainForm
         '
         'cmsFrameRate
         '
-        Me.cmsFrameRate.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.DefaultToolStripMenuItem, Me.TenFPSToolStripMenuItem, Me.FifteenFPSToolStripMenuItem, Me.TwentyFPSToolStripMenuItem, Me.TwntyFiveFPSToolStripMenuItem, Me.ThirtyFPSToolStripMenuItem, Me.FiftyFPSToolStripMenuItem, Me.SixtyFPSToolStripMenuItem})
+        Me.cmsFrameRate.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.DefaultToolStripMenuItem, Me.TenFPSToolStripMenuItem, Me.FifteenFPSToolStripMenuItem, Me.TwentyFPSToolStripMenuItem, Me.TwntyFiveFPSToolStripMenuItem, Me.ThirtyFPSToolStripMenuItem, Me.FiftyFPSToolStripMenuItem, Me.SixtyFPSToolStripMenuItem, Me.ToolStripSeparator1, Me.MotionInterpolationToolStripMenuItem})
         Me.cmsFrameRate.Name = "cmsFrameRate"
         Me.cmsFrameRate.ShowCheckMargin = True
         Me.cmsFrameRate.ShowImageMargin = False
-        Me.cmsFrameRate.Size = New System.Drawing.Size(113, 180)
+        Me.cmsFrameRate.Size = New System.Drawing.Size(185, 208)
         '
         'DefaultToolStripMenuItem
         '
         Me.DefaultToolStripMenuItem.Checked = True
         Me.DefaultToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
         Me.DefaultToolStripMenuItem.Name = "DefaultToolStripMenuItem"
-        Me.DefaultToolStripMenuItem.Size = New System.Drawing.Size(112, 22)
+        Me.DefaultToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.DefaultToolStripMenuItem.Text = "Default"
         '
         'TenFPSToolStripMenuItem
         '
         Me.TenFPSToolStripMenuItem.Name = "TenFPSToolStripMenuItem"
-        Me.TenFPSToolStripMenuItem.Size = New System.Drawing.Size(112, 22)
+        Me.TenFPSToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.TenFPSToolStripMenuItem.Text = "10 FPS"
         '
         'FifteenFPSToolStripMenuItem
         '
         Me.FifteenFPSToolStripMenuItem.Name = "FifteenFPSToolStripMenuItem"
-        Me.FifteenFPSToolStripMenuItem.Size = New System.Drawing.Size(112, 22)
+        Me.FifteenFPSToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.FifteenFPSToolStripMenuItem.Text = "15 FPS"
         '
         'TwentyFPSToolStripMenuItem
         '
         Me.TwentyFPSToolStripMenuItem.Name = "TwentyFPSToolStripMenuItem"
-        Me.TwentyFPSToolStripMenuItem.Size = New System.Drawing.Size(112, 22)
+        Me.TwentyFPSToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.TwentyFPSToolStripMenuItem.Text = "20 FPS"
         '
         'TwntyFiveFPSToolStripMenuItem
         '
         Me.TwntyFiveFPSToolStripMenuItem.Name = "TwntyFiveFPSToolStripMenuItem"
-        Me.TwntyFiveFPSToolStripMenuItem.Size = New System.Drawing.Size(112, 22)
+        Me.TwntyFiveFPSToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.TwntyFiveFPSToolStripMenuItem.Text = "25 FPS"
         '
         'ThirtyFPSToolStripMenuItem
         '
         Me.ThirtyFPSToolStripMenuItem.Name = "ThirtyFPSToolStripMenuItem"
-        Me.ThirtyFPSToolStripMenuItem.Size = New System.Drawing.Size(112, 22)
+        Me.ThirtyFPSToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.ThirtyFPSToolStripMenuItem.Text = "30 FPS"
         '
         'FiftyFPSToolStripMenuItem
         '
         Me.FiftyFPSToolStripMenuItem.Name = "FiftyFPSToolStripMenuItem"
-        Me.FiftyFPSToolStripMenuItem.Size = New System.Drawing.Size(112, 22)
+        Me.FiftyFPSToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.FiftyFPSToolStripMenuItem.Text = "50 FPS"
         '
         'SixtyFPSToolStripMenuItem
         '
         Me.SixtyFPSToolStripMenuItem.Name = "SixtyFPSToolStripMenuItem"
-        Me.SixtyFPSToolStripMenuItem.Size = New System.Drawing.Size(112, 22)
+        Me.SixtyFPSToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.SixtyFPSToolStripMenuItem.Text = "60 FPS"
         '
         'grpSettings
@@ -646,6 +648,18 @@ Partial Class MainForm
         Me.InjectCustomArgumentsToolStripMenuItem.Size = New System.Drawing.Size(210, 22)
         Me.InjectCustomArgumentsToolStripMenuItem.Text = "Inject Custom Arguments"
         '
+        'ToolStripSeparator1
+        '
+        Me.ToolStripSeparator1.Name = "ToolStripSeparator1"
+        Me.ToolStripSeparator1.Size = New System.Drawing.Size(181, 6)
+        '
+        'MotionInterpolationToolStripMenuItem
+        '
+        Me.MotionInterpolationToolStripMenuItem.CheckOnClick = True
+        Me.MotionInterpolationToolStripMenuItem.Name = "MotionInterpolationToolStripMenuItem"
+        Me.MotionInterpolationToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
+        Me.MotionInterpolationToolStripMenuItem.Text = "Motion Interpolation"
+        '
         'ctlVideoSeeker
         '
         Me.ctlVideoSeeker.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
@@ -723,6 +737,7 @@ Partial Class MainForm
         Me.Controls.Add(Me.picFrame1)
         Me.Controls.Add(Me.picVideo)
         Me.Controls.Add(Me.btnBrowse)
+        Me.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.ForeColor = System.Drawing.SystemColors.ControlText
         Me.HelpButton = True
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
@@ -832,4 +847,6 @@ Partial Class MainForm
     Friend WithEvents TwntyFiveFPSToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents FiftyFPSToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents OneThirdSpeedToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ToolStripSeparator1 As ToolStripSeparator
+    Friend WithEvents MotionInterpolationToolStripMenuItem As ToolStripMenuItem
 End Class

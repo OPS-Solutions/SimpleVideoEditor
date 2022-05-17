@@ -425,6 +425,14 @@ Public Class MainForm
             'processInfo.Arguments += " -filter_complex ""[0:v] split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=bayer"""
         End If
 
+        'Check if the user wants to do motion interpolation when using a framerate that would cause duplicate frames
+        Dim willHaveDuplicates As Boolean = (specProperties.FPS > mobjMetaData.Framerate * specProperties.PlaybackSpeed) OrElse (specProperties.FPS = 0 AndAlso specProperties.PlaybackSpeed < 1)
+        If willHaveDuplicates Then
+            If MotionInterpolationToolStripMenuItem.Checked Then
+                videoFilterParams.Add($"minterpolate=fps={If(specProperties.FPS = 0, mobjMetaData.Framerate, specProperties.FPS)}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1")
+            End If
+        End If
+
         'ASSEMBLE VIDEO PARAMETERS
         Dim filterString As String = ""
         Dim complexFilterString As String = ""
@@ -732,25 +740,26 @@ Public Class MainForm
         cmbDefinition.SelectedIndex = 0
 
         'Setup Tooltips
-        mobjGenericToolTip.SetToolTip(ctlVideoSeeker, "Move sliders to trim video. Use [A][D][←][→] to move frame by frame.")
-        mobjGenericToolTip.SetToolTip(picVideo, "Left click and drag to crop. Right click to clear crop selection.")
-        mobjGenericToolTip.SetToolTip(cmbDefinition, "Select the ending height of your video. Right click for FPS options.")
-        mobjGenericToolTip.SetToolTip(btnいくよ, "Save video. Hold ctrl to manually modify ffmpeg arguments.")
+        mobjGenericToolTip.SetToolTip(ctlVideoSeeker, $"Move sliders to trim video.{vbNewLine}Use [A][D][←][→] to move frame by frame.")
+        mobjGenericToolTip.SetToolTip(picVideo, $"Left click and drag to crop.{vbNewLine}Right click to clear crop selection.")
+        mobjGenericToolTip.SetToolTip(cmbDefinition, $"Select the ending height of your video.{vbNewLine}Right click for FPS options.")
+        mobjGenericToolTip.SetToolTip(btnいくよ, $"Save video.{vbNewLine}Hold ctrl to manually modify ffmpeg arguments.")
         mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame4, "View 75% frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame5, "View last frame of video.")
         UpdateRotationButton()
-        mobjGenericToolTip.SetToolTip(btnBrowse, "Browse for a video to edit." & vbNewLine & "Alternatively, select multiple images with the same name, but numbered like ""image0.png"", ""image1.png"", etc.")
+        mobjGenericToolTip.SetToolTip(btnBrowse, $"Browse for a video to edit.{vbNewLine}Alternatively, select multiple images with the same name, but numbered like ""image0.png"", ""image1.png"", etc.")
         'mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
         UpdateColorKey()
         mobjGenericToolTip.SetToolTip(picPlaybackSpeed, "Playback speed multiplier.")
+        MotionInterpolationToolStripMenuItem.ToolTipText = $"Creates new frames to smooth motion when increasing FPS, or decreasing playback speed.{vbNewLine}WARNING: Slow processing and large file size may occur."
 
         'Status  tooltips
         lblStatusMousePosition.ToolTipText = "X,Y position of the mouse in video coordinates"
         lblStatusCropRect.ToolTipText = "Width x Height crop rectangle in video coordinates"
-        lblStatusResolution.ToolTipText = "Original resolution Width x Height of the loaded content. Also shows more detailed stream information on hover."
+        lblStatusResolution.ToolTipText = $"Original resolution Width x Height of the loaded content.{vbNewLine}Shows more detailed stream information on hover."
 
         'Change window title to current version
         Me.Text &= $" - {ProductVersion} - Open Source"
@@ -1058,7 +1067,7 @@ Public Class MainForm
             UnmuteToolStripMenuItem.Checked = True
         End If
         Dim volumeString As String = If(mdblPlaybackVolume = 0, "muted.", If(mdblPlaybackVolume = 1, "unmuted.", $"{mdblPlaybackVolume}%"))
-        mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & " the videos audio track. Currently " & If(chkMute.Checked, "muted.", volumeString))
+        mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & $" the videos audio track.{vbNewLine}Currently " & If(chkMute.Checked, "muted.", volumeString))
     End Sub
 
 
@@ -1066,14 +1075,14 @@ Public Class MainForm
     ''' Changes the display text when changing quality check control
     ''' </summary>
     Private Sub chkQuality_CheckedChanged(sender As Object, e As EventArgs) Handles chkQuality.CheckChanged
-        mobjGenericToolTip.SetToolTip(chkQuality, If(chkQuality.Checked, "Automatic quality.", "Force equivalent quality. WARNING: Slow processing and large file size may occur.") & " Currently " & If(chkQuality.Checked, "forced equivalent (slow and large).", "automatic (fast and small)."))
+        mobjGenericToolTip.SetToolTip(chkQuality, If(chkQuality.Checked, "Automatic quality.", $"Force equivalent quality.{vbNewLine}WARNING: Slow processing and large file size may occur.") & $"{vbNewLine}Currently " & If(chkQuality.Checked, "forced equivalent (slow and large).", "automatic (fast and small)."))
     End Sub
 
     ''' <summary>
     ''' Toggles whether the video will be decimated or not, and changes the image to make it obvious
     ''' </summary>
     Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
-        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", "Delete Duplicate Frames. Audio may go out of sync.") & " Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
+        mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", $"Delete Duplicate Frames.{vbNewLine}WARNING: Audio may go out of sync.") & $"{vbNewLine}Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
     End Sub
 
     ''' <summary>
@@ -1101,13 +1110,13 @@ Public Class MainForm
     Private Sub UpdateRotationButton()
         Select Case mobjRotation
             Case RotateFlipType.Rotate90FlipNone
-                mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 180°. Currently 90°.")
+                mobjGenericToolTip.SetToolTip(imgRotate, $"Rotate to 180°.{vbNewLine}Currently 90°.")
             Case RotateFlipType.Rotate180FlipNone
-                mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 270°. Currently 180°.")
+                mobjGenericToolTip.SetToolTip(imgRotate, $"Rotate to 270°.{vbNewLine}Currently 180°.")
             Case RotateFlipType.Rotate270FlipNone
-                mobjGenericToolTip.SetToolTip(imgRotate, "Do not rotate. Currently will rotate 270°.")
+                mobjGenericToolTip.SetToolTip(imgRotate, $"Do not rotate.{vbNewLine}Currently will rotate 270°.")
             Case RotateFlipType.RotateNoneFlipNone
-                mobjGenericToolTip.SetToolTip(imgRotate, "Rotate to 90°. Currently 0°.")
+                mobjGenericToolTip.SetToolTip(imgRotate, $"Rotate to 90°.{vbNewLine}Currently 0°.")
         End Select
         Dim rotatedIcon As Image = New Bitmap(My.Resources.Rotate)
         rotatedIcon.RotateFlip(mobjRotation)
@@ -1134,8 +1143,15 @@ Public Class MainForm
     End Sub
 
     Private Sub cmsFrameRate_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsFrameRate.ItemClicked
-        For Each objItem As ToolStripMenuItem In cmsFrameRate.Items
-            objItem.Checked = False
+        If cmsFrameRate.Items.IndexOf(ToolStripSeparator1) < cmsFrameRate.Items.IndexOf(e.ClickedItem) Then
+            'Ignore acting as radio buttons after the first separator
+            Exit Sub
+        End If
+        For Each objItem As ToolStripItem In cmsFrameRate.Items
+            If objItem.GetType = GetType(ToolStripSeparator) Then
+                Exit For
+            End If
+            CType(objItem, ToolStripMenuItem).Checked = False
         Next
         CType(e.ClickedItem, ToolStripMenuItem).Checked = True
     End Sub
@@ -1159,10 +1175,10 @@ Public Class MainForm
     Private Sub UpdateColorKey()
         If dlgColorKey.Color.A <> 0 Then
             picColorKey.BackColor = dlgColorKey.Color
-            mobjGenericToolTip.SetToolTip(picColorKey, $"Color that will be made transparent if the output file type supports it. Currently {dlgColorKey.Color}.")
+            mobjGenericToolTip.SetToolTip(picColorKey, $"Color that will be made transparent if the output file type supports it.{vbNewLine}Currently {dlgColorKey.Color}.")
         Else
             picColorKey.BackColor = Color.Lime
-            mobjGenericToolTip.SetToolTip(picColorKey, $"Color that will be made transparent if the output file type supports it. Currently not set.")
+            mobjGenericToolTip.SetToolTip(picColorKey, $"Color that will be made transparent if the output file type supports it.{vbNewLine}Currently not set.")
         End If
     End Sub
 
