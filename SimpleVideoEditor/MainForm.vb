@@ -73,7 +73,7 @@ Public Class MainForm
             mobjMetaData = Nothing
         End If
         mobjMetaData = VideoData.FromFile(mstrVideoPath, inputMash)
-        lblStatusResolution.ToolTipText = lblStatusResolution.ToolTipText.Split(vbNewLine)(0).Trim & vbNewLine & mobjMetaData.StreamData
+        lblStatusResolution.ToolTipText = lblStatusResolution.ToolTipText.Split(vbNewLine)(0).Trim & vbNewLine & mobjMetaData.VideoStream.Raw
 
         RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
         ctlVideoSeeker.MetaData = mobjMetaData
@@ -832,6 +832,7 @@ Public Class MainForm
         ctlVideoSeeker.SceneFrames = Nothing
         ctlVideoSeeker.Enabled = False
         btnいくよ.Enabled = False
+        ExportAudioToolStripMenuItem.Enabled = False
         Me.Text = Me.Text.Split("-")(0).Trim + " - Open Source"
         DefaultToolStripMenuItem.Text = "Default"
     End Sub
@@ -1056,8 +1057,11 @@ Public Class MainForm
     ''' Changes the display text when muting/unmuting a video
     ''' </summary>
     Private Sub chkMute_CheckedChanged(sender As Object, e As EventArgs) Handles chkMute.CheckChanged
-        For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
-            objItem.Checked = False
+        For Each objItem As ToolStripItem In cmsPlaybackVolume.Items
+            If objItem.GetType = GetType(ToolStripSeparator) Then
+                Exit For
+            End If
+            CType(objItem, ToolStripMenuItem).Checked = False
         Next
         If chkMute.Checked Then
             mdblPlaybackVolume = 0
@@ -1143,7 +1147,7 @@ Public Class MainForm
     End Sub
 
     Private Sub cmsFrameRate_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsFrameRate.ItemClicked
-        If cmsFrameRate.Items.IndexOf(ToolStripSeparator1) < cmsFrameRate.Items.IndexOf(e.ClickedItem) Then
+        If cmsFrameRate.FirstSeparator < cmsFrameRate.Items.IndexOf(e.ClickedItem) Then
             'Ignore acting as radio buttons after the first separator
             Exit Sub
         End If
@@ -1199,8 +1203,15 @@ Public Class MainForm
     End Sub
 
     Private Sub cmsPlaybackVolume_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsPlaybackVolume.ItemClicked
-        For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
-            objItem.Checked = False
+        If cmsPlaybackVolume.FirstSeparator < cmsPlaybackVolume.Items.IndexOf(e.ClickedItem) Then
+            'Ignore acting as radio buttons after the first separator
+            Exit Sub
+        End If
+        For Each objItem As ToolStripItem In cmsPlaybackVolume.Items
+            If objItem.GetType = GetType(ToolStripSeparator) Then
+                Exit For
+            End If
+            CType(objItem, ToolStripMenuItem).Checked = False
         Next
         'Sets the target playback speed global based on the text in the context menu
         Dim resultValue As Double = 1
@@ -1246,6 +1257,9 @@ Public Class MainForm
             sfdExportFrame.OverwritePrompt = True
             Select Case sfdExportFrame.ShowDialog()
                 Case DialogResult.OK
+                    If File.Exists(sfdExportFrame.FileName) Then
+                        My.Computer.FileSystem.DeleteFile(sfdExportFrame.FileName)
+                    End If
                     mobjMetaData.ExportFfmpegFrame(mintCurrentFrame, sfdExportFrame.FileName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
                 Case Else
                     'Do nothing
@@ -1427,6 +1441,7 @@ Public Class MainForm
                 Me.UseWaitCursor = False
                 ctlVideoSeeker.Enabled = True
                 btnいくよ.Enabled = True
+                ExportAudioToolStripMenuItem.Enabled = mobjMetaData.AudioStream IsNot Nothing
             End If
         End If
     End Sub
@@ -1480,6 +1495,36 @@ Public Class MainForm
             'Change the cursor and enable the DragDrop event
             e.Effect = DragDropEffects.Copy
         End If
+    End Sub
+
+    Private Sub ExportAudioToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExportAudioToolStripMenuItem.Click
+        'Ensure context menu goes away when clicking on items that normally may not close it
+        cmsPicVideo.Close()
+        Using sfdExportAudio As New SaveFileDialog
+            sfdExportAudio.Title = "Select Audio Save Location"
+            sfdExportAudio.Filter = "MP3|*.mp3|aac|*.aac|All files (*.*)|*.*"
+            Dim detectedStreamExtension As String = "." & mobjMetaData.AudioStream.Type
+            Dim filterIndex As Integer = 0
+            For Each objFilter In sfdExportAudio.Filter.Split("|")
+                If objFilter.ToLower.Equals(mobjMetaData.AudioStream.Type) Then
+                    sfdExportAudio.FilterIndex = filterIndex
+                    Exit For
+                End If
+                filterIndex += 1
+            Next
+
+            sfdExportAudio.FileName = System.IO.Path.GetFileNameWithoutExtension(mobjMetaData.FullPath) & detectedStreamExtension
+            sfdExportAudio.OverwritePrompt = True
+            Select Case sfdExportAudio.ShowDialog()
+                Case DialogResult.OK
+                    If File.Exists(sfdExportAudio.FileName) Then
+                        My.Computer.FileSystem.DeleteFile(sfdExportAudio.FileName)
+                    End If
+                    mobjMetaData.ExportFfmpegAudioStream(sfdExportAudio.FileName, detectedStreamExtension)
+                Case Else
+                    'Do nothing
+            End Select
+        End Using
     End Sub
 #End Region
 

@@ -5,27 +5,67 @@ Public Class VideoData
     Implements IDisposable
 
     Private Structure MetaData
-        Dim name As String
-        Dim major_brand As String
-        Dim minor_version As String
-        Dim compatible_brands As String
-        Dim creation_time As String
-        Dim location As String
-        Dim location_eng As String
-        Dim comAndroidVersion As String
-        Dim comAndroidCaptureFps As Double
-        Dim duration As String 'HH:MM:SS.ss
-        Dim bitrate As Integer 'kb/s
-        Dim stream0 As VideoStreamData
-        Dim totalFrames As Integer
+        Dim Name As String
+        Dim MajorBrand As String
+        Dim MinorVersion As String
+        Dim CompatibleBrands As String
+        Dim CreationTime As String
+        Dim Location As String
+        Dim LocationEng As String
+        Dim ComAndroidVersion As String
+        Dim ComAndroidCaptureFps As Double
+        Dim Duration As String 'HH:MM:SS.ss
+        Dim Bitrate As Integer 'kb/s
+        Dim VideoStreams As List(Of VideoStreamData)
+        Dim AudioStreams As List(Of AudioStreamData)
+        Dim TotalFrames As Integer
     End Structure
 
-    Private Structure VideoStreamData
-        Dim raw As String
-        Dim video As String
-        Dim resolution As System.Drawing.Size
-        Dim framerate As Double
-    End Structure
+    Public Class VideoStreamData
+        Public ReadOnly Property Raw As String
+        Public ReadOnly Property Type As String
+        Public ReadOnly Property Resolution As System.Drawing.Size
+        Public ReadOnly Property Framerate As Double
+        Private Sub New(streamDescription As String)
+            _Raw = streamDescription
+            Dim resolutionString As String = Regex.Match(streamDescription, "(?<=, )\d*x\d*").Groups(0).Value
+            _Resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
+            'Get framerate from "30.00 fps"
+            _Framerate = Double.Parse(Regex.Match(streamDescription, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
+            _Type = Regex.Match(streamDescription, "stream.*video.*? (?<Type>.*?) .*").Groups("Type").Value
+        End Sub
+        Public Shared Function FromDescription(streamDescription As String)
+            If streamDescription?.Length > 0 Then
+                Return New VideoStreamData(streamDescription)
+            Else
+                Return Nothing
+            End If
+        End Function
+    End Class
+
+    Public Class AudioStreamData
+        Public ReadOnly Property Raw As String
+        Public ReadOnly Property Type As String 'Like aac or mp3
+        Public ReadOnly Property SampleRate As Double 'Like 44100 hz
+        Public ReadOnly Property Channel As String 'Like stereo
+        Public ReadOnly Property Bitrate As Double 'Like 127 kb/s
+        Private Sub New(streamDescription As String)
+            _Raw = streamDescription
+            Dim audioMatch As Match = Regex.Match(streamDescription, "stream.*audio.*? (?<Type>.*?) .*?(?<SampleRate>\d*) hz, (?<Channel>.*?),.*?(?<Bitrate>\d*) kb\/s.*")
+            _Type = audioMatch.Groups("Type").Value
+            _SampleRate = Double.Parse(audioMatch.Groups("SampleRate").Value)
+            _Channel = audioMatch.Groups("Channel").Value
+            _Bitrate = Double.Parse(audioMatch.Groups("Bitrate").Value)
+        End Sub
+
+        Public Shared Function FromDescription(streamDescription As String)
+            If streamDescription?.Length > 0 Then
+                Return New AudioStreamData(streamDescription)
+            Else
+                Return Nothing
+            End If
+        End Function
+    End Class
 
     Private mobjMetaData As New MetaData
     Private mdblSceneFrames As Double()
@@ -75,27 +115,33 @@ Public Class VideoData
     ''' </summary>
     ''' <param name="dataDump"></param>
     Public Sub New(ByVal file As String, ByVal dataDump As String)
-        mobjMetaData.name = IO.Path.GetFileName(file)
-        mobjMetaData.location = IO.Path.GetDirectoryName(file)
-        Dim newVideoData As New VideoStreamData
+        mobjMetaData.Name = IO.Path.GetFileName(file)
+        mobjMetaData.Location = IO.Path.GetDirectoryName(file)
         dataDump = dataDump.ToLower
         Dim metaDataIndex As Integer = dataDump.ToLower.IndexOf("metadata:")
         dataDump = dataDump.Substring(metaDataIndex)
         'Get duration
-        mobjMetaData.duration = Regex.Match(dataDump, "(?<=duration: )\d\d:\d\d:\d\d\.\d\d").Groups(0).Value
-        'Find video stream line
-        Dim streamString As String = Regex.Match(dataDump, "stream.*video.*").Groups(0).Value
-        Dim resolutionString As String = Regex.Match(streamString, "(?<=, )\d*x\d*").Groups(0).Value
-        newVideoData.resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
-        'Get framerate from "30.00 fps"
-        newVideoData.framerate = Double.Parse(Regex.Match(streamString, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
-        newVideoData.raw = streamString
+        mobjMetaData.Duration = Regex.Match(dataDump, "(?<=duration: )\d\d:\d\d:\d\d\.\d\d").Groups(0).Value
+
+        'Video Stream Info
+        Dim newVideoData As VideoStreamData = VideoStreamData.FromDescription(Regex.Match(dataDump, "stream.*video.*").Groups(0).Value)
+        If newVideoData IsNot Nothing Then
+            mobjMetaData.VideoStreams = New List(Of VideoStreamData)
+            mobjMetaData.VideoStreams.Add(newVideoData)
+        End If
+
+        'Audio Stream Info
+        Dim newAudioData As AudioStreamData = AudioStreamData.FromDescription(Regex.Match(dataDump, "stream.*audio.*").Groups(0).Value)
+        If newAudioData IsNot Nothing Then
+            mobjMetaData.AudioStreams = New List(Of AudioStreamData)
+            mobjMetaData.AudioStreams.Add(newAudioData)
+        End If
+
         Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
-        mobjMetaData.totalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
-        mobjMetaData.stream0 = newVideoData
+        mobjMetaData.TotalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
         'Failed to get duration, try getting it based on framerate and total frames
-        If mobjMetaData.duration.Length = 0 Then
-            mobjMetaData.duration = FormatHHMMSSm(mobjMetaData.totalFrames / newVideoData.framerate)
+        If mobjMetaData.Duration.Length = 0 Then
+            mobjMetaData.Duration = FormatHHMMSSm(mobjMetaData.TotalFrames / newVideoData.Framerate)
         End If
         mobjImageCache = New ImageCache(Me.TotalFrames)
         mobjThumbCache = New ImageCache(Me.TotalFrames)
@@ -125,7 +171,7 @@ Public Class VideoData
         Dim fullDataRead As String = ""
 #End If
 
-        Dim sceneValues(mobjMetaData.totalFrames - 1) As Double
+        Dim sceneValues(mobjMetaData.TotalFrames - 1) As Double
         Dim currentFrame As Integer = 0
         Using recievedStream As New System.IO.MemoryStream
             Dim sceneMatcher As New Regex("(?<=.scene_score=)\d+\.\d+")
@@ -406,9 +452,9 @@ Public Class VideoData
         If targetCache(frame).Image IsNot Nothing AndAlso cacheSize >= 0 Then
             If cacheSize > 5 Then
                 'If we are at the edge of the cached items, try to expand it a little in advance
-                If targetCache(Math.Min(frame + 4, Math.Max(0, mobjMetaData.totalFrames - 4))).Status = ImageCache.CacheStatus.None Then
+                If targetCache(Math.Min(frame + 4, Math.Max(0, mobjMetaData.TotalFrames - 4))).Status = ImageCache.CacheStatus.None Then
                     Dim tempTask As Task = Task.Run(Sub()
-                                                        Dim seedFrame As Integer = Math.Min(frame + 1, mobjMetaData.totalFrames - 1)
+                                                        Dim seedFrame As Integer = Math.Min(frame + 1, mobjMetaData.TotalFrames - 1)
                                                         If seedFrame = frame Then
                                                             Exit Sub
                                                         End If
@@ -445,9 +491,9 @@ Public Class VideoData
                     Exit For
                 End If
             Next
-            Dim lateFrame As Integer = Math.Min(mobjMetaData.totalFrames - 1, startFrame + cacheSize)
+            Dim lateFrame As Integer = Math.Min(mobjMetaData.TotalFrames - 1, startFrame + cacheSize)
             If cacheSize < 0 Then
-                endFrame = mobjMetaData.totalFrames - 1
+                endFrame = mobjMetaData.TotalFrames - 1
             End If
             'Step forwards from the current frame, preparing to get anything that hasn't been grabbed yet
             For index As Integer = frame To lateFrame
@@ -703,15 +749,37 @@ Public Class VideoData
         tempProcess.WaitForExit(20000) 'Wait up to 20 seconds for the process to finish
         Return targetFilePath
     End Function
+
+    ''' <summary>
+    ''' Tells ffmpeg to copy the loaded videos audio stream into a file
+    ''' </summary>
+    Public Function ExportFfmpegAudioStream(targetFilePath As String, detectedStreamExtension As String) As String
+        'ffmpeg -i input-video.avi -vn -acodec copy output-audio.aac
+        Dim processInfo As New ProcessStartInfo
+        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+        processInfo.Arguments += " -i """ & Me.FullPath & """"
+        If IO.Path.GetExtension(targetFilePath).Equals(detectedStreamExtension) Then
+            processInfo.Arguments += " -vn -acodec copy"
+        Else
+            processInfo.Arguments += " -vn"
+        End If
+        processInfo.Arguments += $" ""{targetFilePath}"""
+
+        processInfo.UseShellExecute = True
+        processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        Dim tempProcess As Process = Process.Start(processInfo)
+        tempProcess.WaitForExit(5000) 'Wait up to 5 seconds for the process to finish
+        Return targetFilePath
+    End Function
 #End Region
 
 #Region "Properties"
     ''' <summary>
-    ''' Filename, wtih extension ex: chicken.mp4
+    ''' Filename, with extension ex: chicken.mp4
     ''' </summary>
     Public ReadOnly Property Name As String
         Get
-            Return mobjMetaData.name
+            Return mobjMetaData.Name
         End Get
     End Property
 
@@ -720,7 +788,7 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property FullPath As String
         Get
-            Return mobjMetaData.location + "\" + mobjMetaData.name
+            Return mobjMetaData.Location + "\" + mobjMetaData.Name
         End Get
     End Property
 
@@ -739,7 +807,7 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property Width As Integer
         Get
-            Return mobjMetaData.stream0.resolution.Width
+            Return mobjMetaData.VideoStreams(0).Resolution.Width
         End Get
     End Property
 
@@ -748,7 +816,7 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property Height As Integer
         Get
-            Return mobjMetaData.stream0.resolution.Height
+            Return mobjMetaData.VideoStreams(0).Resolution.Height
         End Get
     End Property
 
@@ -757,7 +825,7 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property Size As Size
         Get
-            Return New Size(mobjMetaData.stream0.resolution.Width, mobjMetaData.stream0.resolution.Height)
+            Return New Size(mobjMetaData.VideoStreams(0).Resolution.Width, mobjMetaData.VideoStreams(0).Resolution.Height)
         End Get
     End Property
 
@@ -766,7 +834,7 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property Framerate As Double
         Get
-            Return mobjMetaData.stream0.framerate
+            Return mobjMetaData.VideoStreams(0).Framerate
         End Get
     End Property
 
@@ -775,7 +843,7 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property Duration As String
         Get
-            Return mobjMetaData.duration
+            Return mobjMetaData.Duration
         End Get
     End Property
 
@@ -795,7 +863,7 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property TotalFrames As Double
         Get
-            Return mobjMetaData.totalFrames
+            Return mobjMetaData.TotalFrames
         End Get
     End Property
 
@@ -804,16 +872,24 @@ Public Class VideoData
     ''' Be aware that many things that have already read the value may need to be changed
     ''' </summary>
     Public Sub OverrideTotalFrames(realFrames As Integer)
-        mobjMetaData.totalFrames = realFrames
+        mobjMetaData.TotalFrames = realFrames
     End Sub
 
     ''' <summary>
     ''' The raw stream data given by ffmpeg for stream 0
     ''' </summary>
-    ''' <returns></returns>
-    Public ReadOnly Property StreamData As String
+    Public ReadOnly Property VideoStream As VideoStreamData
         Get
-            Return mobjMetaData.stream0.raw
+            Return mobjMetaData.VideoStreams?(0)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' The raw stream data given by ffmpeg for stream 0 audio
+    ''' </summary>
+    Public ReadOnly Property AudioStream As AudioStreamData
+        Get
+            Return mobjMetaData.AudioStreams?(0)
         End Get
     End Property
 

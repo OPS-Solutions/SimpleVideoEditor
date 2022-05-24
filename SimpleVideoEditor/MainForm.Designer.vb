@@ -35,6 +35,8 @@ Partial Class MainForm
         Me.ThirtyFPSToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.FiftyFPSToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.SixtyFPSToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
+        Me.MotionInterpolationToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.grpSettings = New System.Windows.Forms.GroupBox()
         Me.cmsColorKey = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.cmsPlaybackVolume = New System.Windows.Forms.ContextMenuStrip(Me.components)
@@ -66,6 +68,7 @@ Partial Class MainForm
         Me.cmsVideoSeeker = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.cmsSaveOptions = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.StatusStrip1 = New System.Windows.Forms.StatusStrip()
+        Me.ToolStripSeparator2 = New System.Windows.Forms.ToolStripSeparator()
         Me.lblStatusMousePosition = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblStatusCropRect = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblStatusResolution = New System.Windows.Forms.ToolStripStatusLabel()
@@ -82,6 +85,7 @@ Partial Class MainForm
         Me.picVideo = New System.Windows.Forms.PictureBox()
         Me.btnBrowse = New System.Windows.Forms.Button()
         Me.ClearToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ExportAudioToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsPicVideoClear = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsPicVideoExportFrame = New System.Windows.Forms.ToolStripMenuItem()
         Me.CurrentToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -91,8 +95,6 @@ Partial Class MainForm
         Me.ExpandToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.HolePuncherToolToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.InjectCustomArgumentsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
-        Me.MotionInterpolationToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
         Me.chkQuality = New SimpleVideoEditor.ImageSwitch()
         Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
@@ -197,6 +199,18 @@ Partial Class MainForm
         Me.SixtyFPSToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.SixtyFPSToolStripMenuItem.Text = "60 FPS"
         '
+        'ToolStripSeparator1
+        '
+        Me.ToolStripSeparator1.Name = "ToolStripSeparator1"
+        Me.ToolStripSeparator1.Size = New System.Drawing.Size(181, 6)
+        '
+        'MotionInterpolationToolStripMenuItem
+        '
+        Me.MotionInterpolationToolStripMenuItem.CheckOnClick = True
+        Me.MotionInterpolationToolStripMenuItem.Name = "MotionInterpolationToolStripMenuItem"
+        Me.MotionInterpolationToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
+        Me.MotionInterpolationToolStripMenuItem.Text = "Motion Interpolation"
+        '
         'grpSettings
         '
         Me.grpSettings.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
@@ -223,46 +237,46 @@ Partial Class MainForm
         '
         'cmsPlaybackVolume
         '
-        Me.cmsPlaybackVolume.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.MuteToolStripMenuItem, Me.ToolStripMenuItem10, Me.ToolStripMenuItem11, Me.ToolStripMenuItem12, Me.ToolStripMenuItem13, Me.UnmuteToolStripMenuItem})
+        Me.cmsPlaybackVolume.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.MuteToolStripMenuItem, Me.ToolStripMenuItem10, Me.ToolStripMenuItem11, Me.ToolStripMenuItem12, Me.ToolStripMenuItem13, Me.UnmuteToolStripMenuItem, Me.ToolStripSeparator2, Me.ExportAudioToolStripMenuItem})
         Me.cmsPlaybackVolume.Name = "cmsAudioVolume"
-        Me.cmsPlaybackVolume.Size = New System.Drawing.Size(129, 136)
+        Me.cmsPlaybackVolume.Size = New System.Drawing.Size(143, 164)
         '
         'MuteToolStripMenuItem
         '
         Me.MuteToolStripMenuItem.Checked = True
         Me.MuteToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
         Me.MuteToolStripMenuItem.Name = "MuteToolStripMenuItem"
-        Me.MuteToolStripMenuItem.Size = New System.Drawing.Size(128, 22)
+        Me.MuteToolStripMenuItem.Size = New System.Drawing.Size(142, 22)
         Me.MuteToolStripMenuItem.Text = "0.0 (Mute)"
         '
         'ToolStripMenuItem10
         '
         Me.ToolStripMenuItem10.Name = "ToolStripMenuItem10"
-        Me.ToolStripMenuItem10.Size = New System.Drawing.Size(128, 22)
+        Me.ToolStripMenuItem10.Size = New System.Drawing.Size(142, 22)
         Me.ToolStripMenuItem10.Text = "0.1"
         '
         'ToolStripMenuItem11
         '
         Me.ToolStripMenuItem11.Name = "ToolStripMenuItem11"
-        Me.ToolStripMenuItem11.Size = New System.Drawing.Size(128, 22)
+        Me.ToolStripMenuItem11.Size = New System.Drawing.Size(142, 22)
         Me.ToolStripMenuItem11.Text = "0.3"
         '
         'ToolStripMenuItem12
         '
         Me.ToolStripMenuItem12.Name = "ToolStripMenuItem12"
-        Me.ToolStripMenuItem12.Size = New System.Drawing.Size(128, 22)
+        Me.ToolStripMenuItem12.Size = New System.Drawing.Size(142, 22)
         Me.ToolStripMenuItem12.Text = "0.5"
         '
         'ToolStripMenuItem13
         '
         Me.ToolStripMenuItem13.Name = "ToolStripMenuItem13"
-        Me.ToolStripMenuItem13.Size = New System.Drawing.Size(128, 22)
+        Me.ToolStripMenuItem13.Size = New System.Drawing.Size(142, 22)
         Me.ToolStripMenuItem13.Text = "0.7"
         '
         'UnmuteToolStripMenuItem
         '
         Me.UnmuteToolStripMenuItem.Name = "UnmuteToolStripMenuItem"
-        Me.UnmuteToolStripMenuItem.Size = New System.Drawing.Size(128, 22)
+        Me.UnmuteToolStripMenuItem.Size = New System.Drawing.Size(142, 22)
         Me.UnmuteToolStripMenuItem.Text = "1.0 (Full)"
         '
         'cmsRotation
@@ -401,6 +415,11 @@ Partial Class MainForm
         Me.StatusStrip1.Size = New System.Drawing.Size(344, 25)
         Me.StatusStrip1.TabIndex = 22
         Me.StatusStrip1.Text = "StatusStrip1"
+        '
+        'ToolStripSeparator2
+        '
+        Me.ToolStripSeparator2.Name = "ToolStripSeparator2"
+        Me.ToolStripSeparator2.Size = New System.Drawing.Size(139, 6)
         '
         'lblStatusMousePosition
         '
@@ -581,6 +600,14 @@ Partial Class MainForm
         Me.ClearToolStripMenuItem.Size = New System.Drawing.Size(101, 22)
         Me.ClearToolStripMenuItem.Text = "Clear"
         '
+        'ExportAudioToolStripMenuItem
+        '
+        Me.ExportAudioToolStripMenuItem.Enabled = False
+        Me.ExportAudioToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.ExportAudio
+        Me.ExportAudioToolStripMenuItem.Name = "ExportAudioToolStripMenuItem"
+        Me.ExportAudioToolStripMenuItem.Size = New System.Drawing.Size(142, 22)
+        Me.ExportAudioToolStripMenuItem.Text = "Export Audio"
+        '
         'cmsPicVideoClear
         '
         Me.cmsPicVideoClear.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
@@ -647,18 +674,6 @@ Partial Class MainForm
         Me.InjectCustomArgumentsToolStripMenuItem.Name = "InjectCustomArgumentsToolStripMenuItem"
         Me.InjectCustomArgumentsToolStripMenuItem.Size = New System.Drawing.Size(210, 22)
         Me.InjectCustomArgumentsToolStripMenuItem.Text = "Inject Custom Arguments"
-        '
-        'ToolStripSeparator1
-        '
-        Me.ToolStripSeparator1.Name = "ToolStripSeparator1"
-        Me.ToolStripSeparator1.Size = New System.Drawing.Size(181, 6)
-        '
-        'MotionInterpolationToolStripMenuItem
-        '
-        Me.MotionInterpolationToolStripMenuItem.CheckOnClick = True
-        Me.MotionInterpolationToolStripMenuItem.Name = "MotionInterpolationToolStripMenuItem"
-        Me.MotionInterpolationToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
-        Me.MotionInterpolationToolStripMenuItem.Text = "Motion Interpolation"
         '
         'ctlVideoSeeker
         '
@@ -849,4 +864,6 @@ Partial Class MainForm
     Friend WithEvents OneThirdSpeedToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ToolStripSeparator1 As ToolStripSeparator
     Friend WithEvents MotionInterpolationToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ToolStripSeparator2 As ToolStripSeparator
+    Friend WithEvents ExportAudioToolStripMenuItem As ToolStripMenuItem
 End Class
