@@ -899,7 +899,7 @@ Public Class MainForm
     Public Function GetRealCrop(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point, contentSize As Size) As Rectangle?
         Dim realTopLeft As Point = picVideo.PointToImage(cropTopLeft, contentSize)
         Dim realBottomRight As Point = picVideo.PointToImage(cropBottomRight, contentSize)
-        If (cropBottomRight.X <> 0 AndAlso cropTopLeft.X <> 0 AndAlso cropBottomRight.Y <> 0 AndAlso cropTopLeft.Y <> 0) Then
+        If ((cropBottomRight.X - cropTopLeft.X) > 0 AndAlso (cropBottomRight.Y - cropTopLeft.Y) > 0) Then
             'Calculate actual crop locations due to bars and aspect ratio changes
             Return New Rectangle(realTopLeft.X, realTopLeft.Y, realBottomRight.X - realTopLeft.X + 1, realBottomRight.Y - realTopLeft.Y + 1)
         Else
