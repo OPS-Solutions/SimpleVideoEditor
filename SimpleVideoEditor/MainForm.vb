@@ -419,8 +419,8 @@ Public Class MainForm
             audioFilterParams.Add(audioPlaybackSpeed)
         End If
 
-        'Maintain transparency when making a gif from images
-        If (mobjMetaData.InputMash OrElse specProperties.ColorKey.A <> 0) AndAlso IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif") Then
+        'Maintain transparency when making a gif from images or other transparent content
+        If (mobjMetaData.InputMash OrElse specProperties.ColorKey.A <> 0 OrElse mobjMetaData.GetImageFromCache(0).GetBytes(3) = 0) AndAlso IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif") Then
             videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=bayer")
             'processInfo.Arguments += " -filter_complex ""[0:v] split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=bayer"""
         End If
