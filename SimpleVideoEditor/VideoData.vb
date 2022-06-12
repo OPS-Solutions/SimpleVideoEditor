@@ -505,19 +505,23 @@ Public Class VideoData
             Next
             'Go from start and end of the range we are grabbing and trim it down if we already have some images on either end
             'Cut off the end first, because it is faster for ffmpeg to traverse to the beginning of the file than the end
-            While targetCache(endFrame).Status = ImageCache.CacheStatus.Cached
-                endFrame -= 1
-                If startFrame > endFrame Then
-                    Return targetCache(frame).Image
+            While targetCache(endFrame).Status <> ImageCache.CacheStatus.None
+                endFrame = Math.Max(startFrame, endFrame - 1)
+                If startFrame = endFrame Then
+                    Exit While
                 End If
             End While
-            While targetCache(startFrame).Status = ImageCache.CacheStatus.Cached
-                startFrame += 1
-                If startFrame > endFrame Then
-                    Return targetCache(frame).Image
+            While targetCache(startFrame).Status <> ImageCache.CacheStatus.None
+                startFrame = Math.Min(endFrame, startFrame + 1)
+                If startFrame = endFrame Then
+                    Exit While
                 End If
             End While
-            alreadyQueued = (startFrame = endFrame AndAlso targetCache(startFrame).Status = ImageCache.CacheStatus.Queued)
+
+            If startFrame = endFrame AndAlso targetCache(frame).Status = ImageCache.CacheStatus.Cached Then
+                Return targetCache(frame).Image
+            End If
+            alreadyQueued = (startFrame = endFrame AndAlso targetCache(frame).Status = ImageCache.CacheStatus.Queued)
             Debug.Print($"Working for frames:{startFrame}-{endFrame} (Size:{frameSize.ToString})")
             'Mark images that we are looking for
             If Not alreadyQueued Then
@@ -526,11 +530,11 @@ Public Class VideoData
         End SyncLock
         'If you are looking for only one frame, and it is queued, dont waste time trying to grab it again...
         If alreadyQueued Then
-            Debug.Print($"Waiting on predicesor call for frame:{startFrame}")
+            Debug.Print($"Waiting on predicesor call for frame:{frame}")
             Return Await Task.Run(Function()
                                       Do
-                                          If Not targetCache(startFrame).Status = ImageCache.CacheStatus.Queued Then
-                                              Return targetCache(startFrame).Image
+                                          If Not targetCache(frame).Status = ImageCache.CacheStatus.Queued Then
+                                              Return targetCache(frame).Image
                                           Else
                                               Threading.Thread.Sleep(10)
                                           End If
@@ -627,71 +631,73 @@ Public Class VideoData
                             bytePosition += chunkSize + 4
                         End If
                     End If
-                    If gotAll AndAlso readOutputChunk?.IsCompleted Then
-                        Dim imageBytes(imageBuffer.Count - 1) As Byte
-                        imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+                    SyncLock targetCache
+                        If gotAll AndAlso readOutputChunk?.IsCompleted Then
+                            Dim imageBytes(imageBuffer.Count - 1) As Byte
+                            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
 
-                        Using recievedstream As New System.IO.MemoryStream
-                            recievedstream.Write(imageBytes, 0, imageBytes.Count)
+                            Using recievedstream As New System.IO.MemoryStream
+                                recievedstream.Write(imageBytes, 0, imageBytes.Count)
 
-                            'If targetCache(startFrame).Image IsNot Nothing Then
-                            '    targetCache(currentFrame).Image = targetCache(startFrame).Image
-                            'Else
-                            'End If
-                            'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
-                            If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
-                                'Don't cache stuff we already have cached
-                            Else
-                                Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
-                                If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb Then
-                                    Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
-                                    Using g As Graphics = Graphics.FromImage(newBitmap)
-                                        g.DrawImage(incomingBitmap, New Point(0, 0))
-                                    End Using
-                                    incomingBitmap.Dispose()
-                                    incomingBitmap = newBitmap
+                                'If targetCache(startFrame).Image IsNot Nothing Then
+                                '    targetCache(currentFrame).Image = targetCache(startFrame).Image
+                                'Else
+                                'End If
+                                'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
+                                If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
+                                    'Don't cache stuff we already have cached
+                                Else
+                                    Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
+                                    If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb Then
+                                        Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
+                                        Using g As Graphics = Graphics.FromImage(newBitmap)
+                                            g.DrawImage(incomingBitmap, New Point(0, 0))
+                                        End Using
+                                        incomingBitmap.Dispose()
+                                        incomingBitmap = newBitmap
+                                    End If
+                                    targetCache(currentFrame).Image = incomingBitmap
                                 End If
-                                targetCache(currentFrame).Image = incomingBitmap
-                            End If
 
-                            targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
-                            framesRetrieved.Add(currentFrame)
+                                targetCache(currentFrame).QueueTime = Nothing
+                                framesRetrieved.Add(currentFrame)
 
-                            'If we have grabbed a few frames, it wouldn't hurt to update the UI
-                            If framesRetrieved.Count > 10 Then
-                                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
-                                framesRetrieved.Clear()
-                            End If
-                        End Using
-                        currentFrame += 1
-                        ReDim imageBuffer(15)
-                        readOutputChunk = Nothing
-                        readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
-                        gotAll = False
-                    End If
-                    If readError?.IsCompleted Then
-                        'Read StandardError for the showinfo result for PTS_Time
-                        Dim lineRead As String = readError.Result
-                        If lineRead IsNot Nothing Then
-#If DEBUG Then
-                            fullDataRead += lineRead + vbCrLf
-#End If
-                            Dim infoMatch As Match = showInfoRegex.Match(lineRead)
-                            If infoMatch.Success Then
-                                Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
-                                Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
-                                If (matchValue + startFrame) = currentErrorFrame Then
-                                    targetCache(currentErrorFrame).PTSTime = matchPTS
-                                    targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
-                                    currentErrorFrame += 1
+                                'If we have grabbed a few frames, it wouldn't hurt to update the UI
+                                If framesRetrieved.Count > 10 Then
+                                    RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                    framesRetrieved.Clear()
                                 End If
-                            End If
-                            readError = tempProcess.StandardError.ReadLineAsync
-                        Else
-                            readError = Nothing
-                            errEnd = True
+                            End Using
+                            currentFrame += 1
+                            ReDim imageBuffer(15)
+                            readOutputChunk = Nothing
+                            readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
+                            gotAll = False
                         End If
-                    End If
+                        If readError?.IsCompleted Then
+                            'Read StandardError for the showinfo result for PTS_Time
+                            Dim lineRead As String = readError.Result
+                            If lineRead IsNot Nothing Then
+#If DEBUG Then
+                                fullDataRead += lineRead + vbCrLf
+#End If
+                                Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+                                If infoMatch.Success Then
+                                    Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
+                                    Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
+                                    If (matchValue + startFrame) = currentErrorFrame Then
+                                        targetCache(currentErrorFrame).PTSTime = matchPTS
+                                        currentErrorFrame += 1
+                                    End If
+                                End If
+                                readError = tempProcess.StandardError.ReadLineAsync
+                            Else
+                                readError = Nothing
+                                errEnd = True
+                            End If
+                        End If
+                    End SyncLock
+
                     'Must check end of stream, because otherwise, reablockasync can potentially hang the application due to the process failing to grab the frame
                     If outEnd AndAlso errEnd Then
                         Exit While
@@ -711,9 +717,11 @@ Public Class VideoData
             'With a video of 14.92fps and 35 total frames, the total returned images ended up being less than expected
 
             'unmark in case there was an issue
-            For index As Integer = startFrame To endFrame
-                targetCache(index).QueueTime = Nothing
-            Next
+            SyncLock targetCache
+                For index As Integer = startFrame To endFrame
+                    targetCache(index).QueueTime = Nothing
+                Next
+            End SyncLock
             If framesRetrieved.Count > 0 Then
                 RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
             End If

@@ -132,7 +132,7 @@ Public Class ImageCache
         Public Overrides Function ToString() As String
             Dim queueString As String = If(QueueTime?.ToString, "null")
             Dim bitmapString As String = If(Image IsNot Nothing, $"{Image.Width}x{Image.Height}", "null")
-            Return $"Queued: {queueString} | {bitmapString}"
+            Return $"{Me.Status.ToString} | Queued: {queueString} | {bitmapString} | PTS: {Me.PTSTime}"
         End Function
 
         ''' <summary>
