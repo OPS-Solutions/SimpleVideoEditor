@@ -191,7 +191,7 @@
     ''' Paints over the control with custom dual trackbar looking graphics.
     ''' </summary>
     Protected Overrides Sub OnPaint(e As PaintEventArgs)
-        Dim numberOfTicks As Integer = Math.Min((Me.Width - 1) \ 2, mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
+        Dim numberOfTicks As Integer = Math.Min(Math.Ceiling((Me.Width) / 2), mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
         Dim distanceBetweenPoints As Double = (Me.Width - 1) / (numberOfTicks - 1)
         Dim leftPreview As Single = ((PreviewLocation / FullRange) * (Me.Width - 1))
         Dim rightPreview As Single = (((PreviewLocation + 1) / FullRange) * (Me.Width - 1))
@@ -205,7 +205,7 @@
             If mdblSceneChanges IsNot Nothing Then
                 Dim frameIndex As Integer = 0
                 For Each sceneChange As Single In mdblSceneChanges
-                    Dim pixelLocation As Integer = (frameIndex / (mdblSceneChanges.Count - 1)) * (Me.Width - 1)
+                    Dim pixelLocation As Integer = frameIndex * distanceBetweenPoints
                     e.Graphics.DrawLine(pen, New Point(pixelLocation, Me.Height - 4), New Point(pixelLocation, (Me.Height - 4) - (sceneChange * COLOR_HEIGHT)))
                     frameIndex += 1
                 Next
