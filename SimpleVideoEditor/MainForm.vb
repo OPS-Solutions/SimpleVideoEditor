@@ -1482,6 +1482,8 @@ Public Class MainForm
 #Region "DragDrop"
     Private Sub MainForm_DragDrop(sender As Object, e As DragEventArgs) Handles MyBase.DragDrop
         Dim files() As String = e.Data.GetData(DataFormats.FileDrop)
+        Me.Activate()
+
         Select Case MessageBox.Show(Me, $"Open {files.Count} file(s)?", "Open File(s)?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
             Case DialogResult.OK
                 LoadFiles(files)
