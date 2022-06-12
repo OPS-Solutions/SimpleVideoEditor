@@ -1260,7 +1260,7 @@ Public Class MainForm
                     If File.Exists(sfdExportFrame.FileName) Then
                         My.Computer.FileSystem.DeleteFile(sfdExportFrame.FileName)
                     End If
-                    mobjMetaData.ExportFfmpegFrame(mintCurrentFrame, sfdExportFrame.FileName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
+                    mobjMetaData.ExportFfmpegFrames(mintCurrentFrame, mintCurrentFrame, sfdExportFrame.FileName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
                 Case Else
                     'Do nothing
             End Select

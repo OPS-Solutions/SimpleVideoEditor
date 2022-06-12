@@ -708,47 +708,33 @@ Public Class VideoData
     End Function
 
     ''' <summary>
-    ''' Tells ffmpeg to make a file and returns the corresponding file path to the given seconds value, like 50.5 = "frame_000050.5.png".
+    ''' Tells ffmpeg to make files for the given frame(s)
     ''' </summary>
-    Public Function ExportFfmpegFrame(ByVal frame As Integer, targetFilePath As String, Optional cropRect As Rectangle? = Nothing) As String
+    Public Sub ExportFfmpegFrames(ByVal frameStart As Integer, ByVal frameEnd As Integer, targetFilePath As String, Optional cropRect As Rectangle? = Nothing)
         'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
-        processInfo.Arguments += $" -vf select='between(n,{frame},{frame})' "
+        processInfo.Arguments += $" -vf ""select='between(n,{frameStart},{frameEnd})'"
         If cropRect?.Width > 0 AndAlso cropRect.Value.Height > 0 AndAlso cropRect.Value.Center <> New Point(0, 0) Then
-            processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}")
+            processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}""")
+        Else
+            processInfo.Arguments += """"
         End If
-        processInfo.Arguments += $"-vsync 0 ""{targetFilePath}"""
+        processInfo.Arguments += $" -vsync 0 ""{targetFilePath}"""
 
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
         Dim tempProcess As Process = Process.Start(processInfo)
-        tempProcess.WaitForExit(5000) 'Wait up to 5 seconds for the process to finish
-        Return targetFilePath
-    End Function
-
-    Public Function ExportFfmpegFrames(ByVal frameStart As Integer, ByVal frameEnd As Integer, targetFilePath As String, Optional cropRect As Rectangle? = Nothing) As String
-        'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
-        Dim processInfo As New ProcessStartInfo
-        processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        'processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
-        processInfo.Arguments += " -i """ & Me.FullPath & """"
-        'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
-        processInfo.Arguments += $" -vf select='between(n,{frameStart},{frameEnd})' "
-        If cropRect?.Width > 0 AndAlso cropRect.Value.Height > 0 AndAlso cropRect.Value.Center <> New Point(0, 0) Then
-            processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}")
+        'TODO Make this work indefinitely until user cancels
+        If frameEnd - frameStart > 1 Then
+            tempProcess.WaitForExit(20000) 'Wait up to 20 seconds for the process to finish
+        Else
+            tempProcess.WaitForExit(5000) 'Wait up to 5 seconds for the process to finish
         End If
-        processInfo.Arguments += $"-vsync 0 ""{targetFilePath}"""
-
-        processInfo.UseShellExecute = True
-        processInfo.WindowStyle = ProcessWindowStyle.Hidden
-        Dim tempProcess As Process = Process.Start(processInfo)
-        tempProcess.WaitForExit(20000) 'Wait up to 20 seconds for the process to finish
-        Return targetFilePath
-    End Function
+    End Sub
 
     ''' <summary>
     ''' Tells ffmpeg to copy the loaded videos audio stream into a file
