@@ -503,6 +503,20 @@ Public Class VideoData
                     Exit For
                 End If
             Next
+            'Go from start and end of the range we are grabbing and trim it down if we already have some images on either end
+            'Cut off the end first, because it is faster for ffmpeg to traverse to the beginning of the file than the end
+            While targetCache(endFrame).Status = ImageCache.CacheStatus.Cached
+                endFrame -= 1
+                If startFrame > endFrame Then
+                    Return targetCache(frame).Image
+                End If
+            End While
+            While targetCache(startFrame).Status = ImageCache.CacheStatus.Cached
+                startFrame += 1
+                If startFrame > endFrame Then
+                    Return targetCache(frame).Image
+                End If
+            End While
             alreadyQueued = (startFrame = endFrame AndAlso targetCache(startFrame).Status = ImageCache.CacheStatus.Queued)
             Debug.Print($"Working for frames:{startFrame}-{endFrame} (Size:{frameSize.ToString})")
             'Mark images that we are looking for
@@ -620,18 +634,26 @@ Public Class VideoData
                         Using recievedstream As New System.IO.MemoryStream
                             recievedstream.Write(imageBytes, 0, imageBytes.Count)
 
+                            'If targetCache(startFrame).Image IsNot Nothing Then
+                            '    targetCache(currentFrame).Image = targetCache(startFrame).Image
+                            'Else
+                            'End If
                             'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
-                            Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
-                            If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb Then
-                                Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
-                                Using g As Graphics = Graphics.FromImage(newBitmap)
-                                    g.DrawImage(incomingBitmap, New Point(0, 0))
-                                End Using
-                                incomingBitmap.Dispose()
-                                incomingBitmap = newBitmap
+                            If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
+                                'Don't cache stuff we already have cached
+                            Else
+                                Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
+                                If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb Then
+                                    Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
+                                    Using g As Graphics = Graphics.FromImage(newBitmap)
+                                        g.DrawImage(incomingBitmap, New Point(0, 0))
+                                    End Using
+                                    incomingBitmap.Dispose()
+                                    incomingBitmap = newBitmap
+                                End If
+                                targetCache(currentFrame).Image = incomingBitmap
                             End If
 
-                            targetCache(currentFrame).Image = incomingBitmap
                             targetCache(Math.Min(currentFrame, currentErrorFrame)).QueueTime = Nothing
                             framesRetrieved.Add(currentFrame)
 
