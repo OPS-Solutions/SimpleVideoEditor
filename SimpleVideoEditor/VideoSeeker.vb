@@ -248,19 +248,21 @@
         End Using
 
         'Draw preview frame
-        Using pen As New Pen(Color.LimeGreen, 1)
-            'Draw preview differently if it is attached to a trim bar
-            If LeftSeekPixel = leftPreview Then
-                e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(leftPreview, 0))
-            ElseIf RightSeekPixel = rightPreview Then
-                e.Graphics.DrawLine(pen, New Point(rightPreview, Me.Height - 3), New Point(rightPreview, 0))
-            Else
-                e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(leftPreview, 0))
-                e.Graphics.DrawLine(pen, New Point(rightPreview, Me.Height - 3), New Point(rightPreview, 0))
-                e.Graphics.DrawLine(pen, New Point(leftPreview, 0), New Point(rightPreview, 0))
-                e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(rightPreview, Me.Height - 3))
-            End If
-        End Using
+        If Me.MetaData IsNot Nothing Then
+            Using pen As New Pen(Color.LimeGreen, 1)
+                'Draw preview differently if it is attached to a trim bar
+                If LeftSeekPixel = leftPreview Then
+                    e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(leftPreview, 0))
+                ElseIf RightSeekPixel = rightPreview Then
+                    e.Graphics.DrawLine(pen, New Point(rightPreview, Me.Height - 3), New Point(rightPreview, 0))
+                Else
+                    e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(leftPreview, 0))
+                    e.Graphics.DrawLine(pen, New Point(rightPreview, Me.Height - 3), New Point(rightPreview, 0))
+                    e.Graphics.DrawLine(pen, New Point(leftPreview, 0), New Point(rightPreview, 0))
+                    e.Graphics.DrawLine(pen, New Point(leftPreview, Me.Height - 3), New Point(rightPreview, Me.Height - 3))
+                End If
+            End Using
+        End If
 
         'Draw preview hover
         If mintHoveredFrameIndex IsNot Nothing Then
@@ -439,6 +441,7 @@
                     CType(mobjPreviewForm.Controls(0), PictureBox).Image = imageToPreview
                     mobjPreviewForm.Visible = True
                     mobjPreviewForm.Location = Me.PointToScreen(New Point(e.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
+                    Me.Focus()
                 Else
                     mobjPreviewForm.Visible = False
                 End If

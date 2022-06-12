@@ -740,7 +740,7 @@ Public Class MainForm
         cmbDefinition.SelectedIndex = 0
 
         'Setup Tooltips
-        mobjGenericToolTip.SetToolTip(ctlVideoSeeker, $"Move sliders to trim video.{vbNewLine}Use [A][D][←][→] to move frame by frame.")
+        mobjGenericToolTip.SetToolTip(ctlVideoSeeker, $"Move sliders to trim video.{vbNewLine}Use [A][D][←][→] to move trim sliders frame by frame.{vbNewLine}Hold [Shift] to move preview slider instead.")
         mobjGenericToolTip.SetToolTip(picVideo, $"Left click and drag to crop.{vbNewLine}Right click to clear crop selection.")
         mobjGenericToolTip.SetToolTip(cmbDefinition, $"Select the ending height of your video.{vbNewLine}Right click for FPS options.")
         mobjGenericToolTip.SetToolTip(btnいくよ, $"Save video.{vbNewLine}Hold ctrl to manually modify ffmpeg arguments.")
@@ -1027,17 +1027,17 @@ Public Class MainForm
             Case Keys.D
                 ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
                 ctlVideoSeeker.Invalidate()
-            Case Keys.A Or Keys.Shift
-                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation - 1
-                ctlVideoSeeker.Invalidate()
-            Case Keys.D Or Keys.Shift
-                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation + 1
-                ctlVideoSeeker.Invalidate()
             Case Keys.Left
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
                 ctlVideoSeeker.Invalidate()
             Case Keys.Right
                 ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
+                ctlVideoSeeker.Invalidate()
+            Case Keys.A Or Keys.Shift, Keys.Left Or Keys.Shift
+                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation - 1
+                ctlVideoSeeker.Invalidate()
+            Case Keys.D Or Keys.Shift, Keys.Right Or Keys.Shift
+                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation + 1
                 ctlVideoSeeker.Invalidate()
             Case Else
                 Return MyBase.ProcessCmdKey(message, keys)
