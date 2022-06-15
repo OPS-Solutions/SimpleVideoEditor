@@ -205,7 +205,7 @@
             If mdblSceneChanges IsNot Nothing Then
                 Dim frameIndex As Integer = 0
                 For Each sceneChange As Single In mdblSceneChanges
-                    Dim pixelLocation As Integer = frameIndex * distanceBetweenPoints
+                    Dim pixelLocation As Integer = (frameIndex / (mdblSceneChanges.Count - 1)) * (Me.Width - 1 - distanceBetweenPoints)
                     e.Graphics.DrawLine(pen, New Point(pixelLocation, Me.Height - 4), New Point(pixelLocation, (Me.Height - 4) - (sceneChange * COLOR_HEIGHT)))
                     frameIndex += 1
                 Next

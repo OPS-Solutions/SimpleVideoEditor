@@ -9,7 +9,7 @@ Imports System.Runtime.InteropServices
 ' Review the values of the assembly attributes
 
 <Assembly: AssemblyTitle("Simple Video Editor")>
-<Assembly: AssemblyDescription("Simple ffmpeg.exe wrapper for editing videos." & vbCrLf & "This video editor is free to distribute. Just copy the folder." & vbCrLf & "Development Time: 16 days" & vbCrLf & "Author: Neil Harbin" & vbCrLf & "Licenced under GPL v3.0" & vbCrLf & "Source:" & vbCrLf & "https://github.com/OPS-Solutions/SimpleVideoEditor")>
+<Assembly: AssemblyDescription("Simple ffmpeg.exe wrapper for editing videos." & vbCrLf & "This video editor is free to distribute. Just copy the folder." & vbCrLf & "Development Time: 17 days" & vbCrLf & "Author: Neil Harbin" & vbCrLf & "Licenced under GPL v3.0" & vbCrLf & "Source:" & vbCrLf & "https://github.com/OPS-Solutions/SimpleVideoEditor")>
 <Assembly: AssemblyCompany("LightGuide, Inc.")>
 <Assembly: AssemblyProduct("Simple Video Editor")>
 <Assembly: AssemblyCopyright("Copyright © 2017-2022")>
@@ -31,5 +31,5 @@ Imports System.Runtime.InteropServices
 ' by using the '*' as shown below:
 ' <Assembly: AssemblyVersion("1.0.*")> 
 
-<Assembly: AssemblyVersion("1.1.0.31")>
-<Assembly: AssemblyFileVersion("1.1.0.31")>
+<Assembly: AssemblyVersion("1.1.0.32")>
+<Assembly: AssemblyFileVersion("1.1.0.32")>
