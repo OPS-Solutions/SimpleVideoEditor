@@ -33,6 +33,14 @@ Module Extensions
     End Function
 
     ''' <summary>
+    ''' Returns the point at the center of the rectangle
+    ''' </summary>
+    <Extension>
+    Public Function Center(rect As RectangleF) As PointF
+        Return New PointF(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2)
+    End Function
+
+    ''' <summary>
     ''' Distance from a point to the center of the given rectangle
     ''' </summary>
     <Extension>
@@ -498,11 +506,41 @@ Module Extensions
     ''' <summary>
     ''' Center point of a rectangle
     ''' </summary>
-    ''' <param name="rect"></param>
-    ''' <returns></returns>
     <Extension>
     Public Function Center(rect As Rectangle) As Point
         Return New Point(rect.X + rect.Width / 2, rect.Y + rect.Height / 2)
+    End Function
+
+    ''' <summary>
+    ''' Converts point to pointf with simple truncation
+    ''' </summary>
+    <Extension>
+    Public Function ToPointF(pt As Point) As PointF
+        Return New PointF(pt.X, pt.Y)
+    End Function
+
+    ''' <summary>
+    ''' Converts pointf to point with simple truncation
+    ''' </summary>
+    <Extension>
+    Public Function ToPoint(pt As PointF) As Point
+        Return New Point(pt.X, pt.Y)
+    End Function
+
+    ''' <summary>
+    ''' Adds a vector to this point, returning the result
+    ''' </summary>
+    <Extension>
+    Public Function Add(pt1 As Point, pt2 As Point) As Point
+        Return New Point(pt1.X + pt2.X, pt1.Y + pt2.Y)
+    End Function
+
+    ''' <summary>
+    ''' Subtracts a vector from this point, returning the result
+    ''' </summary>
+    <Extension>
+    Public Function Subtract(pt1 As Point, pt2 As Point) As Point
+        Return New Point(pt1.X - pt2.X, pt1.Y - pt2.Y)
     End Function
 
     ''' <summary>

@@ -5,6 +5,7 @@
     Private pRangeMinValue As Integer = 0 'Value that should only be accessed by the property below
     Private mobjPreviewForm As Form
     Private mintHoveredFrameIndex As Integer? = Nothing
+    Private mobjMouseOffset As Point? = Nothing 'Keeps track of the distance between collisions and the mouse, then is used to ensure single clicks without motion never move things
 
     ''' <summary>
     ''' Current value of the leftmost slider on the control
@@ -191,8 +192,6 @@
     ''' Paints over the control with custom dual trackbar looking graphics.
     ''' </summary>
     Protected Overrides Sub OnPaint(e As PaintEventArgs)
-        Dim numberOfTicks As Integer = Math.Min(Math.Ceiling((Me.Width) / 2), mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
-        Dim distanceBetweenPoints As Double = (Me.Width - 1) / (numberOfTicks - 1)
         Dim leftPreview As Single = ((PreviewLocation / FullRange) * (Me.Width - 1))
         Dim rightPreview As Single = (((PreviewLocation + 1) / FullRange) * (Me.Width - 1))
         'Draw background
@@ -205,7 +204,7 @@
             If mdblSceneChanges IsNot Nothing AndAlso FullRange > 1 Then
                 Dim frameIndex As Integer = 0
                 For Each sceneChange As Single In mdblSceneChanges
-                    Dim pixelLocation As Integer = (frameIndex / (mdblSceneChanges.Count - 1)) * (Me.Width - 1 - distanceBetweenPoints)
+                    Dim pixelLocation As Integer = (frameIndex / (mdblSceneChanges.Count - 1)) * (Me.Width - 1 - DistanceBetweenTicks)
                     e.Graphics.DrawLine(pen, New Point(pixelLocation, Me.Height - 4), New Point(pixelLocation, (Me.Height - 4) - (sceneChange * COLOR_HEIGHT)))
                     frameIndex += 1
                 Next
@@ -226,8 +225,8 @@
         'Draw frame ticks, color based on if the frame has been cached or not
         If Me.mobjMetaData IsNot Nothing Then
             Dim currentFrameTick As Integer = 0
-            For index As Integer = 0 To numberOfTicks - 1
-                currentFrameTick = (Me.mobjMetaData.TotalFrames / numberOfTicks) * index
+            For index As Integer = 0 To NumberOfTicks - 1
+                currentFrameTick = (Me.mobjMetaData.TotalFrames / NumberOfTicks) * index
                 Dim drawPen As Pen = Pens.Gray
                 Select Case Me.mobjMetaData.ImageCacheStatus(currentFrameTick)
                     Case ImageCache.CacheStatus.None
@@ -237,7 +236,7 @@
                     Case ImageCache.CacheStatus.Cached
                         drawPen = Pens.Black
                 End Select
-                e.Graphics.DrawLine(drawPen, New Point(index * distanceBetweenPoints, Me.Height), New Point(index * distanceBetweenPoints, Me.Height - 2))
+                e.Graphics.DrawLine(drawPen, New Point(index * DistanceBetweenTicks, Me.Height), New Point(index * DistanceBetweenTicks, Me.Height - 2))
             Next
         End If
 
@@ -266,9 +265,8 @@
 
         'Draw preview hover
         If mintHoveredFrameIndex IsNot Nothing Then
-            Dim hoveredFrameIndex As Integer = Math.Floor(((mRangeMax - mRangeMin + 1) / Me.Width) * Me.PointToClient(Cursor.Position).X)
-            Dim leftHoverPreview As Single = ((hoveredFrameIndex / FullRange) * (Me.Width - 1))
-            Dim rightHoverPreview As Single = (((hoveredFrameIndex + 1) / FullRange) * (Me.Width - 1))
+            Dim leftHoverPreview As Single = ((mintHoveredFrameIndex / FullRange) * (Me.Width - 1))
+            Dim rightHoverPreview As Single = (((mintHoveredFrameIndex + 1) / FullRange) * (Me.Width - 1))
             Using pen As New Pen(Color.Red, 1)
                 e.Graphics.DrawLine(pen, New Point(leftHoverPreview, Me.Height - 3), New Point(leftHoverPreview, 0))
                 e.Graphics.DrawLine(pen, New Point(rightHoverPreview, Me.Height - 3), New Point(rightHoverPreview, 0))
@@ -304,22 +302,36 @@
         End Get
     End Property
 
+    Private ReadOnly Property NumberOfTicks() As Integer
+        Get
+            Return Math.Min(Math.Ceiling((Me.Width) / 2), mRangeMax - mRangeMin + 2) 'Tick represents start or end of a frame, number of frames + 1
+        End Get
+    End Property
+
+    Private ReadOnly Property DistanceBetweenTicks() As Double
+        Get
+            Return (Me.Width - 1) / (NumberOfTicks - 1)
+        End Get
+    End Property
+
 #Region "Collision"
     Private Const SLIDER_COLLISION_WIDTH As Integer = 20
     Private Function CollisionRect(targetSlider As SliderID) As RectangleF
+        'Ensure trim slider at a minimum is half a frame
+        Dim collisionWidth As Integer = Math.Max(SLIDER_COLLISION_WIDTH, DistanceBetweenTicks)
         Select Case targetSlider
             Case SliderID.LeftTrim
-                Dim leftPixel As Single = Math.Min(LeftSeekPixel - (SLIDER_COLLISION_WIDTH / 2), Me.Width - SLIDER_COLLISION_WIDTH - 1)
-                Dim rightpixel As Single = leftPixel + (SLIDER_COLLISION_WIDTH)
+                Dim leftPixel As Single = Math.Min(LeftSeekPixel - (collisionWidth / 2), Me.Width - collisionWidth - 1)
+                Dim rightpixel As Single = leftPixel + (collisionWidth)
                 Return New RectangleF(leftPixel, 0, rightpixel - leftPixel, Me.Height)
             Case SliderID.RightTrim
-                Dim rightpixel As Single = RightSeekPixel + (SLIDER_COLLISION_WIDTH / 2)
-                Dim leftPixel As Single = rightpixel - (SLIDER_COLLISION_WIDTH)
-                Return New RectangleF(leftpixel, 0, rightPixel - leftpixel, Me.Height)
+                Dim rightpixel As Single = RightSeekPixel + (collisionWidth / 2)
+                Dim leftPixel As Single = rightpixel - (collisionWidth)
+                Return New RectangleF(leftPixel, 0, rightpixel - leftPixel, Me.Height)
             Case SliderID.Preview
                 Dim previewRect As RectangleF = PreviewBounds
-                previewRect.X -= (SLIDER_COLLISION_WIDTH - previewRect.Width) / 2
-                previewRect.Width = SLIDER_COLLISION_WIDTH - previewRect.Width
+                previewRect.X -= (collisionWidth - previewRect.Width) / 2
+                previewRect.Width = collisionWidth - previewRect.Width
                 Return PreviewBounds
             Case Else
                 Return Nothing
@@ -349,14 +361,19 @@
     ''' </summary>
     Protected Overrides Sub OnMouseDown(e As MouseEventArgs)
         MyBase.OnMouseDown(e)
-		'Convert mouse coordinates to increments, Grab closest slider
-		If Me.Enabled AndAlso e.Button = MouseButtons.Left Then
+        'Convert mouse coordinates to increments, Grab closest slider
+        If Me.Enabled AndAlso e.Button = MouseButtons.Left Then
             Dim newValue As Integer = Math.Floor(((mRangeMax - mRangeMin) / Me.Width) * e.X)
 
             Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
 
-			If potentialCollisions.Count > 0 Then
-				potentialCollisions.Sort(Function(obj1, obj2) CollisionRect(obj1).DistanceToCenter(e.Location).CompareTo(CollisionRect(obj2).DistanceToCenter(e.Location)))
+            If potentialCollisions.Contains(SliderID.Preview) Then
+                If Me.Cursor = Cursors.SizeWE Then
+                    potentialCollisions.Remove(SliderID.Preview)
+                End If
+            End If
+            If potentialCollisions.Count > 0 Then
+                potentialCollisions.Sort(Function(obj1, obj2) CollisionRect(obj1).DistanceToCenter(e.Location).CompareTo(CollisionRect(obj2).DistanceToCenter(e.Location)))
                 menmSelectedSlider = potentialCollisions(0)
                 'If menmSelectedSlider = SliderID.Preview Then
                 '    'Give priority to trim slider
@@ -368,15 +385,26 @@
                 'End If
             Else
                 menmSelectedSlider = SliderID.Preview
-			End If
+            End If
             If menmSelectedSlider <> SliderID.Preview AndAlso Me.Cursor = Cursors.Hand Then
                 Me.Cursor = Cursors.SizeWE
             End If
+            If menmSelectedSlider <> SliderID.None Then
+                Dim sliderBounds As RectangleF = CollisionRect(menmSelectedSlider)
+                Dim collisionCenter As PointF = sliderBounds.Center
+                mobjMouseOffset = collisionCenter.ToPoint.Subtract(e.Location)
+                Select Case menmSelectedSlider
+                    Case SliderID.LeftTrim
+                        mobjMouseOffset = mobjMouseOffset.Value.Add(New Point(sliderBounds.Width / 4, 0))
+                    Case SliderID.RightTrim
+                        mobjMouseOffset = mobjMouseOffset.Value.Subtract(New Point(sliderBounds.Width / 4, 0))
+                End Select
+            End If
 
             Me.OnMouseMove(e)
-			Me.Invalidate()
-		End If
-	End Sub
+            Me.Invalidate()
+        End If
+    End Sub
 
     ''' <summary>
     ''' Changes the corresponding range values for the sliders in the control.
@@ -384,8 +412,14 @@
     Protected Overrides Sub OnMouseMove(e As MouseEventArgs)
         MyBase.OnMouseMove(e)
         If Me.Enabled Then
+            Dim actualPoint As Point = e.Location
+            If mobjMouseOffset.HasValue AndAlso menmSelectedSlider <> SliderID.None Then
+                actualPoint.X = e.Location.X + mobjMouseOffset.Value.X
+                actualPoint.Y = e.Location.Y + mobjMouseOffset.Value.Y
+            End If
+
             If menmSelectedSlider = SliderID.None Then
-                Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(e.Location)
+                Dim potentialCollisions As List(Of SliderID) = Me.PotentialCollisions(actualPoint)
                 If potentialCollisions.Count > 0 Then
                     If (potentialCollisions.Count = 1 AndAlso potentialCollisions(0) = SliderID.Preview) Then
                         If Me.Cursor <> Cursors.Hand Then
@@ -402,7 +436,7 @@
                     End If
                 End If
             End If
-            Dim newHoverIndex As Integer = Math.Floor(((mRangeMax - mRangeMin + 1) / Me.Width) * e.X)
+            Dim newHoverIndex As Integer = Math.Floor(((mRangeMax - mRangeMin + 1) / Me.Width) * actualPoint.X)
             If mintHoveredFrameIndex Is Nothing OrElse newHoverIndex <> mintHoveredFrameIndex Then
                 mintHoveredFrameIndex = newHoverIndex
                 Me.Invalidate()
@@ -414,9 +448,15 @@
                         If Not RangeMinValue = mintHoveredFrameIndex Then
                             RangeMinValue = mintHoveredFrameIndex
                         End If
+                        If Not PreviewLocation = mintHoveredFrameIndex Then
+                            PreviewLocation = mintHoveredFrameIndex
+                        End If
                     Case SliderID.RightTrim
                         If Not RangeMaxValue = mintHoveredFrameIndex Then
                             RangeMaxValue = mintHoveredFrameIndex
+                        End If
+                        If Not PreviewLocation = mintHoveredFrameIndex Then
+                            PreviewLocation = mintHoveredFrameIndex
                         End If
                     Case SliderID.Preview
                         If Not PreviewLocation = mintHoveredFrameIndex Then
@@ -440,7 +480,7 @@
                     'Setup preview frame
                     CType(mobjPreviewForm.Controls(0), PictureBox).Image = imageToPreview
                     mobjPreviewForm.Visible = True
-                    mobjPreviewForm.Location = Me.PointToScreen(New Point(e.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
+                    mobjPreviewForm.Location = Me.PointToScreen(New Point(actualPoint.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
                     Me.Focus()
                 Else
                     mobjPreviewForm.Visible = False
