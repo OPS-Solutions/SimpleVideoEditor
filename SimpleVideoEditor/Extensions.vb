@@ -168,14 +168,12 @@ Module Extensions
     ''' </summary>
     <Extension>
     Public Function GetBytes(image As Bitmap) As Byte()
-        Dim objData As BitmapData = image.LockBits(New Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb)
+        Dim objData As BitmapData = image.LockBits(New Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadOnly, image.PixelFormat)
 
-        Dim scanLines As Integer = objData.Width * 4
-        Dim pxBytes(scanLines * objData.Height - 1) As Byte
+        Dim byteCount As Integer = objData.Stride * objData.Height
+        Dim pxBytes(byteCount - 1) As Byte
 
-        For scanIndex As Integer = 0 To objData.Height - 1
-            Marshal.Copy(objData.Scan0 + scanIndex * objData.Stride, pxBytes, scanIndex * scanLines, scanLines)
-        Next
+        Marshal.Copy(objData.Scan0, pxBytes, 0, byteCount)
 
         image.UnlockBits(objData)
         Return pxBytes
@@ -187,13 +185,11 @@ Module Extensions
     ''' </summary>
     <Extension>
     Public Sub SetBytes(image As Bitmap, bytes As Byte())
-        Dim objData As BitmapData = image.LockBits(New Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb)
+        Dim objData As BitmapData = image.LockBits(New Rectangle(0, 0, image.Width, image.Height), ImageLockMode.WriteOnly, image.PixelFormat)
 
-        Dim scanLines As Integer = objData.Width * 4
+        Dim byteCount As Integer = objData.Stride * objData.Height
 
-        For scanIndex As Integer = 0 To objData.Height - 1
-            Marshal.Copy(bytes, scanIndex * scanLines, objData.Scan0 + scanIndex * objData.Stride, scanLines)
-        Next
+        Marshal.Copy(bytes, 0, objData.Scan0, byteCount)
 
         image.UnlockBits(objData)
     End Sub

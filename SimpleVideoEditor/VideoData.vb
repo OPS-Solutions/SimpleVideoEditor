@@ -364,8 +364,9 @@ Public Class VideoData
                             recievedstream.Write(imageBytes, 0, imageBytes.Count)
 
                             'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
+                            'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
                             Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
-                            If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb Then
+                            If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
                                 Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
                                 Using g As Graphics = Graphics.FromImage(newBitmap)
                                     g.DrawImage(incomingBitmap, New Point(0, 0))
@@ -639,16 +640,14 @@ Public Class VideoData
                             Using recievedstream As New System.IO.MemoryStream
                                 recievedstream.Write(imageBytes, 0, imageBytes.Count)
 
-                                'If targetCache(startFrame).Image IsNot Nothing Then
-                                '    targetCache(currentFrame).Image = targetCache(startFrame).Image
-                                'Else
-                                'End If
-                                'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
                                 If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
                                     'Don't cache stuff we already have cached
                                 Else
                                     Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
-                                    If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb Then
+
+                                    'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
+                                    'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
+                                    If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
                                         Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
                                         Using g As Graphics = Graphics.FromImage(newBitmap)
                                             g.DrawImage(incomingBitmap, New Point(0, 0))
