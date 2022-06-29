@@ -202,7 +202,7 @@
 
         'Draw scene changes
         Using pen As New Pen(Color.DarkSeaGreen, 1)
-            If mdblSceneChanges IsNot Nothing Then
+            If mdblSceneChanges IsNot Nothing AndAlso FullRange > 1 Then
                 Dim frameIndex As Integer = 0
                 For Each sceneChange As Single In mdblSceneChanges
                     Dim pixelLocation As Integer = (frameIndex / (mdblSceneChanges.Count - 1)) * (Me.Width - 1 - distanceBetweenPoints)
