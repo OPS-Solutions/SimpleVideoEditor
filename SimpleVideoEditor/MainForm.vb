@@ -655,13 +655,15 @@ Public Class MainForm
                                    'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
                                    Dim boundRect As Rectangle = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 127)
                                    Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
-                                   If boundRect.Area > currentRect.Area Then
-                                       largestFrame = index
-                                   End If
                                    left = Math.Min(boundRect.Left, left)
                                    top = Math.Min(boundRect.Top, top)
                                    right = Math.Max(boundRect.Right, right)
                                    bottom = Math.Max(boundRect.Bottom, bottom)
+                                   Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
+
+                                   If potentialRect.Area > currentRect.Area Then
+                                       largestFrame = index
+                                   End If
                                End If
                            Next
                        End Sub)
@@ -707,13 +709,15 @@ Public Class MainForm
                                    'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
                                    Dim boundRect As Rectangle = Me.mobjMetaData.GetImageFromCache(index).ExpandContents(cropRect, 4)
                                    Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
-                                   If boundRect.Area > currentRect.Area Then
-                                       largestFrame = index
-                                   End If
                                    left = Math.Min(boundRect.Left, left)
                                    top = Math.Min(boundRect.Top, top)
                                    right = Math.Max(boundRect.Right, right)
                                    bottom = Math.Max(boundRect.Bottom, bottom)
+                                   Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
+
+                                   If potentialRect.Area > currentRect.Area Then
+                                       largestFrame = index
+                                   End If
                                End If
                            Next
                        End Sub)
