@@ -578,6 +578,16 @@ Module Extensions
         Return -1
     End Function
 
+    Private Declare Unicode Function StrCmpLogicalW Lib "shlwapi.dll" (ByVal string1 As String, ByVal string2 As String) As Integer
+
+    ''' <summary>
+    ''' Uses StrCmpLogicalW to compare two strings. This uses more natural sorting order, so 1 is followed by 2, not 10 or 11
+    ''' </summary>
+    <Extension>
+    Public Function CompareNatural(string1 As String, string2 As String) As Integer
+        Return StrCmpLogicalW(string1, string2)
+    End Function
+
 #Region "Filters"
     ''' <summary>
     ''' Returns a copy of the image that has had a grayscale filter applied

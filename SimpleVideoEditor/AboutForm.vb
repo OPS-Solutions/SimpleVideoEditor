@@ -49,11 +49,11 @@ Public NotInheritable Class AboutForm
 				If allMatches.Count > 0 Then
 					mstrLatestVersion = allMatches(0).Value
 					lblLatestVersion.Text = $"Latest Version: {allMatches(0).Value}"
-					If StrCmpLogicalW(My.Application.Info.Version.ToString, allMatches(0).Value) < 0 Then
-						btnUpdate.Enabled = True
-						btnUpdate.Text = "Update"
-					Else
-						btnUpdate.Enabled = False
+                    If My.Application.Info.Version.ToString.CompareNatural(allMatches(0).Value) < 0 Then
+                        btnUpdate.Enabled = True
+                        btnUpdate.Text = "Update"
+                    Else
+                        btnUpdate.Enabled = False
 						btnUpdate.Text = "Up to date"
 					End If
 				Else
@@ -83,8 +83,6 @@ Public NotInheritable Class AboutForm
 			RefreshUpdateInfo()
 		End Try
 	End Sub
-
-	Private Declare Unicode Function StrCmpLogicalW Lib "shlwapi.dll" (ByVal string1 As String, ByVal string2 As String) As Integer
 
 	Private Sub OKButton_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OKButton.Click
 		Me.Close()

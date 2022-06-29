@@ -117,11 +117,12 @@ Public Class MainForm
         Dim dummyArgs As List(Of String) = files.ToList
         dummyArgs.Insert(0, "")
         Dim mash As String = GetInputMash(dummyArgs.ToArray)
-        If mash Is Nothing Then
-            mash = files(0)
-        End If
         ClearControls()
-        LoadFile(mash)
+        If mash Is Nothing Then
+            LoadFile(files(0))
+        Else
+            LoadFile(mash, True)
+        End If
     End Sub
 
 
@@ -997,17 +998,19 @@ Public Class MainForm
         If fileNames.Count < 1 Then
             Return Nothing
         End If
+        'Sort the files in case the user dragged them in a way that caused something that was not the first file to appear first in the args list
+        fileNames.Sort(Function(string1, string2) string1.CompareNatural(string2))
 
         'Try to extract the constant data between the file names by removing numbers
-        Dim numberRegex As New Text.RegularExpressions.Regex("\d+")
+        Dim numberRegex As New Text.RegularExpressions.Regex("(?<zeros>0+)*\d+")
         'Check padding intensity
         Dim firstMatch As Match = numberRegex.Match(fileNames(0))
-        Dim firstMatchNumLength As Integer = firstMatch.Value.Length
+        Dim leadingZeros As Integer = firstMatch.Groups("zeros").Length
         Dim pattern As String = ""
-        If firstMatchNumLength = 1 Then
+        If leadingZeros = 0 Then
             pattern = "%d"
-        ElseIf firstMatchNumLength > 1 Then
-            pattern = "%0" & firstMatchNumLength & "d"
+        ElseIf leadingZeros > 0 Then
+            pattern = "%0" & leadingZeros + 1 & "d"
         Else
             Return Nothing
         End If
