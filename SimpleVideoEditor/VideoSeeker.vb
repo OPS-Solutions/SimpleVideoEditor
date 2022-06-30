@@ -398,6 +398,8 @@
                         mobjMouseOffset = mobjMouseOffset.Value.Add(New Point(sliderBounds.Width / 4, 0))
                     Case SliderID.RightTrim
                         mobjMouseOffset = mobjMouseOffset.Value.Subtract(New Point(sliderBounds.Width / 4, 0))
+                    Case Else
+                        mobjMouseOffset = New Point(0, 0)
                 End Select
             End If
 
