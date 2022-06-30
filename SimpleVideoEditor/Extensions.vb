@@ -217,9 +217,6 @@ Module Extensions
         Dim stride As Integer = imageData.Stride
         img1.UnlockBits(imageData)
 
-        If backColor Is Nothing Then
-            backColor = Color.FromArgb(imageBytes(3), imageBytes(0), imageBytes(1), imageBytes(2))
-        End If
 
         Dim startingRect As Rectangle
         If startingRectangle Is Nothing Then
@@ -227,6 +224,21 @@ Module Extensions
         Else
             startingRect = startingRectangle.Value
         End If
+
+        If backColor Is Nothing Then
+            'Set backcolor as most common color of the four corners
+            Dim possibleColors As New List(Of Color)
+            possibleColors.Add(imageBytes.GetPixel(startingRect.Left, startingRect.Top, stride, 4))
+            possibleColors.Add(imageBytes.GetPixel(startingRect.Right - 1, startingRect.Top, stride, 4))
+            possibleColors.Add(imageBytes.GetPixel(startingRect.Right - 1, startingRect.Bottom - 1, stride, 4))
+            possibleColors.Add(imageBytes.GetPixel(startingRect.Left, startingRect.Bottom - 1, stride, 4))
+
+            Dim uniqueColors As List(Of Color) = possibleColors.Distinct(Function(clr1, clr2) clr1.CompareTo(clr2))
+            Dim colorOccurance(uniqueColors.Count - 1) As Integer
+            uniqueColors.Sort(Function(obj1, obj2) possibleColors.FindAll(Function(obj As Color) obj.Equals(obj2)).Count.CompareTo(possibleColors.FindAll(Function(obj As Color) obj.Equals(obj1)).Count))
+            backColor = uniqueColors(0)
+        End If
+
         Dim left As Integer = startingRect.X + startingRect.Width - 1
         Dim top As Integer = startingRect.Y + startingRect.Height - 1
         Dim right As Integer = startingRect.X
@@ -236,7 +248,7 @@ Module Extensions
             'Top edge
             For yIndex As Integer = startingRect.Y To startingRect.Bottom - 1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex + 2), imageBytes(pixIndex + 1), imageBytes(pixIndex))
+                Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
                 If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
@@ -248,7 +260,7 @@ Module Extensions
             'Bottom edge
             For yIndex As Integer = startingRect.Bottom - 1 To startingRect.Y Step -1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex + 2), imageBytes(pixIndex + 1), imageBytes(pixIndex))
+                Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
                 If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
@@ -263,7 +275,7 @@ Module Extensions
             'left edge
             For xIndex As Integer = startingRect.X To startingRect.Right - 1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex + 2), imageBytes(pixIndex + 1), imageBytes(pixIndex))
+                Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
                 If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
@@ -275,7 +287,7 @@ Module Extensions
             'right edge
             For xIndex As Integer = startingRect.Right - 1 To startingRect.X Step -1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex + 2), imageBytes(pixIndex + 1), imageBytes(pixIndex))
+                Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
                 If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
@@ -393,14 +405,14 @@ Module Extensions
             Dim xIndex As Integer = If(isHorizontal, index, startPerp)
             Dim yIndex As Integer = If(isHorizontal, startPerp, index)
             Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
-            Dim startPixel As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex + 2), imageBytes(pixIndex + 1), imageBytes(pixIndex))
+            Dim startPixel As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
             Dim areEquivalent As Boolean = True
             'Expand perpendicular
             For perpIndex As Integer = startPerp To endPerp1 Step -1
                 xIndex = If(isHorizontal, index, perpIndex)
                 yIndex = If(isHorizontal, perpIndex, index)
                 pixIndex = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex + 2), imageBytes(pixIndex + 1), imageBytes(pixIndex))
+                Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
                 If Not srcPix.Equivalent(startPixel, 5) Then
                     areEquivalent = False
                     Exit For
@@ -414,7 +426,7 @@ Module Extensions
                 xIndex = If(isHorizontal, index, perpIndex)
                 yIndex = If(isHorizontal, perpIndex, index)
                 pixIndex = (xIndex * 4) + yIndex * stride
-                Dim srcPix As Color = Color.FromArgb(imageBytes(pixIndex + 3), imageBytes(pixIndex + 2), imageBytes(pixIndex + 1), imageBytes(pixIndex))
+                Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
                 If Not srcPix.Equivalent(startPixel, 5) Then
                     areEquivalent = False
                     Exit For
@@ -558,6 +570,25 @@ Module Extensions
     End Function
 
     ''' <summary>
+    ''' Compares two color values
+    ''' Returns less than 0 if the given color grayscale intensity is higher than the current
+    ''' Returns 0 if they are the same grayscale intensity
+    ''' Returns greater than 0 if the given color grayscale intensity is lower than the current
+    ''' </summary>
+    <Extension>
+    Public Function CompareTo(color1 As Color, color2 As Color) As Integer
+        Return color1.Intensity.CompareTo(color2.Intensity)
+    End Function
+
+    ''' <summary>
+    ''' Gets the color as grayscale intensity, or average channel value * alpha/255
+    ''' </summary>
+    <Extension>
+    Public Function Intensity(color As Color) As Byte
+        Return ((CType(color.R, Integer) + color.G + color.B) / 3) * (color.A / 255.0)
+    End Function
+
+    ''' <summary>
     ''' Area of a rectangle W * H
     ''' </summary>
     <Extension>
@@ -620,6 +651,39 @@ Module Extensions
     <Extension>
     Public Function CompareNatural(string1 As String, string2 As String) As Integer
         Return StrCmpLogicalW(string1, string2)
+    End Function
+
+    ''' <summary>
+    ''' Gets a color value for a pixel out of a byte() with a known stride
+    ''' </summary>
+    <Extension>
+    Public Function GetPixel(pixBytes As Byte(), x As Integer, y As Integer, stride As Integer, bytesPerPixel As Integer) As Color
+        Dim pixIndex As Integer = (x * bytesPerPixel) + y * stride
+        Return Color.FromArgb(pixBytes(pixIndex + 3), pixBytes(pixIndex + 2), pixBytes(pixIndex + 1), pixBytes(pixIndex))
+    End Function
+
+    ''' <summary>
+    ''' Returns a new list of objects where no two items should compare with a result of 0
+    ''' </summary>
+    <Extension()>
+    Public Function Distinct(Of T)(collection As List(Of T), comparer As Comparison(Of T)) As List(Of T)
+        Dim tempCollection As List(Of T) = collection.ToArray.ToList
+        tempCollection.Sort(comparer)
+        Dim distinctCollection As New List(Of T)
+        If tempCollection.Count = 0 Then
+            Return distinctCollection
+        End If
+        distinctCollection.Add(tempCollection(0))
+        Dim lastItem As T = tempCollection(0)
+        For index As Integer = 1 To collection.Count - 1
+            If comparer.Invoke(tempCollection(index), lastItem) = 0 Then
+                'Skip same items
+            Else
+                distinctCollection.Add(tempCollection(index))
+                lastItem = tempCollection(index)
+            End If
+        Next
+        Return distinctCollection
     End Function
 
 #Region "Filters"
