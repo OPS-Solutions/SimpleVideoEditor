@@ -177,7 +177,7 @@ Public Class MainForm
         Dim endFrame As Integer = Math.Min(ctlVideoSeeker.RangeMaxValue + 1, mobjMetaData.TotalFrames)
         Dim endTrim As Decimal = If(endFrame = mobjMetaData.TotalFrames, mobjMetaData.DurationSeconds, mobjMetaData.ThumbImageCachePTS(endFrame))
         If useIntermediate Then
-            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", IO.Path.GetExtension(mstrVideoPath))
+            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
             If isMP4 Then
                 intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
             End If
