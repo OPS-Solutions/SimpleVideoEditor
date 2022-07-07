@@ -1018,7 +1018,10 @@ Public Class MainForm
         Else
             Return Nothing
         End If
-        Return numberRegex.Replace(fileNames(0), pattern)
+        Dim directoryPath As String = System.IO.Path.GetDirectoryName(fileNames(0))
+        Dim fileName As String = System.IO.Path.GetFileName(fileNames(0))
+        fileName = numberRegex.Replace(fileName, pattern)
+        Return System.IO.Path.Combine(directoryPath, fileName)
     End Function
 #End Region
 
