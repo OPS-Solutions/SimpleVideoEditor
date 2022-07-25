@@ -747,7 +747,7 @@ Public Class VideoData
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
         processInfo.Arguments += $" -vf ""select='between(n,{frameStart},{frameEnd})'"
-        If cropRect?.Width > 0 AndAlso cropRect.Value.Height > 0 AndAlso cropRect.Value.Center <> New Point(0, 0) Then
+        If cropRect?.Width > 0 AndAlso cropRect?.Height > 0 AndAlso cropRect?.Center <> New Point(0, 0) Then
             processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}""")
         Else
             processInfo.Arguments += """"
