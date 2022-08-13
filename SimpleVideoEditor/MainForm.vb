@@ -31,6 +31,8 @@ Public Class MainForm
     Private mdblPlaybackVolume As Double = 1
     Private mblnInputMash As Boolean = False 'Whether or not the loaded file is a mash of multiple inputs like image%d.png
 
+    Private mtskPreview As Task(Of Boolean) = Nothing 'Task for grabbing preview frames
+
     Private Class SpecialOutputProperties
         Public Decimate As Boolean
         Public FPS As Double
@@ -180,10 +182,20 @@ Public Class MainForm
         Dim intermediateFilePath As String = mstrVideoPath
         mproFfmpegProcess = Nothing
         Dim useIntermediate As Boolean = (sProperties.Decimate AndAlso isMP4) OrElse (sProperties.PlaybackSpeed <> 1 AndAlso Not ignoreTrim)
-        Dim endFrame As Integer = Math.Min(ctlVideoSeeker.RangeMaxValue + 1, mobjMetaData.TotalFrames)
+        Dim endFrame As Integer = ctlVideoSeeker.RangeMaxValue
+        Dim lastPossible As Integer = mobjMetaData.TotalFrames - 1
+        'Find the last frame we actually know exists
+        For index As Integer = mobjMetaData.TotalFrames - 1 To 0 Step -1
+            If mobjMetaData.ThumbImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                lastPossible = index
+                Exit For
+            End If
+        Next
+        endFrame = Math.Min(endFrame, lastPossible)
+        Dim frameAfterEnd As Integer = Math.Min(endFrame + 1, lastPossible)
         'Apply very marginal reduction to last frame duration to ensure -ss -t can be used with frame perfect precision
-        Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, endFrame - 1))
-        Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMaxValue) + lastFrameDuration * 0.99
+        Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(frameAfterEnd) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, frameAfterEnd - 1))
+        Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) + lastFrameDuration * 0.99
         Dim trimData As New TrimData With {
             .StartFrame = ctlVideoSeeker.RangeMinValue,
             .StartPTS = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue),
@@ -316,7 +328,32 @@ Public Class MainForm
 
         'Dim multiGrabBarrier As New Barrier(2)
         If fullFrameGrab Is Nothing Then
-            Dim frameRangeTask As Task(Of Boolean) = mobjMetaData.GetFfmpegFrameRangesAsync(Me.CreatePreviewFrameDefaults)
+            mtskPreview = mobjMetaData.GetFfmpegFrameRangesAsync(Me.CreatePreviewFrameDefaults())
+            Task.Run(Sub()
+                         mtskPreview.Wait()
+                         Me.Invoke(Sub()
+                                       mintAspectWidth = mobjMetaData.Width
+                                       mintAspectHeight = mobjMetaData.Height
+                                       If picVideo.Image IsNot Nothing Then
+                                           'If the resolution failed to load, put in something
+                                           If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
+                                               mintAspectWidth = picFrame1.Image.Width
+                                               mintAspectHeight = picFrame1.Image.Height
+                                           End If
+                                           'If the aspect ratio was somehow saved wrong, fix it
+                                           'Try flipping the known aspect, if its closer to what was loaded, change it
+                                           If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
+                                               SwapValues(mintAspectWidth, mintAspectHeight)
+                                           End If
+                                       End If
+
+                                       'Re-enable everything, even if we failed to grab the last frame
+                                       Me.UseWaitCursor = False
+                                       ctlVideoSeeker.Enabled = True
+                                       btnいくよ.Enabled = True
+                                       ExportAudioToolStripMenuItem.Enabled = mobjMetaData.AudioStream IsNot Nothing
+                                   End Sub)
+                     End Sub)
         End If
     End Sub
 
@@ -1421,15 +1458,19 @@ Public Class MainForm
     End Sub
 
     Private Sub PreviewsLoaded(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
+        'Don't use thumbs for previews
+        If objCache Is mobjMetaData.ThumbFrames Then
+            Exit Sub
+        End If
         If Me.InvokeRequired Then
             Me.Invoke(Sub()
                           PreviewsLoaded(sender, objCache, ranges)
                       End Sub)
         Else
-            Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults
+            Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults()
 
             For Each objRange In ranges
-                For previewIndex As Integer = 0 To 6
+                For previewIndex As Integer = 0 To previewFrames.Count - 1
                     Dim gotImage As Bitmap = Nothing
                     If previewFrames(previewIndex) >= objRange(0) AndAlso previewFrames(previewIndex) <= objRange(1) Then
                         gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
@@ -1464,26 +1505,6 @@ Public Class MainForm
                     End If
                 Next
             Next
-            If picFrame5.Image IsNot Nothing Then
-                mintAspectWidth = mobjMetaData.Width
-                mintAspectHeight = mobjMetaData.Height
-                If picVideo.Image IsNot Nothing Then
-                    'If the resolution failed to load, put in something
-                    If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
-                        mintAspectWidth = picFrame1.Image.Width
-                        mintAspectHeight = picFrame1.Image.Height
-                    End If
-                    'If the aspect ratio was somehow saved wrong, fix it
-                    'Try flipping the known aspect, if its closer to what was loaded, change it
-                    If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
-                        SwapValues(mintAspectWidth, mintAspectHeight)
-                    End If
-                End If
-                Me.UseWaitCursor = False
-                ctlVideoSeeker.Enabled = True
-                btnいくよ.Enabled = True
-                ExportAudioToolStripMenuItem.Enabled = mobjMetaData.AudioStream IsNot Nothing
-            End If
         End If
     End Sub
 
