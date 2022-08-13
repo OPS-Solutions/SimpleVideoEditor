@@ -331,29 +331,37 @@ Public Class MainForm
             mtskPreview = mobjMetaData.GetFfmpegFrameRangesAsync(Me.CreatePreviewFrameDefaults())
             Task.Run(Sub()
                          mtskPreview.Wait()
-                         Me.Invoke(Sub()
-                                       mintAspectWidth = mobjMetaData.Width
-                                       mintAspectHeight = mobjMetaData.Height
-                                       If picVideo.Image IsNot Nothing Then
-                                           'If the resolution failed to load, put in something
-                                           If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
-                                               mintAspectWidth = picFrame1.Image.Width
-                                               mintAspectHeight = picFrame1.Image.Height
-                                           End If
-                                           'If the aspect ratio was somehow saved wrong, fix it
-                                           'Try flipping the known aspect, if its closer to what was loaded, change it
-                                           If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
-                                               SwapValues(mintAspectWidth, mintAspectHeight)
-                                           End If
-                                       End If
-
-                                       'Re-enable everything, even if we failed to grab the last frame
-                                       Me.UseWaitCursor = False
-                                       ctlVideoSeeker.Enabled = True
-                                       btnいくよ.Enabled = True
-                                       ExportAudioToolStripMenuItem.Enabled = mobjMetaData.AudioStream IsNot Nothing
-                                   End Sub)
+                         PreviewFinished()
                      End Sub)
+        Else
+            PreviewFinished()
+        End If
+    End Sub
+
+    Private Sub PreviewFinished()
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub() PreviewFinished())
+        Else
+            mintAspectWidth = mobjMetaData.Width
+            mintAspectHeight = mobjMetaData.Height
+            If picVideo.Image IsNot Nothing Then
+                'If the resolution failed to load, put in something
+                If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
+                    mintAspectWidth = picFrame1.Image.Width
+                    mintAspectHeight = picFrame1.Image.Height
+                End If
+                'If the aspect ratio was somehow saved wrong, fix it
+                'Try flipping the known aspect, if its closer to what was loaded, change it
+                If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
+                    SwapValues(mintAspectWidth, mintAspectHeight)
+                End If
+            End If
+
+            'Re-enable everything, even if we failed to grab the last frame
+            Me.UseWaitCursor = False
+            ctlVideoSeeker.Enabled = True
+            btnいくよ.Enabled = True
+            ExportAudioToolStripMenuItem.Enabled = mobjMetaData.AudioStream IsNot Nothing
         End If
     End Sub
 
@@ -829,12 +837,18 @@ Public Class MainForm
         'mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
         UpdateColorKey()
         mobjGenericToolTip.SetToolTip(picPlaybackSpeed, "Playback speed multiplier.")
-        MotionInterpolationToolStripMenuItem.ToolTipText = $"Creates new frames to smooth motion when increasing FPS, or decreasing playback speed.{vbNewLine}WARNING: Slow processing and large file size may occur."
 
         'Status  tooltips
         lblStatusMousePosition.ToolTipText = "X,Y position of the mouse in video coordinates"
         lblStatusCropRect.ToolTipText = "Width x Height crop rectangle in video coordinates"
         lblStatusResolution.ToolTipText = $"Original resolution Width x Height of the loaded content.{vbNewLine}Shows more detailed stream information on hover."
+
+        'Context menu tooltips
+        MotionInterpolationToolStripMenuItem.ToolTipText = $"Creates new frames to smooth motion when increasing FPS, or decreasing playback speed.{vbNewLine}WARNING: Slow processing and large file size may occur."
+        CacheAllFramesToolStripMenuItem.ToolTipText = $"Caches every frame of the video into memory (high RAM requirement).{vbNewLine}Afterwards, frame scrubbing will be borderline instant."
+        ContractToolStripMenuItem.ToolTipText = $"Attempts to shrink the current selection rectangle as long as the pixels it overlays are of consistent color."
+        ExpandToolStripMenuItem.ToolTipText = $"Attempts to expand the current selection rectangle until the pixels it overlays are of consistent color."
+        InjectCustomArgumentsToolStripMenuItem.ToolTipText = $"An additional editable form will appear after selecting a save location, containing the command line arguments that will be sent to ffmpeg."
 
         'Change window title to current version
         Me.Text &= $" - {ProductVersion} - Open Source"
