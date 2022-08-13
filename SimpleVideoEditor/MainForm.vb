@@ -1454,9 +1454,9 @@ Public Class MainForm
             If mintCurrentFrame >= objRange(0) AndAlso mintCurrentFrame <= objRange(1) Then
                 'Ensure we avoid cross thread GDI access of the bitmap
                 If Me.InvokeRequired Then
-                    Me.Invoke(Sub()
-                                  NewFrameCached(sender, objCache, ranges)
-                              End Sub)
+                    Me.BeginInvoke(Sub()
+                                       NewFrameCached(sender, objCache, ranges)
+                                   End Sub)
                 Else
                     'Grab immediate
                     Dim gotImage As Bitmap = mobjMetaData.GetImageFromCache(mintCurrentFrame, objCache)
@@ -1477,9 +1477,9 @@ Public Class MainForm
             Exit Sub
         End If
         If Me.InvokeRequired Then
-            Me.Invoke(Sub()
-                          PreviewsLoaded(sender, objCache, ranges)
-                      End Sub)
+            Me.BeginInvoke(Sub()
+                               PreviewsLoaded(sender, objCache, ranges)
+                           End Sub)
         Else
             Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults()
 
@@ -1504,8 +1504,7 @@ Public Class MainForm
                                     If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                         mobjMetaData.OverrideTotalFrames(index + 1)
                                         RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
-                                        ctlVideoSeeker.MetaData = Nothing
-                                        ctlVideoSeeker.MetaData = mobjMetaData
+                                        ctlVideoSeeker.UpdateRange(False)
                                         AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
                                         Exit For
                                     End If

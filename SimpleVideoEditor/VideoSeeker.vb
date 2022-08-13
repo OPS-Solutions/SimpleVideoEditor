@@ -158,17 +158,32 @@
                 Exit Property
             End If
             mobjMetaData = value
-            If mobjMetaData IsNot Nothing Then
-                Me.RangeMax = mobjMetaData.TotalFrames - 1
-                Dim previewAspect As Double = Math.Min(42 / mobjMetaData.Size.Width, 34 / mobjMetaData.Size.Height)
-                mobjPreviewForm.MinimumSize = New Size(mobjMetaData.Size.Width * previewAspect, mobjMetaData.Size.Height * previewAspect)
-                mobjPreviewForm.MaximumSize = mobjPreviewForm.MinimumSize
-            End If
+            UpdateRange(True)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Forces the maximum range of the control to update to reflect the loaded metadata
+    ''' Optionally resetting the current trim locations
+    ''' </summary>
+    Public Sub UpdateRange(reset As Boolean)
+        If mobjMetaData IsNot Nothing Then
+            Me.RangeMax = mobjMetaData.TotalFrames - 1
+            Dim previewAspect As Double = Math.Min(42 / mobjMetaData.Size.Width, 34 / mobjMetaData.Size.Height)
+            mobjPreviewForm.MinimumSize = New Size(mobjMetaData.Size.Width * previewAspect, mobjMetaData.Size.Height * previewAspect)
+            mobjPreviewForm.MaximumSize = mobjPreviewForm.MinimumSize
+        End If
+        If reset Then
             Me.RangeMinValue = 0
             Me.RangeMaxValue = Me.RangeMax
             Me.PreviewLocation = 0
-        End Set
-    End Property
+        Else
+            'Leverage property setters which will bound the values in range
+            Me.RangeMinValue = Me.RangeMinValue
+            Me.RangeMaxValue = Me.RangeMaxValue
+            Me.PreviewLocation = Me.PreviewLocation
+        End If
+    End Sub
 
     Public Sub New()
         Me.DoubleBuffered = True
