@@ -1449,6 +1449,7 @@ Public Class MainForm
                                     If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                         mobjMetaData.OverrideTotalFrames(index + 1)
                                         RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+                                        ctlVideoSeeker.MetaData = Nothing
                                         ctlVideoSeeker.MetaData = mobjMetaData
                                         AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
                                         Exit For
