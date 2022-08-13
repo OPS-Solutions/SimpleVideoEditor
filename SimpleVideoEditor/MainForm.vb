@@ -313,19 +313,29 @@ Public Class MainForm
         'Signal barrer to synchronize completion between all keyframes
 
         'TODO Replace with a single ffmpeg call
+
+        'Dim multiGrabBarrier As New Barrier(2)
+        If fullFrameGrab Is Nothing Then
+            Dim frameRangeTask As Task(Of Boolean) = mobjMetaData.GetFfmpegFrameRangesAsync(Me.CreatePreviewFrameDefaults)
+        End If
+    End Sub
+
+
+    ''' <summary>
+    ''' Generates a list of frames that will be used as the default preview frame images
+    ''' </summary>
+    Private Function CreatePreviewFrameDefaults() As List(Of Integer)
         Dim previewFrames As New List(Of Integer)
         previewFrames.Add(0)
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.25))
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.5))
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.75))
-        previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 3))
-        previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 2))
-        previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 1))
-        'Dim multiGrabBarrier As New Barrier(2)
-        If fullFrameGrab Is Nothing Then
-            Dim frameRangeTask As Task(Of Boolean) = mobjMetaData.GetFfmpegFrameRangesAsync(previewFrames)
-        End If
-    End Sub
+        For index As Integer = 10 To 1 Step -1
+            previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - index))
+        Next
+        Return previewFrames
+    End Function
+
 
     ''' <summary>
     ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
@@ -1416,14 +1426,7 @@ Public Class MainForm
                           PreviewsLoaded(sender, objCache, ranges)
                       End Sub)
         Else
-            Dim previewFrames As New List(Of Integer)
-            previewFrames.Add(0)
-            previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.25))
-            previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.5))
-            previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.75))
-            previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 3))
-            previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 2))
-            previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 1))
+            Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults
 
             For Each objRange In ranges
                 For previewIndex As Integer = 0 To 6
@@ -1440,9 +1443,9 @@ Public Class MainForm
                                 targetPreview = picFrame3
                             Case 3
                                 targetPreview = picFrame4
-                            Case 4, 5, 6
+                            Case Else
                                 targetPreview = picFrame5
-                                For index As Integer = previewFrames(6) To previewFrames(4) Step -1
+                                For index As Integer = previewFrames.Last To previewFrames(4) Step -1
                                     If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                         mobjMetaData.OverrideTotalFrames(index + 1)
                                         RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
