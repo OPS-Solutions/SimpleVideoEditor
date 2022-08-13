@@ -10,8 +10,63 @@ Public Class ImageCache
 
     <Serializable()>
     Public Class CacheItem
+        ''' <summary>
+        ''' Immediately converts stored image data into a 32bppArgb bitmap and returns the new instance
+        ''' Remember to dispose afterwards
+        ''' </summary>
+        Public ReadOnly Property GetImage As Bitmap
+            Get
+                'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
+                'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
+                Using tempStream As New MemoryStream(ImageData)
+                    Dim incomingBitmap As Bitmap = New Bitmap(tempStream)
+                    If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
+                        Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
+                        Using g As Graphics = Graphics.FromImage(newBitmap)
+                            g.DrawImage(incomingBitmap, New Point(0, 0))
+                        End Using
+                        incomingBitmap.Dispose()
+                        incomingBitmap = newBitmap
+                    End If
+                    ImageStore = incomingBitmap
+                    Return ImageStore
+                End Using
+            End Get
+        End Property
+
+        Private mobjImgSize As Size?
+
+        Public ReadOnly Property Width
+            Get
+                Return Size.Width
+            End Get
+        End Property
+
+        Public ReadOnly Property Height
+            Get
+                Return Size.Width
+            End Get
+        End Property
+
+        Public ReadOnly Property Size As Size
+            Get
+                If mobjImgSize IsNot Nothing Then
+                    Return mobjImgSize
+                Else
+                    Using tempMap As Image = Me.GetImage()
+                        mobjImgSize = tempMap.Size
+                    End Using
+                End If
+            End Get
+        End Property
+
+
+        ''' <summary>Storage for the stream data converted into a bitmap</summary>
+        Private ImageStore As Bitmap
+
+        ''' <summary>Storage for the raw stream data provided by ffmpeg, hopefully compressed reasonably well</summary>
         <XmlIgnore>
-        Public Image As Bitmap
+        Public ImageData As Byte()
         ''' <summary>Time that the image was first queued up for retrieval</summary>
         Public QueueTime As DateTime?
         ''' <summary>Presentation time of the image</summary>
@@ -20,44 +75,44 @@ Public Class ImageCache
         ''' <summary>
         ''' Gets bytes from bitmap. Created for serialization
         ''' </summary>
-        Public Property BitmapBytes() As Byte()
-            Get
-                If Me.Image Is Nothing Then
-                    Return Nothing
-                Else
-                    Using memStream As New MemoryStream
-                        'The reason we have to do this is because the memory stream the bitmap
-                        'was created with has already been long destroyed
-                        Using tempMap As New Bitmap(Me.Image)
-                            tempMap.Save(memStream, Imaging.ImageFormat.Bmp)
-                            Return memStream.ToArray()
-                        End Using
-                    End Using
-                End If
-            End Get
-            Set(value As Byte())
-                If value Is Nothing Then
-                    Me.Image = Nothing
-                Else
-                    Using memStream As New MemoryStream
-                        memStream.Write(value, 0, value.Count)
-                        Me.Image = Bitmap.FromStream(memStream)
-                        Dim imageData As BitmapData = Image.LockBits(New Rectangle(0, 0, Image.Width, Image.Height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb)
+        'Public Property BitmapBytes() As Byte()
+        '    Get
+        '        If Me.Image Is Nothing Then
+        '            Return Nothing
+        '        Else
+        '            Using memStream As New MemoryStream
+        '                'The reason we have to do this is because the memory stream the bitmap
+        '                'was created with has already been long destroyed
+        '                Using tempMap As New Bitmap(Me.Image)
+        '                    tempMap.Save(memStream, Imaging.ImageFormat.Bmp)
+        '                    Return memStream.ToArray()
+        '                End Using
+        '            End Using
+        '        End If
+        '    End Get
+        '    Set(value As Byte())
+        '        If value Is Nothing Then
+        '            Me.Image = Nothing
+        '        Else
+        '            Using memStream As New MemoryStream
+        '                memStream.Write(value, 0, value.Count)
+        '                Me.Image = Bitmap.FromStream(memStream)
+        '                Dim imageData As BitmapData = Image.LockBits(New Rectangle(0, 0, Image.Width, Image.Height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb)
 
-                        Dim byteTotal As Integer = imageData.Stride * imageData.Height
-                        Dim scanLineTotal As Integer = imageData.Width * 3
-                        Dim pixelBytesTotal As Integer = scanLineTotal * imageData.Height
-                        If mbytPixels Is Nothing OrElse Not mbytPixels.Length = pixelBytesTotal Then
-                            ReDim mbytPixels(pixelBytesTotal - 1)
-                        End If
-                        For scanIndex As Integer = 0 To imageData.Height - 1
-                            Marshal.Copy(imageData.Scan0 + scanIndex * imageData.Stride, mbytPixels, scanIndex * scanLineTotal, scanLineTotal)
-                        Next
-                        Image.UnlockBits(imageData)
-                    End Using
-                End If
-            End Set
-        End Property
+        '                Dim byteTotal As Integer = imageData.Stride * imageData.Height
+        '                Dim scanLineTotal As Integer = imageData.Width * 3
+        '                Dim pixelBytesTotal As Integer = scanLineTotal * imageData.Height
+        '                If mbytPixels Is Nothing OrElse Not mbytPixels.Length = pixelBytesTotal Then
+        '                    ReDim mbytPixels(pixelBytesTotal - 1)
+        '                End If
+        '                For scanIndex As Integer = 0 To imageData.Height - 1
+        '                    Marshal.Copy(imageData.Scan0 + scanIndex * imageData.Stride, mbytPixels, scanIndex * scanLineTotal, scanLineTotal)
+        '                Next
+        '                Image.UnlockBits(imageData)
+        '            End Using
+        '        End If
+        '    End Set
+        'End Property
 
         <XmlIgnore>
         Private mbytPixels As Byte()
@@ -131,7 +186,7 @@ Public Class ImageCache
 
         Public Overrides Function ToString() As String
             Dim queueString As String = If(QueueTime?.ToString, "null")
-            Dim bitmapString As String = If(Image IsNot Nothing, $"{Image.Width}x{Image.Height}", "null")
+            Dim bitmapString As String = If(GetImage IsNot Nothing, $"{Me.Width}x{Me.Height}", "null")
             Return $"{Me.Status.ToString} | Queued: {queueString} | {bitmapString} | PTS: {Me.PTSTime}"
         End Function
 
@@ -156,16 +211,24 @@ Public Class ImageCache
         End Function
 
         Public Function Status() As CacheStatus
-            If Me.Image Is Nothing AndAlso Me.QueueTime Is Nothing Then
+            If Me.ImageData Is Nothing AndAlso Me.QueueTime Is Nothing Then
                 Return CacheStatus.None
             End If
-            If Me.Image IsNot Nothing Then
+            If Me.ImageData IsNot Nothing Then
                 Return CacheStatus.Cached
             ElseIf Me.QueueTime IsNot Nothing Then
                 Return CacheStatus.Queued
             End If
             Return CacheStatus.None
         End Function
+
+        Public Sub ClearImageData()
+            If Me.ImageStore IsNot Nothing Then
+                Me.ImageStore.Dispose()
+                Me.ImageStore = Nothing
+            End If
+            Me.ImageData = Nothing
+        End Sub
     End Class
 
     Public Enum CacheStatus
@@ -217,10 +280,7 @@ Public Class ImageCache
     ''' </summary>
     Public Sub ClearImageCache()
         For index As Integer = 0 To mobjCollection.Count - 1
-            If mobjCollection(index).Image IsNot Nothing Then
-                mobjCollection(index).Image.Dispose()
-                mobjCollection(index).Image = Nothing
-            End If
+            mobjCollection(index).ClearImageData()
             mobjCollection(index).QueueTime = Nothing
         Next
     End Sub

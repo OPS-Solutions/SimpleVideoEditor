@@ -480,7 +480,7 @@
                 End If
                 If imageToPreview IsNot Nothing Then
                     'Setup preview frame
-                    CType(mobjPreviewForm.Controls(0), PictureBox).Image = imageToPreview
+                    CType(mobjPreviewForm.Controls(0), PictureBox).SetImage(imageToPreview)
                     mobjPreviewForm.Visible = True
                     mobjPreviewForm.Location = Me.PointToScreen(New Point(actualPoint.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
                     Me.Focus()

@@ -613,8 +613,7 @@ Module Extensions
     End Function
 
     ''' <summary>
-    ''' Sets the image of a picturebox using .Clone, ensuring whatever image was previously assigned to the picturebox is disposed
-    ''' This can help avoid situations where the image could get locked or otherwise corrupted, causing the picturebox to render a red X on a white back
+    ''' Sets the image of a picturebox, ensuring the previous image is disposed
     ''' </summary>
     <Extension>
     Public Sub SetImage(pictureBox As PictureBox, newImage As Image)
@@ -622,7 +621,7 @@ Module Extensions
             pictureBox.Image.Dispose()
         End If
         If newImage IsNot Nothing Then
-            pictureBox.Image = newImage.Clone
+            pictureBox.Image = newImage
         Else
             pictureBox.Image = Nothing
         End If

@@ -210,7 +210,7 @@ Public Class VideoData
 
     Public Function GetImageFromCache(imageIndex As Integer, targetCache As ImageCache) As Bitmap
         If targetCache?.Items.Length > imageIndex AndAlso imageIndex >= 0 Then
-            Return targetCache(imageIndex).Image
+            Return targetCache(imageIndex).GetImage
         Else
             Return Nothing
         End If
@@ -218,7 +218,15 @@ Public Class VideoData
 
     Public Function GetImageFromCache(imageIndex As Integer) As Bitmap
         If mobjImageCache?.Items.Length > imageIndex AndAlso imageIndex >= 0 Then
-            Return Me.mobjImageCache(imageIndex).Image
+            Return Me.mobjImageCache(imageIndex).GetImage
+        Else
+            Return Nothing
+        End If
+    End Function
+
+    Public Function GetImageDataFromCache(imageIndex As Integer) As ImageCache.CacheItem
+        If mobjImageCache?.Items.Length > imageIndex AndAlso imageIndex >= 0 Then
+            Return Me.mobjImageCache(imageIndex)
         Else
             Return Nothing
         End If
@@ -230,7 +238,7 @@ Public Class VideoData
 
     Public Function GetImageFromThumbCache(imageIndex As Integer) As Bitmap
         If mobjThumbCache?.Items.Length > imageIndex AndAlso imageIndex >= 0 Then
-            Return Me.mobjThumbCache(imageIndex).Image
+            Return Me.mobjThumbCache(imageIndex).GetImage
         Else
             Return Nothing
         End If
@@ -360,31 +368,15 @@ Public Class VideoData
                         Dim imageBytes(imageBuffer.Count - 1) As Byte
                         imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
 
-                        Using recievedstream As New System.IO.MemoryStream
-                            recievedstream.Write(imageBytes, 0, imageBytes.Count)
+                        targetCache(frames(currentFrame)).ImageData = imageBytes
+                        targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
+                        framesRetrieved.Add(frames(currentFrame))
 
-                            'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
-                            'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
-                            Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
-                            If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
-                                Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
-                                Using g As Graphics = Graphics.FromImage(newBitmap)
-                                    g.DrawImage(incomingBitmap, New Point(0, 0))
-                                End Using
-                                incomingBitmap.Dispose()
-                                incomingBitmap = newBitmap
-                            End If
-
-                            targetCache(frames(currentFrame)).Image = incomingBitmap
-                            targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
-                            framesRetrieved.Add(frames(currentFrame))
-
-                            'If we have grabbed a few frames, it wouldn't hurt to update the UI
-                            If framesRetrieved.Count > 10 Then
-                                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
-                                framesRetrieved.Clear()
-                            End If
-                        End Using
+                        'If we have grabbed a few frames, it wouldn't hurt to update the UI
+                        If framesRetrieved.Count > 10 Then
+                            RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                            framesRetrieved.Clear()
+                        End If
                         currentFrame += 1
                         ReDim imageBuffer(15)
                         readOutputChunk = Nothing
@@ -450,7 +442,7 @@ Public Class VideoData
         If targetCache Is Nothing Then
             targetCache = mobjImageCache
         End If
-        If targetCache(frame).Image IsNot Nothing AndAlso cacheSize >= 0 Then
+        If targetCache(frame).ImageData IsNot Nothing AndAlso cacheSize >= 0 Then
             If cacheSize > 5 Then
                 'If we are at the edge of the cached items, try to expand it a little in advance
                 If targetCache(Math.Min(frame + 4, Math.Max(0, mobjMetaData.TotalFrames - 4))).Status = ImageCache.CacheStatus.None Then
@@ -472,7 +464,7 @@ Public Class VideoData
                                                     End Sub)
                 End If
             End If
-            Return targetCache(frame).Image
+            Return targetCache(frame).GetImage
         End If
         Dim earlyFrame As Integer = Math.Max(0, frame - (cacheSize - 1) / 2)
 
@@ -520,7 +512,7 @@ Public Class VideoData
             End While
 
             If startFrame = endFrame AndAlso targetCache(frame).Status = ImageCache.CacheStatus.Cached Then
-                Return targetCache(frame).Image
+                Return targetCache(frame).GetImage
             End If
             alreadyQueued = (startFrame = endFrame AndAlso targetCache(frame).Status = ImageCache.CacheStatus.Queued)
             Debug.Print($"Working for frames:{startFrame}-{endFrame} (Size:{frameSize.ToString})")
@@ -535,7 +527,7 @@ Public Class VideoData
             Return Await Task.Run(Function()
                                       Do
                                           If Not targetCache(frame).Status = ImageCache.CacheStatus.Queued Then
-                                              Return targetCache(frame).Image
+                                              Return targetCache(frame).GetImage
                                           Else
                                               Threading.Thread.Sleep(10)
                                           End If
@@ -637,36 +629,20 @@ Public Class VideoData
                             Dim imageBytes(imageBuffer.Count - 1) As Byte
                             imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
 
-                            Using recievedstream As New System.IO.MemoryStream
-                                recievedstream.Write(imageBytes, 0, imageBytes.Count)
+                            If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
+                                'Don't cache stuff we already have cached
+                            Else
+                                targetCache(currentFrame).ImageData = imageBytes
+                            End If
 
-                                If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
-                                    'Don't cache stuff we already have cached
-                                Else
-                                    Dim incomingBitmap As Bitmap = New Bitmap(recievedstream)
+                            targetCache(currentFrame).QueueTime = Nothing
+                            framesRetrieved.Add(currentFrame)
 
-                                    'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
-                                    'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
-                                    If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
-                                        Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
-                                        Using g As Graphics = Graphics.FromImage(newBitmap)
-                                            g.DrawImage(incomingBitmap, New Point(0, 0))
-                                        End Using
-                                        incomingBitmap.Dispose()
-                                        incomingBitmap = newBitmap
-                                    End If
-                                    targetCache(currentFrame).Image = incomingBitmap
-                                End If
-
-                                targetCache(currentFrame).QueueTime = Nothing
-                                framesRetrieved.Add(currentFrame)
-
-                                'If we have grabbed a few frames, it wouldn't hurt to update the UI
-                                If framesRetrieved.Count > 10 Then
-                                    RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
-                                    framesRetrieved.Clear()
-                                End If
-                            End Using
+                            'If we have grabbed a few frames, it wouldn't hurt to update the UI
+                            If framesRetrieved.Count > 10 Then
+                                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                framesRetrieved.Clear()
+                            End If
                             currentFrame += 1
                             ReDim imageBuffer(15)
                             readOutputChunk = Nothing
@@ -726,7 +702,7 @@ Public Class VideoData
             End If
         End Using
 
-        Return targetCache(frame).Image
+        Return targetCache(frame).GetImage
     End Function
 
     ''' <summary>

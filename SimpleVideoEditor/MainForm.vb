@@ -658,11 +658,12 @@ Public Class MainForm
         If Not allCached Then
             Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
         End If
+        Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
         Dim topLeftCropStart As Point = mptStartCrop
         Dim bottomRightCropStart As Point = mptEndCrop
-        Dim cropRect As Rectangle? = GetRealCrop(mptStartCrop, mptEndCrop, New Size(Me.mobjMetaData.GetImageFromCache(0).Width, Me.mobjMetaData.GetImageFromCache(0).Height))
-        Dim left As Integer = Me.mobjMetaData.GetImageFromCache(0).Width - 1
-        Dim top As Integer = Me.mobjMetaData.GetImageFromCache(0).Height - 1
+        Dim cropRect As Rectangle? = GetRealCrop(mptStartCrop, mptEndCrop, displaySize)
+        Dim left As Integer = displaySize.Width - 1
+        Dim top As Integer = displaySize.Height - 1
         Dim bottom As Integer = 0
         Dim right As Integer = 0
         Dim largestFrame As Integer = mintCurrentFrame
@@ -670,22 +671,24 @@ Public Class MainForm
                            For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                    'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
-                                   Dim boundRect As Rectangle = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 127)
-                                   Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
-                                   left = Math.Min(boundRect.Left, left)
-                                   top = Math.Min(boundRect.Top, top)
-                                   right = Math.Max(boundRect.Right, right)
-                                   bottom = Math.Max(boundRect.Bottom, bottom)
-                                   Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
+                                   Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
+                                       Dim boundRect As Rectangle = checkImage.BoundContents(cropRect,, 127)
+                                       Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
+                                       left = Math.Min(boundRect.Left, left)
+                                       top = Math.Min(boundRect.Top, top)
+                                       right = Math.Max(boundRect.Right, right)
+                                       bottom = Math.Max(boundRect.Bottom, bottom)
+                                       Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
 
-                                   If potentialRect.Area > currentRect.Area Then
-                                       largestFrame = index
-                                   End If
+                                       If potentialRect.Area > currentRect.Area Then
+                                           largestFrame = index
+                                       End If
+                                   End Using
                                End If
                            Next
                        End Sub)
         ctlVideoSeeker.PreviewLocation = largestFrame
-        If (left = 0 AndAlso top = 0 AndAlso right = Me.mobjMetaData.GetImageFromCache(0).Width - 1 AndAlso bottom = Me.mobjMetaData.GetImageFromCache(0).Height - 1) Then
+        If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
             SetCropPoints(New Point(0, 0), New Point(0, 0))
         Else
             SetCropPoints(New Point(left, top), New Point(right, bottom))
@@ -712,11 +715,12 @@ Public Class MainForm
         If Not allCached Then
             Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
         End If
+        Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
         Dim topLeftCropStart As Point = mptStartCrop
         Dim bottomRightCropStart As Point = mptEndCrop
-        Dim cropRect As Rectangle? = GetRealCrop(mptStartCrop, mptEndCrop, New Size(Me.mobjMetaData.GetImageFromCache(0).Width, Me.mobjMetaData.GetImageFromCache(0).Height))
-        Dim left As Integer = Me.mobjMetaData.GetImageFromCache(0).Width - 1
-        Dim top As Integer = Me.mobjMetaData.GetImageFromCache(0).Height - 1
+        Dim cropRect As Rectangle? = GetRealCrop(mptStartCrop, mptEndCrop, displaySize)
+        Dim left As Integer = displaySize.Width - 1
+        Dim top As Integer = displaySize.Height - 1
         Dim bottom As Integer = 0
         Dim right As Integer = 0
         Dim largestFrame As Integer = mintCurrentFrame
@@ -724,22 +728,24 @@ Public Class MainForm
                            For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                    'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
-                                   Dim boundRect As Rectangle = Me.mobjMetaData.GetImageFromCache(index).ExpandContents(cropRect, 4)
-                                   Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
-                                   left = Math.Min(boundRect.Left, left)
-                                   top = Math.Min(boundRect.Top, top)
-                                   right = Math.Max(boundRect.Right, right)
-                                   bottom = Math.Max(boundRect.Bottom, bottom)
-                                   Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
+                                   Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
+                                       Dim boundRect As Rectangle = checkImage.ExpandContents(cropRect, 4)
+                                       Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
+                                       left = Math.Min(boundRect.Left, left)
+                                       top = Math.Min(boundRect.Top, top)
+                                       right = Math.Max(boundRect.Right, right)
+                                       bottom = Math.Max(boundRect.Bottom, bottom)
+                                       Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
 
-                                   If potentialRect.Area > currentRect.Area Then
-                                       largestFrame = index
-                                   End If
+                                       If potentialRect.Area > currentRect.Area Then
+                                           largestFrame = index
+                                       End If
+                                   End Using
                                End If
                            Next
                        End Sub)
         ctlVideoSeeker.PreviewLocation = largestFrame
-        If (left = 0 AndAlso top = 0 AndAlso right = Me.mobjMetaData.GetImageFromCache(0).Width - 1 AndAlso bottom = Me.mobjMetaData.GetImageFromCache(0).Height - 1) Then
+        If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
             SetCropPoints(New Point(0, 0), New Point(0, 0))
         Else
             SetCropPoints(New Point(left, top), New Point(right, bottom))
@@ -939,7 +945,7 @@ Public Class MainForm
             mptEndCrop = Nothing
         End If
         If (cropBottomRight.X - cropTopLeft.X) > 0 And (cropBottomRight.Y - cropTopLeft.Y) > 0 Then
-            Dim displaySize As Size = Me.mobjMetaData.GetImageFromCache(0).Size
+            Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
             'Calculate actual crop locations due to bars and aspect ration changes
             Dim actualAspectRatio As Double = (displaySize.Height / displaySize.Width)
             Dim picVideoAspectRatio As Double = (picVideo.Height / picVideo.Width)
@@ -950,8 +956,8 @@ Public Class MainForm
             Dim horizontalBarSizeRealPx As Integer = If(actualAspectRatio > picVideoAspectRatio, (picVideo.Width - displaySize.Width * fitRatio) / 2, 0)
             Dim displayWidth As Double = picVideo.Width - (horizontalBarSizeRealPx * 2)
             Dim displayHeight As Double = picVideo.Height - (verticalBarSizeRealPx * 2)
-            Dim realStartCrop As Point = New Point(Math.Max(0, (cropTopLeft.X / Me.mobjMetaData.GetImageFromCache(0).Width) * displayWidth + horizontalBarSizeRealPx), Math.Max(0, (cropTopLeft.Y / Me.mobjMetaData.GetImageFromCache(0).Height) * displayHeight + verticalBarSizeRealPx))
-            Dim realEndCrop As Point = New Point(Math.Max(0, (cropBottomRight.X / Me.mobjMetaData.GetImageFromCache(0).Width) * displayWidth + horizontalBarSizeRealPx), Math.Max(0, (cropBottomRight.Y / Me.mobjMetaData.GetImageFromCache(0).Height) * displayHeight + verticalBarSizeRealPx))
+            Dim realStartCrop As Point = New Point(Math.Max(0, (cropTopLeft.X / displaySize.Width) * displayWidth + horizontalBarSizeRealPx), Math.Max(0, (cropTopLeft.Y / displaySize.Height) * displayHeight + verticalBarSizeRealPx))
+            Dim realEndCrop As Point = New Point(Math.Max(0, (cropBottomRight.X / displaySize.Width) * displayWidth + horizontalBarSizeRealPx), Math.Max(0, (cropBottomRight.Y / displaySize.Height) * displayHeight + verticalBarSizeRealPx))
             mptStartCrop = realStartCrop
             mptEndCrop = realEndCrop
             UpdateCropStatus()
@@ -1395,6 +1401,8 @@ Public Class MainForm
                     Dim gotImage As Bitmap = mobjMetaData.GetImageFromCache(mintCurrentFrame, objCache)
                     If picVideo.Image Is Nothing OrElse picVideo.Image.Width < gotImage.Width Then
                         picVideo.SetImage(gotImage)
+                    Else
+                        gotImage.Dispose()
                     End If
                 End If
                 Exit For
@@ -1445,7 +1453,9 @@ Public Class MainForm
                                 Next
                         End Select
                         If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
-                            targetPreview.Image = gotImage
+                            targetPreview.SetImage(gotImage)
+                        Else
+                            gotImage.Dispose()
                         End If
                     End If
                 Next
