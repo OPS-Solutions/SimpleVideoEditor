@@ -18,19 +18,23 @@ Public Class ImageCache
             Get
                 'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
                 'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
-                Using tempStream As New MemoryStream(ImageData)
-                    Dim incomingBitmap As Bitmap = New Bitmap(tempStream)
-                    If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
-                        Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
-                        Using g As Graphics = Graphics.FromImage(newBitmap)
-                            g.DrawImage(incomingBitmap, New Point(0, 0))
-                        End Using
-                        incomingBitmap.Dispose()
-                        incomingBitmap = newBitmap
-                    End If
-                    ImageStore = incomingBitmap
-                    Return ImageStore
-                End Using
+                If ImageData IsNot Nothing Then
+                    Using tempStream As New MemoryStream(ImageData)
+                        Dim incomingBitmap As Bitmap = New Bitmap(tempStream)
+                        If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
+                            Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
+                            Using g As Graphics = Graphics.FromImage(newBitmap)
+                                g.DrawImage(incomingBitmap, New Point(0, 0))
+                            End Using
+                            incomingBitmap.Dispose()
+                            incomingBitmap = newBitmap
+                        End If
+                        ImageStore = incomingBitmap
+                        Return ImageStore
+                    End Using
+                Else
+                    Return Nothing
+                End If
             End Get
         End Property
 
