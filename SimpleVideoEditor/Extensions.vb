@@ -685,6 +685,21 @@ Module Extensions
         Return distinctCollection
     End Function
 
+    ''' <summary>
+    ''' Flattens a string collection into a delimited list
+    ''' </summary>
+    <Extension()>
+    Public Function Flatten(collection As IEnumerable(Of String), Optional delimiter As String = ",") As String
+        Dim builder As New System.Text.StringBuilder()
+        For index As Integer = 0 To collection.Count - 1
+            builder.Append(collection(index))
+            If index <> collection.Count - 1 Then
+                builder.Append(delimiter)
+            End If
+        Next
+        Return builder.ToString
+    End Function
+
 #Region "Filters"
     ''' <summary>
     ''' Returns a copy of the image that has had a grayscale filter applied

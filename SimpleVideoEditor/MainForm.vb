@@ -68,7 +68,8 @@ Public Class MainForm
         Try
             LoadFiles(ofdVideoIn.FileNames)
         Catch ex As Exception
-            MessageBox.Show(ex.Message & vbNewLine & ex.StackTrace)
+            ClearControls()
+            MessageBox.Show($"Failed to load selected file(s) '{ofdVideoIn.FileNames.Flatten()}'" & vbNewLine & ex.ToString)
         End Try
     End Sub
 
@@ -83,7 +84,7 @@ Public Class MainForm
             mobjMetaData = Nothing
         End If
         mobjMetaData = VideoData.FromFile(mstrVideoPath, inputMash)
-        lblStatusResolution.ToolTipText = lblStatusResolution.ToolTipText.Split(vbNewLine)(0).Trim & vbNewLine & mobjMetaData.VideoStream.Raw
+        RefreshStatusToolTips()
 
         RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
         ctlVideoSeeker.MetaData = mobjMetaData
@@ -715,6 +716,7 @@ Public Class MainForm
         If cropEndImage.X = 0 AndAlso cropEndImage.Y = 0 Then
             'Don't show crop info if we aren't cropping
             lblStatusCropRect.Text = ""
+            lblStatusCropRect.ToolTipText = "Width x Height crop rectangle in video coordinates"
         Else
             cropActual = New Rectangle(cropStartImage, New Size(cropEndImage.X - cropStartImage.X + 1, cropEndImage.Y - cropStartImage.Y + 1))
             'lblStatusCropRect.Text = $"{cropActual.X},{cropActual.Y},{cropActual.Width},{cropActual.Height}"
@@ -925,10 +927,7 @@ Public Class MainForm
         UpdateColorKey()
         mobjGenericToolTip.SetToolTip(picPlaybackSpeed, "Playback speed multiplier.")
 
-        'Status  tooltips
-        lblStatusMousePosition.ToolTipText = "X,Y position of the mouse in video coordinates"
-        lblStatusCropRect.ToolTipText = "Width x Height crop rectangle in video coordinates"
-        lblStatusResolution.ToolTipText = $"Original resolution Width x Height of the loaded content.{vbNewLine}Shows more detailed stream information on hover."
+        RefreshStatusToolTips()
 
         'Context menu tooltips
         MotionInterpolationToolStripMenuItem.ToolTipText = $"Creates new frames to smooth motion when increasing FPS, or decreasing playback speed.{vbNewLine}WARNING: Slow processing and large file size may occur."
@@ -977,6 +976,21 @@ Public Class MainForm
                                      End Sub)
     End Sub
 
+    ''' <summary>
+    ''' Ensures status tooltips that change dynamically with data are up to date
+    ''' </summary>
+    Private Sub RefreshStatusToolTips()
+        'Status  tooltips
+        lblStatusMousePosition.ToolTipText = "X,Y position of the mouse in video coordinates"
+        UpdateCropStatus()
+
+        If mobjMetaData IsNot Nothing Then
+            lblStatusResolution.ToolTipText = lblStatusResolution.ToolTipText.Split(vbNewLine)(0).Trim & vbNewLine & mobjMetaData.VideoStream.Raw
+        Else
+            lblStatusResolution.ToolTipText = $"Original resolution Width x Height of the loaded content.{vbNewLine}Shows more detailed stream information on hover."
+        End If
+    End Sub
+
     Private Sub DeleteUpdateFiles()
         Dim badExePath As String = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly.Location) + "\DeletableSimpleVideoEditor.exe"
         If File.Exists(badExePath) Then
@@ -1009,8 +1023,10 @@ Public Class MainForm
         ctlVideoSeeker.Enabled = False
         btnいくよ.Enabled = False
         ExportAudioToolStripMenuItem.Enabled = False
-        Me.Text = Me.Text.Split("-")(0).Trim + " - Open Source"
+        Me.Text = Me.Text.Split("-")(0).Trim + $" - {ProductVersion} - Open Source"
         DefaultToolStripMenuItem.Text = "Default"
+        lblStatusResolution.Text = ""
+        RefreshStatusToolTips()
     End Sub
 #End Region
 
