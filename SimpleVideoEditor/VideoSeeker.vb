@@ -242,16 +242,20 @@
             Dim currentFrameTick As Integer = 0
             For index As Integer = 0 To NumberOfTicks - 1
                 currentFrameTick = (Me.mobjMetaData.TotalFrames / NumberOfTicks) * index
+                Dim tickHeight As Integer = 2
                 Dim drawPen As Pen = Pens.Gray
                 Select Case Me.mobjMetaData.ImageCacheStatus(currentFrameTick)
                     Case ImageCache.CacheStatus.None
+                        If Me.mobjMetaData.ThumbImageCacheStatus(currentFrameTick) <> ImageCache.CacheStatus.Cached Then
+                            tickHeight = 1
+                        End If
                         drawPen = Pens.DarkGray
                     Case ImageCache.CacheStatus.Queued
                         drawPen = Pens.Orange
                     Case ImageCache.CacheStatus.Cached
                         drawPen = Pens.Black
                 End Select
-                e.Graphics.DrawLine(drawPen, New Point(index * DistanceBetweenTicks, Me.Height), New Point(index * DistanceBetweenTicks, Me.Height - 2))
+                e.Graphics.DrawLine(drawPen, New Point(index * DistanceBetweenTicks, Me.Height), New Point(index * DistanceBetweenTicks, Me.Height - tickHeight))
             Next
         End If
 
