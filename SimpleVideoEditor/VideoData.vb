@@ -256,13 +256,26 @@ Public Class VideoData
     End Function
 
     ''' <summary>
+    ''' Polls ffmpeg for all frames between start and end (inclusive), all in the same ffmpeg call
+    ''' </summary>
+    Public Async Function GetFfmpegFramesAsync(startframe As Integer, endframe As Integer, Optional frameSize As Size = Nothing, Optional targetCache As ImageCache = Nothing) As Task(Of Boolean)
+        'Generate list of frames
+        Dim frames As New List(Of Integer)
+        For index As Integer = startframe To endframe
+            frames.Add(index)
+        Next
+        Return Await GetFfmpegFrameRangesAsync(frames, frameSize, targetCache)
+    End Function
+
+    ''' <summary>
     ''' Polls ffmpeg for each given frame, all in the same ffmpeg call
     ''' </summary>
     Public Async Function GetFfmpegFrameRangesAsync(ByVal frames As List(Of Integer), Optional frameSize As Size = Nothing, Optional targetCache As ImageCache = Nothing) As Task(Of Boolean)
+        Dim ranges As List(Of List(Of Integer)) = frames.CreateRanges()
+
         If targetCache Is Nothing Then
             targetCache = mobjImageCache
         End If
-        Dim ranges As List(Of List(Of Integer)) = frames.CreateRanges()
 
         SyncLock targetCache
             For Each objRange In ranges
@@ -310,8 +323,8 @@ Public Class VideoData
             '    Debug.Print(tempProcess.StandardError.ReadLine)
             'Loop While Not tempProcess.StandardError.EndOfStream
 #End If
-            Dim currentFrame As Integer = frames(0)
-            Dim currentErrorFrame As Integer = frames(0)
+            Dim currentFrame As Integer = 0
+            Dim currentErrorFrame As Integer = 0
             Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
             Dim framesRetrieved As New List(Of Integer)
             'Dim frameRegex As New Regex("frame=\s*(\d*)")

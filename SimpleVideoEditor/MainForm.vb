@@ -711,7 +711,7 @@ Public Class MainForm
             End If
         Next
         If Not allCached Then
-            Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
+            Await mobjMetaData.GetFfmpegFramesAsync(Me.ctlVideoSeeker.RangeMinValue, Me.ctlVideoSeeker.RangeMaxValue)
         End If
         Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
         Dim topLeftCropStart As Point = mptStartCrop
@@ -768,7 +768,7 @@ Public Class MainForm
             End If
         Next
         If Not allCached Then
-            Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
+            Await mobjMetaData.GetFfmpegFramesAsync(Me.ctlVideoSeeker.RangeMinValue, Me.ctlVideoSeeker.RangeMaxValue)
         End If
         Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
         Dim topLeftCropStart As Point = mptStartCrop
