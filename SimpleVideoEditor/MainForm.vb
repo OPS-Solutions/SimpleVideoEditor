@@ -30,6 +30,7 @@ Public Class MainForm
     Private mdblPlaybackSpeed As Double = 1
     Private mdblPlaybackVolume As Double = 1
     Private mblnInputMash As Boolean = False 'Whether or not the loaded file is a mash of multiple inputs like image%d.png
+    Private mobjSlideQueue As Thread 'Thread for handling changing the preview image when moving seek sliders with the mouse, to avoid doing too many and impacting performance
 
     Private mtskPreview As Task(Of Boolean) = Nothing 'Task for grabbing preview frames
 
@@ -134,9 +135,8 @@ Public Class MainForm
         End If
     End Sub
 
-
     ''' <summary>
-    ''' Saves the file at the specified location
+    ''' Sets up necessary information and runs ffmpeg targetting the desired filepath, saving to the target location, overwriting or deleting as necessary
     ''' </summary>
     Private Sub SaveFile(ByVal outputPath As String, Optional overwrite As Boolean = False)
         'If overwrite is checked, re-name the current video, then run ffmpeg and output to original, and delete the re-named one
@@ -247,24 +247,16 @@ Public Class MainForm
     End Sub
 
     ''' <summary>
-    ''' Save file when the save file dialog is finished with an "ok" click
-    ''' </summary>
-    Private Sub sfdVideoOut_FileOk(sender As System.Windows.Forms.SaveFileDialog, e As EventArgs) Handles sfdVideoOut.FileOk
-        If IO.Path.GetExtension(sfdVideoOut.FileName).Length = 0 Then
-            'If the user failed to have a file extension, default to the one it already was
-            sfdVideoOut.FileName += IO.Path.GetExtension(mstrVideoPath)
-        End If
-        SaveFile(sfdVideoOut.FileName, System.IO.File.Exists(sfdVideoOut.FileName))
-    End Sub
-
-    ''' <summary>
-    ''' sets up needed information and runs ffmpeg.exe to render the final video.
+    ''' Checks for the user to be holding ctrl for injection, then opens a "save as" dialog
     ''' </summary>
     Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
         mblnUserInjection = My.Computer.Keyboard.CtrlKeyDown
         SaveAs()
     End Sub
 
+    ''' <summary>
+    ''' Opens a "save as" dialog for the user to define a target file location
+    ''' </summary>
     Private Sub SaveAs()
         sfdVideoOut.Filter = "MP4|*.mp4|GIF|*.gif|MKV|*.mkv|WMV|*.wmv|AVI|*.avi|MOV|*.mov|All files (*.*)|*.*"
         Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
@@ -278,8 +270,20 @@ Public Class MainForm
         sfdVideoOut.OverwritePrompt = True
         sfdVideoOut.ShowDialog()
     End Sub
+
+    ''' <summary>
+    ''' Save file when the save file dialog is finished with an "ok" click
+    ''' </summary>
+    Private Sub sfdVideoOut_FileOk(sender As System.Windows.Forms.SaveFileDialog, e As EventArgs) Handles sfdVideoOut.FileOk
+        If IO.Path.GetExtension(sfdVideoOut.FileName).Length = 0 Then
+            'If the user failed to have a file extension, default to the one it already was
+            sfdVideoOut.FileName += IO.Path.GetExtension(mstrVideoPath)
+        End If
+        SaveFile(sfdVideoOut.FileName, System.IO.File.Exists(sfdVideoOut.FileName))
+    End Sub
 #End Region
 
+#Region "Preview Frames"
     ''' <summary>
     ''' Polls for keyframe image data from ffmpeg, gives a loading cursor
     ''' </summary>
@@ -338,6 +342,10 @@ Public Class MainForm
         End If
     End Sub
 
+
+    ''' <summary>
+    ''' Re-enables important controls on the UI and sets up known actual width/height
+    ''' </summary>
     Private Sub PreviewFinished()
         If Me.InvokeRequired Then
             Me.Invoke(Sub() PreviewFinished())
@@ -381,6 +389,56 @@ Public Class MainForm
         Return previewFrames
     End Function
 
+    Private Sub PreviewsLoaded(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
+        'Don't use thumbs for previews
+        If objCache Is mobjMetaData.ThumbFrames Then
+            Exit Sub
+        End If
+        If Me.InvokeRequired Then
+            Me.BeginInvoke(Sub()
+                               PreviewsLoaded(sender, objCache, ranges)
+                           End Sub)
+        Else
+            Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults()
+
+            For Each objRange In ranges
+                For previewIndex As Integer = 0 To previewFrames.Count - 1
+                    Dim gotImage As Bitmap = Nothing
+                    If previewFrames(previewIndex) >= objRange(0) AndAlso previewFrames(previewIndex) <= objRange(1) Then
+                        gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
+                        Dim targetPreview As PictureBox = Nothing
+                        Select Case previewIndex
+                            Case 0
+                                targetPreview = picFrame1
+                            Case 1
+                                targetPreview = picFrame2
+                            Case 2
+                                targetPreview = picFrame3
+                            Case 3
+                                targetPreview = picFrame4
+                            Case Else
+                                targetPreview = picFrame5
+                                For index As Integer = previewFrames.Last To previewFrames(4) Step -1
+                                    If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                                        mobjMetaData.OverrideTotalFrames(index + 1)
+                                        RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+                                        ctlVideoSeeker.UpdateRange(False)
+                                        AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+                                        Exit For
+                                    End If
+                                Next
+                        End Select
+                        If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
+                            targetPreview.SetImage(gotImage)
+                        Else
+                            gotImage.Dispose()
+                        End If
+                    End If
+                Next
+            Next
+        End If
+    End Sub
+#End Region
 
     ''' <summary>
     ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
@@ -572,8 +630,6 @@ Public Class MainForm
         mproFfmpegProcess = Process.Start(processInfo)
     End Sub
 
-
-
 #Region "CROPPING CLICK AND DRAG"
     ''' <summary>
     ''' Updates the main image with one of the pre-selected images from the picture box clicked.
@@ -664,7 +720,6 @@ Public Class MainForm
         End If
     End Sub
 
-
     ''' <summary>
     ''' Modifies the crop region, draggable in all directions
     ''' </summary>
@@ -691,6 +746,35 @@ Public Class MainForm
             mptEndCrop.X = maxX
             mptEndCrop.Y = maxY
             picVideo.Invalidate()
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Clears the crop settings from the main picVideo control
+    ''' </summary>
+    ''' <param name="sender"></param>
+    ''' <param name="e"></param>
+    Private Sub cmsPicVideoClear_Click(sender As Object, e As EventArgs) Handles cmsPicVideoClear.Click
+        mptStartCrop = New Point(0, 0)
+        mptEndCrop = New Point(0, 0)
+        UpdateCropStatus()
+        picVideo.Invalidate()
+    End Sub
+
+    ''' <summary>
+    ''' Updates the crop information to properly align with the new form size
+    ''' </summary>
+    Private Sub MainForm_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
+        If mobjMetaData IsNot Nothing AndAlso mrectLastCrop IsNot Nothing Then
+            'Update crop locations if needed
+            mptStartCrop = picVideo.ImagePointToClient(mrectLastCrop?.Location, Me.mobjMetaData.Size)
+            mptEndCrop = picVideo.ImagePointToClient(mrectLastCrop?.BottomRight, Me.mobjMetaData.Size)
+        End If
+    End Sub
+
+    Private Sub MainForm_ResizeBegin(sender As Object, e As EventArgs) Handles MyBase.ResizeBegin
+        If mobjMetaData IsNot Nothing Then
+            mrectLastCrop = GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size)
         End If
     End Sub
 
@@ -946,40 +1030,10 @@ Public Class MainForm
     End Sub
 
     ''' <summary>
-    ''' Returns the temporary file path used to store images that ffmpeg.exe finds. TODO Would be nice to have a Ramdisk, or just not use files at all.
-    ''' </summary>
-    Public ReadOnly Property TempFolderPath() As String
-        Get
-            Return Application.StartupPath & "\tempSimpleVideoEditor"
-        End Get
-    End Property
-
-    ''' <summary>
     ''' Add a little bit of text to the end of a file name string between its extension like "-temp" or "-SHINY".
     ''' </summary>
     Public Shared Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
         Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
-    End Function
-
-    ''' <summary>
-    ''' Changes the extension of a filepath string
-    ''' </summary>
-    Public Shared Function FileNameChangeExtension(ByVal fullPath As String, ByVal newExtension As String)
-        Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newExtension
-    End Function
-
-    ''' <summary>
-    ''' Returns an image from file without locking it from being deleted
-    ''' </summary>
-    Public Shared Function GetImageNonLocking(ByVal fullPath As String) As Image
-        Try
-            Using fileStream As New System.IO.FileStream(fullPath, IO.FileMode.Open, IO.FileAccess.Read)
-                Return Image.FromStream(fileStream)
-            End Using
-        Catch
-            'Failed to access image
-            Return Nothing
-        End Try
     End Function
 
     ''' <summary>
@@ -1323,18 +1377,6 @@ Public Class MainForm
     End Sub
 #End Region
 
-    ''' <summary>
-    ''' Clears the crop settings from the main picVideo control
-    ''' </summary>
-    ''' <param name="sender"></param>
-    ''' <param name="e"></param>
-    Private Sub cmsPicVideoClear_Click(sender As Object, e As EventArgs) Handles cmsPicVideoClear.Click
-        mptStartCrop = New Point(0, 0)
-        mptEndCrop = New Point(0, 0)
-        UpdateCropStatus()
-        picVideo.Invalidate()
-    End Sub
-
 #Region "Frame Export"
 
     ''' <summary>
@@ -1446,9 +1488,6 @@ Public Class MainForm
         End If
     End Sub
 
-    Private mobjSlideQueue As Thread
-
-
     Private Sub NewFrameCached(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
         For Each objRange In ranges
             If mintCurrentFrame >= objRange(0) AndAlso mintCurrentFrame <= objRange(1) Then
@@ -1471,56 +1510,6 @@ Public Class MainForm
         Next
     End Sub
 
-    Private Sub PreviewsLoaded(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
-        'Don't use thumbs for previews
-        If objCache Is mobjMetaData.ThumbFrames Then
-            Exit Sub
-        End If
-        If Me.InvokeRequired Then
-            Me.BeginInvoke(Sub()
-                               PreviewsLoaded(sender, objCache, ranges)
-                           End Sub)
-        Else
-            Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults()
-
-            For Each objRange In ranges
-                For previewIndex As Integer = 0 To previewFrames.Count - 1
-                    Dim gotImage As Bitmap = Nothing
-                    If previewFrames(previewIndex) >= objRange(0) AndAlso previewFrames(previewIndex) <= objRange(1) Then
-                        gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
-                        Dim targetPreview As PictureBox = Nothing
-                        Select Case previewIndex
-                            Case 0
-                                targetPreview = picFrame1
-                            Case 1
-                                targetPreview = picFrame2
-                            Case 2
-                                targetPreview = picFrame3
-                            Case 3
-                                targetPreview = picFrame4
-                            Case Else
-                                targetPreview = picFrame5
-                                For index As Integer = previewFrames.Last To previewFrames(4) Step -1
-                                    If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                                        mobjMetaData.OverrideTotalFrames(index + 1)
-                                        RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
-                                        ctlVideoSeeker.UpdateRange(False)
-                                        AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
-                                        Exit For
-                                    End If
-                                Next
-                        End Select
-                        If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
-                            targetPreview.SetImage(gotImage)
-                        Else
-                            gotImage.Dispose()
-                        End If
-                    End If
-                Next
-            Next
-        End If
-    End Sub
-
     Private Async Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click
         Me.UseWaitCursor = True
         Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
@@ -1538,20 +1527,6 @@ Public Class MainForm
 
     Private Sub picVideo_MouseLeave(sender As Object, e As EventArgs) Handles picVideo.MouseLeave
         lblStatusMousePosition.Text = ""
-    End Sub
-
-    Private Sub MainForm_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
-        If mobjMetaData IsNot Nothing AndAlso mrectLastCrop IsNot Nothing Then
-            'Update crop locations if needed
-            mptStartCrop = picVideo.ImagePointToClient(mrectLastCrop?.Location, Me.mobjMetaData.Size)
-            mptEndCrop = picVideo.ImagePointToClient(mrectLastCrop?.BottomRight, Me.mobjMetaData.Size)
-        End If
-    End Sub
-
-    Private Sub MainForm_ResizeBegin(sender As Object, e As EventArgs) Handles MyBase.ResizeBegin
-        If mobjMetaData IsNot Nothing Then
-            mrectLastCrop = GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size)
-        End If
     End Sub
 
 #Region "DragDrop"
