@@ -312,7 +312,7 @@ Public Class MainForm
         Dim fullFrameGrab As Task(Of Bitmap) = Nothing
         'Grab compressed frames
         If Not mobjMetaData.ReadThumbsFromFile Then
-            If mobjMetaData.DurationSeconds < 5 Then
+            If mobjMetaData.DurationSeconds < 6 Then
                 'If the video is pretty short, just cache the whole thing
                 fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
             Else
@@ -338,7 +338,10 @@ Public Class MainForm
                          PreviewFinished()
                      End Sub)
         Else
-            PreviewFinished()
+            Task.Run(Sub()
+                         fullFrameGrab.Wait()
+                         PreviewFinished()
+                     End Sub)
         End If
     End Sub
 
