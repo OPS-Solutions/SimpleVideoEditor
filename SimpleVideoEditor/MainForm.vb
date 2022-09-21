@@ -1,6 +1,7 @@
 ﻿Imports System.Drawing.Imaging
 Imports System.IO
 Imports System.IO.Pipes
+Imports System.Runtime.Remoting.Metadata.W3cXsd2001
 Imports System.Text.RegularExpressions
 Imports System.Threading
 
@@ -209,7 +210,7 @@ Public Class MainForm
                 intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
             End If
             'Don't pass in special properties yet, it would be better to decimate after cropping
-            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = 1, .QScale = 0}, If(ignoreTrim, New TrimData, trimData), cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
+            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = 1, .QScale = 0}, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
             If Not ignoreTrim Then
                 ignoreTrim = True
             End If
@@ -233,7 +234,7 @@ Public Class MainForm
             SwapValues(realwidth, realheight)
         End If
         'Now you can apply everything else
-        RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, New TrimData, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Point(0, 0), mptStartCrop), If(useIntermediate, New Point(0, 0), mptEndCrop))
+        RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Point(0, 0), mptStartCrop), If(useIntermediate, New Point(0, 0), mptEndCrop))
         If mproFfmpegProcess Is Nothing Then
             Exit Sub
         End If
@@ -448,12 +449,11 @@ Public Class MainForm
     ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
     ''' </summary>
     Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal trimData As TrimData, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
-        If specProperties?.PlaybackSpeed <> 0 Then
+        If specProperties?.PlaybackSpeed <> 0 AndAlso trimData IsNot Nothing Then
             'duration /= specProperties.PlaybackSpeed
             trimData.StartPTS *= specProperties.PlaybackSpeed
             trimData.EndPTS *= specProperties.PlaybackSpeed
         End If
-        Dim duration As String = (trimData.EndPTS) - (trimData.StartPTS)
 
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
@@ -463,14 +463,19 @@ Public Class MainForm
         Dim audioFilterParams As New List(Of String)
 
         If specProperties?.PlaybackVolume <> 0 Then
-            If duration > 0 Then
-                'duration = Math.Truncate(duration * mobjMetaData.Framerate) / mobjMetaData.Framerate
-                Dim startHHMMSS As String = FormatHHMMSSm(trimData.StartPTS / specProperties.PlaybackSpeed)
-                processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
+            If trimData IsNot Nothing Then
+                Dim duration As String = (trimData.EndPTS) - (trimData.StartPTS)
+                If duration > 0 Then
+                    'duration = Math.Truncate(duration * mobjMetaData.Framerate) / mobjMetaData.Framerate
+                    Dim startHHMMSS As String = FormatHHMMSSm(trimData.StartPTS / specProperties.PlaybackSpeed)
+                    processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
+                End If
             End If
         Else
-            'Set up a select filter to trim to exact frames for maximum precision
-            videoFilterParams.Add($"select=between(n\,{trimData.StartFrame}\,{trimData.EndFrame}),setpts=PTS-STARTPTS")
+            If trimData IsNot Nothing Then
+                'Set up a select filter to trim to exact frames for maximum precision
+                videoFilterParams.Add($"select=between(n\,{trimData.StartFrame}\,{trimData.EndFrame}),setpts=PTS-STARTPTS")
+            End If
         End If
         processInfo.Arguments += $" -i ""{inputFile}"""
 
