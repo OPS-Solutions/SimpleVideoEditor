@@ -265,7 +265,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>xcopy "$(SolutionDir)packages\ffmpeg-n5.0-latest-win64-gpl-5.0\bin\ffmpeg.exe" "$(TargetDir)" /y /c /d /i
-xcopy "$(ProjectDir)Resources\License.txt" "$(TargetDir)" /y /c /d /i</PreBuildEvent>
+xcopy "$(SolutionDir)License.txt" "$(TargetDir)" /y /c /d /i</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
