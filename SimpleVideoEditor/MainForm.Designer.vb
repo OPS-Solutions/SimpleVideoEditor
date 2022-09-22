@@ -99,6 +99,9 @@ Partial Class MainForm
         Me.picVideo = New System.Windows.Forms.PictureBox()
         Me.btnBrowse = New System.Windows.Forms.Button()
         Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
+        Me.cmsCrop = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.LoadFromClipboardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.CopyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -122,6 +125,7 @@ Partial Class MainForm
         CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.cmsCrop.SuspendLayout()
         Me.SuspendLayout()
         '
         'ofdVideoIn
@@ -735,6 +739,24 @@ Partial Class MainForm
         Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 23)
         Me.ctlVideoSeeker.TabIndex = 21
         '
+        'cmsCrop
+        '
+        Me.cmsCrop.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LoadFromClipboardToolStripMenuItem, Me.CopyToolStripMenuItem})
+        Me.cmsCrop.Name = "cmsCrop"
+        Me.cmsCrop.Size = New System.Drawing.Size(187, 70)
+        '
+        'LoadFromClipboardToolStripMenuItem
+        '
+        Me.LoadFromClipboardToolStripMenuItem.Name = "LoadFromClipboardToolStripMenuItem"
+        Me.LoadFromClipboardToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
+        Me.LoadFromClipboardToolStripMenuItem.Text = "Load From Clipboard"
+        '
+        'CopyToolStripMenuItem
+        '
+        Me.CopyToolStripMenuItem.Name = "CopyToolStripMenuItem"
+        Me.CopyToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
+        Me.CopyToolStripMenuItem.Text = "Copy"
+        '
         'MainForm
         '
         Me.AllowDrop = True
@@ -787,6 +809,7 @@ Partial Class MainForm
         CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.cmsCrop.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -866,4 +889,7 @@ Partial Class MainForm
     Friend WithEvents MotionInterpolationToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ToolStripSeparator2 As ToolStripSeparator
     Friend WithEvents ExportAudioToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents cmsCrop As ContextMenuStrip
+    Friend WithEvents LoadFromClipboardToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents CopyToolStripMenuItem As ToolStripMenuItem
 End Class

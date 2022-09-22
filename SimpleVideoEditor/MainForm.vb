@@ -14,9 +14,8 @@ Public Class MainForm
     Private mthdDefaultLoadThread As System.Threading.Thread 'Thread for loading images upon open
     Private mobjGenericToolTip As ToolTipPlus = New ToolTipPlus() 'Tooltip object required for setting tootips on controls
 
-    Private mptStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle
-    Private mptEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle
-    Private mrectLastCrop As New Rectangle? 'Crop rectangle used to track the previous video coordinates crop, maintaining stable position even with form resizing
+    Private mptStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle, in video coordinates
+    Private mptEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle, in video coordinates
 
     Private mintAspectWidth As Integer 'Holds onto the width of the video frame for aspect ration computation(Not correct width, but correct aspect)
     Private mintAspectHeight As Integer 'Holds onto the height of the video frame for aspect ration computation(Not correct height, but correct aspect)
@@ -50,6 +49,16 @@ Public Class MainForm
         Public StartPTS As Decimal
         Public EndPTS As Decimal
     End Class
+
+    Private ReadOnly Property CropRect As Rectangle?
+        Get
+            If mptStartCrop.X = mptEndCrop.X OrElse mptStartCrop.Y = mptEndCrop.Y Then
+                Return Nothing
+            Else
+                Return New Rectangle(mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X, mptEndCrop.Y - mptStartCrop.Y)
+            End If
+        End Get
+    End Property
 
 #Region "File Events"
     ''' <summary>
@@ -223,7 +232,7 @@ Public Class MainForm
                 Exit Sub
             End If
         End If
-        Dim cropRect As Rectangle? = GetRealCrop(mptStartCrop, mptEndCrop, New Size(mintAspectWidth, mintAspectHeight))
+        Dim cropRect As Rectangle? = Me.CropRect()
         Dim realwidth As Integer = mintAspectWidth
         Dim realheight As Integer = mintAspectHeight
         If cropRect IsNot Nothing Then
@@ -482,9 +491,9 @@ Public Class MainForm
         'CROP VIDEO(Can not be done with a rotate, must run twice)
         Dim cropWidth As Integer = newWidth
         Dim cropHeight As Integer = newHeight
-        Dim cropRect As Rectangle? = GetRealCrop(cropTopLeft, cropBottomRight, New Size(mintAspectWidth, mintAspectHeight))
+        Dim cropRect As Rectangle? = Me.CropRect()
         If cropRect IsNot Nothing Then
-            videoFilterParams.Add($"crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}")
+            videoFilterParams.Add(GetCropArgs(cropRect))
         End If
 
         'SCALE VIDEO
@@ -639,7 +648,7 @@ Public Class MainForm
         mproFfmpegProcess = Process.Start(processInfo)
     End Sub
 
-#Region "CROPPING CLICK AND DRAG"
+#Region "CROPPING"
     ''' <summary>
     ''' Updates the main image with one of the pre-selected images from the picture box clicked.
     ''' </summary>
@@ -673,35 +682,44 @@ Public Class MainForm
     ''' Draws cropping graphics over the main video picturebox.
     ''' </summary>
     Private Sub picVideo_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles picVideo.Paint
-        Using pen As New Pen(Color.White, 1)
-            If Not (mptStartCrop.X = 0 AndAlso mptStartCrop.X = mptEndCrop.X) Then
-                e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, picVideo.Height))
-                e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(picVideo.Width, mptStartCrop.Y))
-                e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, picVideo.Height))
-                e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(picVideo.Width, mptEndCrop.Y - 1))
-            End If
-            If mintDisplayInfo <> 0 Then
-                e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
-                e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
-            End If
-            'e.Graphics.DrawRectangle(pen, 10, 75, 100, 100)
-        End Using
-        e.Graphics.DrawRectangle(New Pen(Color.Green, 1), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X - 1, mptEndCrop.Y - mptStartCrop.Y - 1)
+        If Me.mobjMetaData IsNot Nothing Then
+            Dim startCropClient As Point = picVideo.ContentToClient(mptStartCrop, Me.mobjMetaData.Size)
+            Dim endCropClient As Point = picVideo.ContentToClient(mptEndCrop, Me.mobjMetaData.Size)
+            Using pen As New Pen(Color.White, 1)
+                If Not Me.CropRect Is Nothing Then
+                    e.Graphics.DrawLine(pen, New Point(startCropClient.X, 0), New Point(startCropClient.X, picVideo.Height))
+                    e.Graphics.DrawLine(pen, New Point(0, startCropClient.Y), New Point(picVideo.Width, startCropClient.Y))
+                    e.Graphics.DrawLine(pen, New Point(endCropClient.X - 1, 0), New Point(endCropClient.X - 1, picVideo.Height))
+                    e.Graphics.DrawLine(pen, New Point(0, endCropClient.Y - 1), New Point(picVideo.Width, endCropClient.Y - 1))
+                End If
+                If mintDisplayInfo <> 0 Then
+                    e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
+                    e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
+                End If
+                'e.Graphics.DrawRectangle(pen, 10, 75, 100, 100)
+            End Using
+            e.Graphics.DrawRectangle(New Pen(Color.Green, 1), startCropClient.X, startCropClient.Y, endCropClient.X - startCropClient.X - 1, endCropClient.Y - startCropClient.Y - 1)
+        End If
     End Sub
 
     ''' <summary>
     ''' Modifies the crop region, sets to current point
     ''' </summary>
     Private Sub picVideo_MouseDown(sender As Object, e As MouseEventArgs) Handles picVideo.MouseDown
-        'Start dragging start or end point
-        If e.Button = Windows.Forms.MouseButtons.Left Then
-            If Not mptStartCrop.DistanceTo(e.Location) < 10 AndAlso Not mptEndCrop.DistanceTo(e.Location) < 10 Then
-                mptStartCrop = New Point(e.X, e.Y)
-                mptEndCrop = New Point(e.X, e.Y)
+        If Me.mobjMetaData IsNot Nothing Then
+            Dim startCropClient As Point = picVideo.ContentToClient(mptStartCrop, Me.mobjMetaData.Size)
+            Dim endCropClient As Point = picVideo.ContentToClient(mptEndCrop, Me.mobjMetaData.Size)
+            Dim actualImagePoint As Point = picVideo.PointToImage(e.Location, Me.mobjMetaData.Size)
+            'Start dragging start or end point
+            If e.Button = Windows.Forms.MouseButtons.Left Then
+                If Not startCropClient.DistanceTo(e.Location) < 10 AndAlso Not endCropClient.DistanceTo(e.Location) < 10 Then
+                    mptStartCrop = actualImagePoint
+                    mptEndCrop = actualImagePoint
+                End If
+                UpdateCropStatus()
             End If
-            UpdateCropStatus()
+            picVideo.Invalidate()
         End If
-        picVideo.Invalidate()
     End Sub
 
     ''' <summary>
@@ -712,8 +730,8 @@ Public Class MainForm
         Dim cropEndImage As Point
         Dim cropActual As Rectangle
         If Me.mobjMetaData IsNot Nothing Then
-            cropStartImage = picVideo.PointToImage(mptStartCrop, Me.mobjMetaData.Size)
-            cropEndImage = picVideo.PointToImage(mptEndCrop, Me.mobjMetaData.Size)
+            cropStartImage = mptStartCrop
+            cropEndImage = mptEndCrop
         Else
             cropStartImage = New Point(0, 0)
             cropEndImage = New Point(0, 0)
@@ -736,26 +754,28 @@ Public Class MainForm
     Private Sub picVideo_MouseMove(sender As Object, e As MouseEventArgs) Handles picVideo.MouseMove
         'Display mouse position information
         If Me.mobjMetaData IsNot Nothing Then
+            Dim startCropClient As Point = picVideo.ContentToClient(mptStartCrop, Me.mobjMetaData.Size)
+            Dim endCropClient As Point = picVideo.ContentToClient(mptEndCrop, Me.mobjMetaData.Size)
             Dim actualImagePoint As Point = picVideo.PointToImage(e.Location, Me.mobjMetaData.Size)
             lblStatusMousePosition.Text = $"{actualImagePoint.X}, {actualImagePoint.Y}"
-        End If
-        If e.Button = Windows.Forms.MouseButtons.Left Then
-            'Update the closest crop point so we can drag either
-            If mptEndCrop.DistanceTo(e.Location) < mptStartCrop.DistanceTo(e.Location) Then
-                mptEndCrop = New Point(e.X, e.Y)
-            Else
-                mptStartCrop = New Point(e.X, e.Y)
+            If e.Button = Windows.Forms.MouseButtons.Left Then
+                'Update the closest crop point so we can drag either
+                If endCropClient.DistanceTo(e.Location) < startCropClient.DistanceTo(e.Location) Then
+                    mptEndCrop = actualImagePoint
+                Else
+                    mptStartCrop = actualImagePoint
+                End If
+                Dim minX As Integer = Math.Max(0, Math.Min(mptStartCrop.X, mptEndCrop.X))
+                Dim minY As Integer = Math.Max(0, Math.Min(mptStartCrop.Y, mptEndCrop.Y))
+                Dim maxX As Integer = Math.Min(Me.mobjMetaData.Width, Math.Max(mptStartCrop.X, mptEndCrop.X))
+                Dim maxY As Integer = Math.Min(Me.mobjMetaData.Height, Math.Max(mptStartCrop.Y, mptEndCrop.Y))
+                mptStartCrop.X = minX
+                mptStartCrop.Y = minY
+                mptEndCrop.X = maxX
+                mptEndCrop.Y = maxY
+                UpdateCropStatus()
+                picVideo.Invalidate()
             End If
-            Dim minX As Integer = Math.Max(0, Math.Min(mptStartCrop.X, mptEndCrop.X))
-            Dim minY As Integer = Math.Max(0, Math.Min(mptStartCrop.Y, mptEndCrop.Y))
-            Dim maxX As Integer = Math.Min(picVideo.Width, Math.Max(mptStartCrop.X, mptEndCrop.X))
-            Dim maxY As Integer = Math.Min(picVideo.Height, Math.Max(mptStartCrop.Y, mptEndCrop.Y))
-            mptStartCrop.X = minX
-            mptStartCrop.Y = minY
-            UpdateCropStatus()
-            mptEndCrop.X = maxX
-            mptEndCrop.Y = maxY
-            picVideo.Invalidate()
         End If
     End Sub
 
@@ -769,23 +789,6 @@ Public Class MainForm
         mptEndCrop = New Point(0, 0)
         UpdateCropStatus()
         picVideo.Invalidate()
-    End Sub
-
-    ''' <summary>
-    ''' Updates the crop information to properly align with the new form size
-    ''' </summary>
-    Private Sub MainForm_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
-        If mobjMetaData IsNot Nothing AndAlso mrectLastCrop IsNot Nothing Then
-            'Update crop locations if needed
-            mptStartCrop = picVideo.ImagePointToClient(mrectLastCrop?.Location, Me.mobjMetaData.Size)
-            mptEndCrop = picVideo.ImagePointToClient(mrectLastCrop?.BottomRight, Me.mobjMetaData.Size)
-        End If
-    End Sub
-
-    Private Sub MainForm_ResizeBegin(sender As Object, e As EventArgs) Handles MyBase.ResizeBegin
-        If mobjMetaData IsNot Nothing Then
-            mrectLastCrop = GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size)
-        End If
     End Sub
 
     ''' <summary>
@@ -810,7 +813,8 @@ Public Class MainForm
         Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
         Dim topLeftCropStart As Point = mptStartCrop
         Dim bottomRightCropStart As Point = mptEndCrop
-        Dim cropRect As Rectangle? = GetRealCrop(mptStartCrop, mptEndCrop, displaySize)
+        Dim fitScale As Double = Me.mobjMetaData.Size.FitScale(displaySize)
+        Dim cropRect As Rectangle? = Me.CropRect().Value.Scale(fitScale)
         Dim left As Integer = displaySize.Width - 1
         Dim top As Integer = displaySize.Height - 1
         Dim bottom As Integer = 0
@@ -837,9 +841,14 @@ Public Class MainForm
                            Next
                        End Sub)
         ctlVideoSeeker.PreviewLocation = largestFrame
+        'Scale to actual size
         If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
             SetCropPoints(New Point(0, 0), New Point(0, 0))
         Else
+            top = top / fitScale
+            bottom = bottom / fitScale
+            right = right / fitScale
+            left = left / fitScale
             SetCropPoints(New Point(left, top), New Point(right, bottom))
         End If
         picVideo.Invalidate()
@@ -867,7 +876,8 @@ Public Class MainForm
         Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
         Dim topLeftCropStart As Point = mptStartCrop
         Dim bottomRightCropStart As Point = mptEndCrop
-        Dim cropRect As Rectangle? = GetRealCrop(mptStartCrop, mptEndCrop, displaySize)
+        Dim fitScale As Double = Me.mobjMetaData.Size.FitScale(displaySize)
+        Dim cropRect As Rectangle? = Me.CropRect().Value.Scale(fitScale)
         Dim left As Integer = displaySize.Width - 1
         Dim top As Integer = displaySize.Height - 1
         Dim bottom As Integer = 0
@@ -894,13 +904,76 @@ Public Class MainForm
                            Next
                        End Sub)
         ctlVideoSeeker.PreviewLocation = largestFrame
+        'Scale to actual size
         If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
             SetCropPoints(New Point(0, 0), New Point(0, 0))
         Else
+            top = top / fitScale
+            bottom = bottom / fitScale
+            right = right / fitScale
+            left = left / fitScale
             SetCropPoints(New Point(left, top), New Point(right, bottom))
         End If
         picVideo.Invalidate()
         Me.UseWaitCursor = False
+    End Sub
+
+    Private Function GetCropArgs(cropRect As Rectangle) As String
+        Return $"crop={cropRect.Width}:{cropRect.Height}:{cropRect.X}:{cropRect.Y}"
+    End Function
+
+    Private Function ReadCropData(cropData As String) As Rectangle?
+        Dim matchInfo As Match = Regex.Match(cropData, "crop=(?<width>\d*):(?<height>\d*):(?<x>\d*):(?<y>\d*)")
+        If matchInfo.Success Then
+            Return New Rectangle(matchInfo.Groups("x").Value, matchInfo.Groups("y").Value, matchInfo.Groups("width").Value, matchInfo.Groups("height").Value)
+        Else
+            Return Nothing
+        End If
+    End Function
+
+    ''' <summary>
+    ''' Copy data that can be used quickly in batch files or transfered to another SVE
+    ''' </summary>
+    Private Sub CopyToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CopyToolStripMenuItem.Click
+        Dim cropRect As Rectangle? = Me.CropRect()
+        Clipboard.SetText(GetCropArgs(cropRect))
+    End Sub
+
+    ''' <summary>
+    ''' Load data from clipboard in the format we copy out to from other SVE instances
+    ''' </summary>
+    Private Sub LoadFromClipboardToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles LoadFromClipboardToolStripMenuItem.Click
+        Dim clipboardData As String = Clipboard.GetText()
+        Dim cropRect As Rectangle = ReadCropData(clipboardData)
+        'Update crop locations if needed
+        Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
+        Dim scale As Single = New Point(displaySize.Width, displaySize.Height).Magnitude / New Point(Me.mobjMetaData.Width, Me.mobjMetaData.Height).Magnitude
+        mptStartCrop = cropRect.TopLeft
+        mptEndCrop = cropRect.BottomRight
+        UpdateCropStatus()
+        picVideo.Invalidate()
+    End Sub
+
+    Private Sub lblStatusCropRect_MouseUp(sender As Object, e As MouseEventArgs) Handles lblStatusCropRect.MouseUp
+        If e.Button = MouseButtons.Right Then
+            Dim stripLabelOffset As Integer = 0
+            For index As Integer = 0 To StatusStrip1.Items.Count - 1
+                If StatusStrip1.Items(index) Is sender Then
+                    Exit For
+                End If
+                stripLabelOffset += StatusStrip1.Items(index).Width
+            Next
+            cmsCrop.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Disable crop items that are not available as no crop is present
+    ''' </summary>
+    Private Sub cmsCrop_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsCrop.Opening
+        Dim clipboardData As String = Clipboard.GetText()
+        LoadFromClipboardToolStripMenuItem.Enabled = clipboardData.Length > 0 AndAlso ReadCropData(clipboardData) IsNot Nothing
+        CopyToolStripMenuItem.Enabled = GetRealCrop(mptStartCrop, mptEndCrop, New Size(mintAspectWidth, mintAspectHeight)) IsNot Nothing
     End Sub
 #End Region
 
@@ -1061,7 +1134,7 @@ Public Class MainForm
     End Function
 
     ''' <summary>
-    ''' Gets the rectangle in video coordinates defining the crop rgion
+    ''' Gets the rectangle in video coordinates defining the crop region
     ''' </summary>
     Public Function GetRealCrop(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point, contentSize As Size) As Rectangle?
         Dim realTopLeft As Point = picVideo.PointToImage(cropTopLeft, contentSize)
@@ -1075,7 +1148,7 @@ Public Class MainForm
     End Function
 
     ''' <summary>
-    ''' Sets the crop points based on pixel locations of the content
+    ''' Sets the crop points to the given values, setting them to nothing in the case where the entire image is selected
     ''' </summary>
     Public Sub SetCropPoints(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point)
         If cropTopLeft.X = 0 AndAlso cropTopLeft.Y = 0 AndAlso cropBottomRight.X = Me.mobjMetaData.Width - 1 AndAlso cropBottomRight.Y = Me.mobjMetaData.Height - 1 Then
@@ -1084,21 +1157,8 @@ Public Class MainForm
             mptEndCrop = Nothing
         End If
         If (cropBottomRight.X - cropTopLeft.X) > 0 And (cropBottomRight.Y - cropTopLeft.Y) > 0 Then
-            Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
-            'Calculate actual crop locations due to bars and aspect ration changes
-            Dim actualAspectRatio As Double = (displaySize.Height / displaySize.Width)
-            Dim picVideoAspectRatio As Double = (picVideo.Height / picVideo.Width)
-            Dim fitRatio As Double = Math.Min(picVideo.Height / displaySize.Height, picVideo.Width / displaySize.Width)
-            Dim fullHeight As Double = If(actualAspectRatio < picVideoAspectRatio, (displaySize.Height / (actualAspectRatio / picVideoAspectRatio)), displaySize.Height)
-            Dim fullWidth As Double = If(actualAspectRatio > picVideoAspectRatio, (displaySize.Width / (picVideoAspectRatio / actualAspectRatio)), displaySize.Width)
-            Dim verticalBarSizeRealPx As Integer = If(actualAspectRatio < picVideoAspectRatio, (picVideo.Height - displaySize.Height * fitRatio) / 2, 0)
-            Dim horizontalBarSizeRealPx As Integer = If(actualAspectRatio > picVideoAspectRatio, (picVideo.Width - displaySize.Width * fitRatio) / 2, 0)
-            Dim displayWidth As Double = picVideo.Width - (horizontalBarSizeRealPx * 2)
-            Dim displayHeight As Double = picVideo.Height - (verticalBarSizeRealPx * 2)
-            Dim realStartCrop As Point = New Point(Math.Max(0, (cropTopLeft.X / displaySize.Width) * displayWidth + horizontalBarSizeRealPx), Math.Max(0, (cropTopLeft.Y / displaySize.Height) * displayHeight + verticalBarSizeRealPx))
-            Dim realEndCrop As Point = New Point(Math.Max(0, (cropBottomRight.X / displaySize.Width) * displayWidth + horizontalBarSizeRealPx), Math.Max(0, (cropBottomRight.Y / displaySize.Height) * displayHeight + verticalBarSizeRealPx))
-            mptStartCrop = realStartCrop
-            mptEndCrop = realEndCrop
+            mptStartCrop = cropTopLeft
+            mptEndCrop = cropBottomRight
             UpdateCropStatus()
         End If
     End Sub

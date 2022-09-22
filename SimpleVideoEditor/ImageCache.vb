@@ -54,13 +54,12 @@ Public Class ImageCache
 
         Public ReadOnly Property Size As Size
             Get
-                If mobjImgSize IsNot Nothing Then
-                    Return mobjImgSize
-                Else
+                If mobjImgSize Is Nothing Then
                     Using tempMap As Image = Me.GetImage()
                         mobjImgSize = tempMap.Size
                     End Using
                 End If
+                Return mobjImgSize
             End Get
         End Property
 

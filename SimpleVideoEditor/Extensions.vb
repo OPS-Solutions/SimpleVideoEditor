@@ -483,6 +483,21 @@ Module Extensions
         Return New Point(Math.Max(0, (controlPoint.X * fitRatio + horizontalBarSizeRealPx)), Math.Max(0, (controlPoint.Y * fitRatio + verticalBarSizeRealPx)))
     End Function
 
+
+    <Extension>
+    Public Function ContentToClient(picControl As PictureBox, pt1 As Point, realSize As Size) As Point
+        Dim displaySize As Size = realSize
+        Dim actualAspectRatio As Double = (displaySize.Height / displaySize.Width)
+        Dim picVideoAspectRatio As Double = (picControl.Height / picControl.Width)
+        Dim fitRatio As Double = Math.Min(picControl.Height / displaySize.Height, picControl.Width / displaySize.Width)
+        Dim verticalBarSizeRealPx As Integer = If(actualAspectRatio < picVideoAspectRatio, (picControl.Height - displaySize.Height * fitRatio) / 2, 0)
+        Dim horizontalBarSizeRealPx As Integer = If(actualAspectRatio > picVideoAspectRatio, (picControl.Width - displaySize.Width * fitRatio) / 2, 0)
+        Dim displayHeight As Double = picControl.Height - (verticalBarSizeRealPx * 2)
+        Dim displayWidth As Double = picControl.Width - (horizontalBarSizeRealPx * 2)
+
+        Return New Point(Math.Max(0, (pt1.X / displaySize.Width) * displayWidth + horizontalBarSizeRealPx), Math.Max(0, (pt1.Y / displaySize.Height) * displayHeight + verticalBarSizeRealPx))
+    End Function
+
     ''' <summary>
     ''' Ensures the given point falls within the rectangle
     ''' </summary>
@@ -492,6 +507,14 @@ Module Extensions
     <Extension>
     Public Function Bound(pt As Point, rect As Rectangle) As Point
         Return New Point(Math.Min(Math.Max(rect.Left, pt.X), rect.Right - 1), Math.Min(Math.Max(rect.Top, pt.Y), rect.Bottom - 1))
+    End Function
+
+    ''' <summary>
+    ''' Gets the coordinate of the top left of the rectangle
+    ''' </summary>
+    <Extension>
+    Public Function TopLeft(rect As Rectangle) As Point
+        Return New Point(rect.Top, rect.Left)
     End Function
 
     ''' <summary>
@@ -556,6 +579,39 @@ Module Extensions
     End Function
 
     ''' <summary>
+    ''' The magnituded of a point as a vector, basic pythagorean theorem
+    ''' </summary>
+    <Extension>
+    Public Function Magnitude(pt1 As Point) As Double
+        Return Math.Sqrt(Math.Pow(pt1.X, 2) + Math.Pow(pt1.Y, 2))
+    End Function
+
+    ''' <summary>
+    ''' The magnituded of a point as a vector, basic pythagorean theorem
+    ''' </summary>
+    <Extension>
+    Public Function Magnitude(pt1 As PointF) As Double
+        Return Math.Sqrt(Math.Pow(pt1.X, 2) + Math.Pow(pt1.Y, 2))
+    End Function
+
+    ''' <summary>
+    ''' Multiplies a point as a vector given a scaler value
+    ''' </summary>
+    <Extension>
+    Public Function Scale(pt1 As Point, scaler As Double) As Point
+        Return New Point(pt1.X * scaler, pt1.Y * scaler)
+    End Function
+
+
+    ''' <summary>
+    ''' Multiplies a point as a vector given a scaler value
+    ''' </summary>
+    <Extension>
+    Public Function Scale(pt1 As PointF, scaler As Double) As Point
+        Return New Point(pt1.X * scaler, pt1.Y * scaler)
+    End Function
+
+    ''' <summary>
     ''' Checks if two colors have the same color values within a range
     ''' Limit is per channel how far off the values can be from eachother
     ''' 0 means they must be the exact same values
@@ -610,6 +666,30 @@ Module Extensions
         Else
             Return rect.Width * rect.Height
         End If
+    End Function
+
+    ''' <summary>
+    ''' returns a new rectangle scaled by the given amount towards the origin 0,0
+    ''' </summary>
+    <Extension>
+    Public Function Scale(rect As Rectangle, scaler As Double) As Rectangle
+        Return New Rectangle(rect.X * scaler, rect.Y * scaler, rect.Width * scaler, rect.Height * scaler)
+    End Function
+
+    ''' <summary>
+    ''' Gets the scale required to fit this rectangle into another
+    ''' </summary>
+    <Extension>
+    Public Function FitScale(thisRect As Rectangle, outerRect As Rectangle) As Double
+        Return Math.Min(thisRect.Width / outerRect.Width, thisRect.Height / outerRect.Height)
+    End Function
+
+    ''' <summary>
+    ''' Gets the scale required to fit this size as a rectangle into another
+    ''' </summary>
+    <Extension>
+    Public Function FitScale(thisRect As Size, outerRect As Size) As Double
+        Return Math.Min(outerRect.Width / thisRect.Width, outerRect.Height / thisRect.Height)
     End Function
 
     ''' <summary>
