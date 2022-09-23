@@ -1618,12 +1618,16 @@ Public Class MainForm
         Dim files() As String = e.Data.GetData(DataFormats.FileDrop)
         Me.Activate()
 
-        Select Case MessageBox.Show(Me, $"Open {files.Count} file(s)?", "Open File(s)?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
-            Case DialogResult.OK
-                LoadFiles(files)
-            Case Else
-                Exit Sub
-        End Select
+        If Me.mobjMetaData Is Nothing AndAlso files.Count = 1 Then
+            LoadFiles(files)
+        Else
+            Select Case MessageBox.Show(Me, $"Open {files.Count} file(s)?", "Open File(s)?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
+                Case DialogResult.OK
+                    LoadFiles(files)
+                Case Else
+                    Exit Sub
+            End Select
+        End If
     End Sub
 
     Private Sub MainForm_DragEnter(sender As Object, e As DragEventArgs) Handles MyBase.DragEnter
