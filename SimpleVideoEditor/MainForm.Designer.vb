@@ -90,6 +90,7 @@ Partial Class MainForm
         Me.lblStatusMousePosition = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblStatusCropRect = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblStatusResolution = New System.Windows.Forms.ToolStripStatusLabel()
+        Me.pgbOperationProgress = New System.Windows.Forms.ToolStripProgressBar()
         Me.picFrame5 = New System.Windows.Forms.PictureBox()
         Me.btnいくよ = New System.Windows.Forms.Button()
         Me.picFrame4 = New System.Windows.Forms.PictureBox()
@@ -98,10 +99,10 @@ Partial Class MainForm
         Me.picFrame1 = New System.Windows.Forms.PictureBox()
         Me.picVideo = New System.Windows.Forms.PictureBox()
         Me.btnBrowse = New System.Windows.Forms.Button()
-        Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
         Me.cmsCrop = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.LoadFromClipboardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.CopyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -583,7 +584,7 @@ Partial Class MainForm
         '
         'StatusStrip1
         '
-        Me.StatusStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.lblStatusMousePosition, Me.lblStatusCropRect, Me.lblStatusResolution})
+        Me.StatusStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.lblStatusMousePosition, Me.lblStatusCropRect, Me.lblStatusResolution, Me.pgbOperationProgress})
         Me.StatusStrip1.Location = New System.Drawing.Point(0, 237)
         Me.StatusStrip1.Name = "StatusStrip1"
         Me.StatusStrip1.ShowItemToolTips = True
@@ -617,6 +618,12 @@ Partial Class MainForm
         Me.lblStatusResolution.Name = "lblStatusResolution"
         Me.lblStatusResolution.Size = New System.Drawing.Size(90, 20)
         Me.lblStatusResolution.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+        '
+        'pgbOperationProgress
+        '
+        Me.pgbOperationProgress.Name = "pgbOperationProgress"
+        Me.pgbOperationProgress.Size = New System.Drawing.Size(64, 19)
+        Me.pgbOperationProgress.Visible = False
         '
         'picFrame5
         '
@@ -719,6 +726,24 @@ Partial Class MainForm
         Me.btnBrowse.TabIndex = 7
         Me.btnBrowse.UseVisualStyleBackColor = True
         '
+        'cmsCrop
+        '
+        Me.cmsCrop.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LoadFromClipboardToolStripMenuItem, Me.CopyToolStripMenuItem})
+        Me.cmsCrop.Name = "cmsCrop"
+        Me.cmsCrop.Size = New System.Drawing.Size(187, 48)
+        '
+        'LoadFromClipboardToolStripMenuItem
+        '
+        Me.LoadFromClipboardToolStripMenuItem.Name = "LoadFromClipboardToolStripMenuItem"
+        Me.LoadFromClipboardToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
+        Me.LoadFromClipboardToolStripMenuItem.Text = "Load From Clipboard"
+        '
+        'CopyToolStripMenuItem
+        '
+        Me.CopyToolStripMenuItem.Name = "CopyToolStripMenuItem"
+        Me.CopyToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
+        Me.CopyToolStripMenuItem.Text = "Copy"
+        '
         'ctlVideoSeeker
         '
         Me.ctlVideoSeeker.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
@@ -738,24 +763,6 @@ Partial Class MainForm
         Me.ctlVideoSeeker.SceneFrames = Nothing
         Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 23)
         Me.ctlVideoSeeker.TabIndex = 21
-        '
-        'cmsCrop
-        '
-        Me.cmsCrop.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LoadFromClipboardToolStripMenuItem, Me.CopyToolStripMenuItem})
-        Me.cmsCrop.Name = "cmsCrop"
-        Me.cmsCrop.Size = New System.Drawing.Size(187, 70)
-        '
-        'LoadFromClipboardToolStripMenuItem
-        '
-        Me.LoadFromClipboardToolStripMenuItem.Name = "LoadFromClipboardToolStripMenuItem"
-        Me.LoadFromClipboardToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
-        Me.LoadFromClipboardToolStripMenuItem.Text = "Load From Clipboard"
-        '
-        'CopyToolStripMenuItem
-        '
-        Me.CopyToolStripMenuItem.Name = "CopyToolStripMenuItem"
-        Me.CopyToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
-        Me.CopyToolStripMenuItem.Text = "Copy"
         '
         'MainForm
         '
@@ -892,4 +899,5 @@ Partial Class MainForm
     Friend WithEvents cmsCrop As ContextMenuStrip
     Friend WithEvents LoadFromClipboardToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents CopyToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents pgbOperationProgress As ToolStripProgressBar
 End Class

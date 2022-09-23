@@ -1,4 +1,5 @@
-﻿Imports System.Text.RegularExpressions
+﻿Imports System.IO
+Imports System.Text.RegularExpressions
 Imports System.Threading
 
 Public Class VideoData
@@ -83,6 +84,9 @@ Public Class VideoData
 
     ''' <summary>Event for when some number of frames has finished retrieval, and can be accessed</summary>
     Public Event RetrievedFrames(sender As Object, cache As ImageCache, ranges As List(Of List(Of Integer)))
+
+    ''' <summary>Event for when a frame that was requested to export is detected as having a file created for it</summary>
+    Public Event ExportProgressed(sender As Object, frame As Integer)
 
 
     ''' <summary>
@@ -746,11 +750,22 @@ Public Class VideoData
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
         Dim tempProcess As Process = Process.Start(processInfo)
-        'TODO Make this work indefinitely until user cancels
-        If frameEnd - frameStart > 1 Then
-            tempProcess.WaitForExit(20000) 'Wait up to 20 seconds for the process to finish
-        Else
-            tempProcess.WaitForExit(5000) 'Wait up to 5 seconds for the process to finish
+
+        Using fsWatcher As New FileSystemWatcher(System.IO.Path.GetDirectoryName(targetFilePath))
+            fsWatcher.EnableRaisingEvents = True
+            AddHandler fsWatcher.Created, AddressOf ExportProgress
+            AddHandler fsWatcher.Changed, AddressOf ExportProgress
+            tempProcess.WaitForExit()
+            RemoveHandler fsWatcher.Created, AddressOf ExportProgress
+            RemoveHandler fsWatcher.Changed, AddressOf ExportProgress
+        End Using
+    End Sub
+
+    Private Sub ExportProgress(sender As Object, e As FileSystemEventArgs)
+        Dim fileName As String = e.Name
+        Dim frameNumber As Integer = -1
+        If Integer.TryParse(Regex.Match(fileName, "\d+").Value, frameNumber) Then
+            RaiseEvent ExportProgressed(Me, frameNumber)
         End If
     End Sub
 

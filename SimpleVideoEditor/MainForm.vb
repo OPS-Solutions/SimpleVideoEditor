@@ -1136,14 +1136,20 @@ Public Class MainForm
     ''' <summary>
     ''' Gets the rectangle in video coordinates defining the crop region
     ''' </summary>
-    Public Function GetRealCrop(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point, contentSize As Size) As Rectangle?
-        Dim realTopLeft As Point = picVideo.PointToImage(cropTopLeft, contentSize)
-        Dim realBottomRight As Point = picVideo.PointToImage(cropBottomRight, contentSize)
-        If ((cropBottomRight.X - cropTopLeft.X) > 0 AndAlso (cropBottomRight.Y - cropTopLeft.Y) > 0) Then
-            'Calculate actual crop locations due to bars and aspect ratio changes
-            Return New Rectangle(realTopLeft.X, realTopLeft.Y, realBottomRight.X - realTopLeft.X + 1, realBottomRight.Y - realTopLeft.Y + 1)
+    Public Function GetRealCrop(cropTopLeft As Point, cropBottomRight As Point, contentSize As Size) As Rectangle?
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub()
+                          GetRealCrop(cropTopLeft, cropBottomRight, contentSize)
+                      End Sub)
         Else
-            Return Nothing
+            Dim realTopLeft As Point = picVideo.PointToImage(cropTopLeft, contentSize)
+            Dim realBottomRight As Point = picVideo.PointToImage(cropBottomRight, contentSize)
+            If ((cropBottomRight.X - cropTopLeft.X) > 0 AndAlso (cropBottomRight.Y - cropTopLeft.Y) > 0) Then
+                'Calculate actual crop locations due to bars and aspect ratio changes
+                Return New Rectangle(realTopLeft.X, realTopLeft.Y, realBottomRight.X - realTopLeft.X + 1, realBottomRight.Y - realTopLeft.Y + 1)
+            Else
+                Return Nothing
+            End If
         End If
     End Function
 
@@ -1477,10 +1483,22 @@ Public Class MainForm
             sfdExportFrame.OverwritePrompt = True
             Select Case sfdExportFrame.ShowDialog()
                 Case DialogResult.OK
-                    If File.Exists(sfdExportFrame.FileName) Then
-                        My.Computer.FileSystem.DeleteFile(sfdExportFrame.FileName)
-                    End If
-                    mobjMetaData.ExportFfmpegFrames(mintCurrentFrame, mintCurrentFrame, sfdExportFrame.FileName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
+                    Task.Run(Sub()
+                                 Me.Invoke(Sub()
+                                               Me.UseWaitCursor = True
+                                               pgbOperationProgress.Minimum = mintCurrentFrame - 1
+                                               pgbOperationProgress.Maximum = mintCurrentFrame
+                                               pgbOperationProgress.Value = pgbOperationProgress.Minimum
+                                               pgbOperationProgress.Visible = True
+                                           End Sub)
+                                 If File.Exists(sfdExportFrame.FileName) Then
+                                     My.Computer.FileSystem.DeleteFile(sfdExportFrame.FileName)
+                                 End If
+                                 mobjMetaData.ExportFfmpegFrames(mintCurrentFrame, mintCurrentFrame, sfdExportFrame.FileName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
+                                 Me.Invoke(Sub()
+                                               Me.UseWaitCursor = False
+                                           End Sub)
+                             End Sub)
                 Case Else
                     'Do nothing
             End Select
@@ -1501,17 +1519,44 @@ Public Class MainForm
             sfdExportFrame.OverwritePrompt = True
             Select Case sfdExportFrame.ShowDialog()
                 Case DialogResult.OK
-                    Dim chosenName As String = sfdExportFrame.FileName
-                    If chosenName.Contains("#") Then
-                        chosenName = chosenName.Replace("#", "%03d")
-                    Else
-                        chosenName = Path.Combine({Path.GetDirectoryName(chosenName), Path.GetFileNameWithoutExtension(chosenName), "%03d", ".png"})
-                    End If
-                    mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
+                    Task.Run(Sub()
+                                 Me.Invoke(Sub()
+                                               Me.UseWaitCursor = True
+                                               pgbOperationProgress.Minimum = 0
+                                               pgbOperationProgress.Maximum = endFrame - startFrame
+                                               pgbOperationProgress.Value = pgbOperationProgress.Minimum
+                                               pgbOperationProgress.Visible = True
+                                           End Sub)
+                                 Dim chosenName As String = sfdExportFrame.FileName
+                                 If chosenName.Contains("#") Then
+                                     chosenName = chosenName.Replace("#", "%03d")
+                                 Else
+                                     chosenName = Path.Combine({Path.GetDirectoryName(chosenName), Path.GetFileNameWithoutExtension(chosenName), "%03d", ".png"})
+                                 End If
+                                 mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
+                                 Me.Invoke(Sub()
+                                               Me.UseWaitCursor = False
+                                           End Sub)
+                             End Sub)
                 Case Else
                     'Do nothing
             End Select
         End Using
+    End Sub
+
+    Private Sub ExportProgress(sender As Object, newFrame As Integer) Handles mobjMetaData.ExportProgressed
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub()
+                          ExportProgress(sender, newFrame)
+                      End Sub)
+        Else
+            If pgbOperationProgress.Minimum <= newFrame AndAlso pgbOperationProgress.Maximum >= newFrame Then
+                pgbOperationProgress.Value = newFrame
+            End If
+            If pgbOperationProgress.Maximum = newFrame Then
+                pgbOperationProgress.Visible = False
+            End If
+        End If
     End Sub
 #End Region
 
