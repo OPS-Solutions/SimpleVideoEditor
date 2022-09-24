@@ -514,7 +514,7 @@ Module Extensions
     ''' </summary>
     <Extension>
     Public Function TopLeft(rect As Rectangle) As Point
-        Return New Point(rect.Top, rect.Left)
+        Return New Point(rect.Left, rect.Top)
     End Function
 
     ''' <summary>

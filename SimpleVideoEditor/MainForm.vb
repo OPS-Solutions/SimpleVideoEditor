@@ -55,7 +55,7 @@ Public Class MainForm
             If mptStartCrop.X = mptEndCrop.X OrElse mptStartCrop.Y = mptEndCrop.Y Then
                 Return Nothing
             Else
-                Return New Rectangle(mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X, mptEndCrop.Y - mptStartCrop.Y)
+                Return New Rectangle(mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X + 1, mptEndCrop.Y - mptStartCrop.Y + 1)
             End If
         End Get
     End Property
@@ -726,25 +726,15 @@ Public Class MainForm
     ''' Updates the status label for crop with the correct image coordinates
     ''' </summary>
     Private Sub UpdateCropStatus()
-        Dim cropStartImage As Point
-        Dim cropEndImage As Point
-        Dim cropActual As Rectangle
-        If Me.mobjMetaData IsNot Nothing Then
-            cropStartImage = mptStartCrop
-            cropEndImage = mptEndCrop
-        Else
-            cropStartImage = New Point(0, 0)
-            cropEndImage = New Point(0, 0)
-        End If
-        If cropEndImage.X = 0 AndAlso cropEndImage.Y = 0 Then
+        Dim cropActual As Rectangle? = Me.CropRect()
+        If Me.mobjMetaData Is Nothing OrElse cropActual Is Nothing Then
             'Don't show crop info if we aren't cropping
             lblStatusCropRect.Text = ""
             lblStatusCropRect.ToolTipText = "Width x Height crop rectangle in video coordinates"
         Else
-            cropActual = New Rectangle(cropStartImage, New Size(cropEndImage.X - cropStartImage.X + 1, cropEndImage.Y - cropStartImage.Y + 1))
             'lblStatusCropRect.Text = $"{cropActual.X},{cropActual.Y},{cropActual.Width},{cropActual.Height}"
-            lblStatusCropRect.Text = $"{cropActual.Width} x {cropActual.Height}"
-            lblStatusCropRect.ToolTipText = lblStatusCropRect.ToolTipText.Split(vbNewLine)(0).Trim() & vbNewLine & $"crop={cropActual.Width}:{cropActual.Height}:{cropActual.X}:{cropActual.Y}"
+            lblStatusCropRect.Text = $"{cropActual?.Width} x {cropActual?.Height}"
+            lblStatusCropRect.ToolTipText = lblStatusCropRect.ToolTipText.Split(vbNewLine)(0).Trim() & vbNewLine & $"crop={cropActual?.Width}:{cropActual?.Height}:{cropActual?.X}:{cropActual?.Y}"
         End If
     End Sub
 
@@ -949,7 +939,7 @@ Public Class MainForm
         Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
         Dim scale As Single = New Point(displaySize.Width, displaySize.Height).Magnitude / New Point(Me.mobjMetaData.Width, Me.mobjMetaData.Height).Magnitude
         mptStartCrop = cropRect.TopLeft
-        mptEndCrop = cropRect.BottomRight
+        mptEndCrop = mptStartCrop.Add(New Point(cropRect.Width - 1, cropRect.Height - 1))
         UpdateCropStatus()
         picVideo.Invalidate()
     End Sub
