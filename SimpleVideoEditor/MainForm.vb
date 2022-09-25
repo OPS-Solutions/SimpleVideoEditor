@@ -25,22 +25,62 @@ Public Class MainForm
     Private Const RENDER_DECAY_TIME As Integer = 2000
 
     Private WithEvents mobjMetaData As VideoData 'Video metadata, including things like resolution, framerate, bitrate, etc.
-    Private mobjRotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
     Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
-    Private mdblPlaybackSpeed As Double = 1
-    Private mdblPlaybackVolume As Double = 1
     Private mblnInputMash As Boolean = False 'Whether or not the loaded file is a mash of multiple inputs like image%d.png
     Private mobjSlideQueue As Thread 'Thread for handling changing the preview image when moving seek sliders with the mouse, to avoid doing too many and impacting performance
+
+    Private mobjOutputProperties As New SpecialOutputProperties 'Keeps track of settings to apply to the final output video
 
     Private mtskPreview As Task(Of Boolean) = Nothing 'Task for grabbing preview frames
 
     Private Class SpecialOutputProperties
+        Implements ICloneable
+
         Public Decimate As Boolean
         Public FPS As Double
         Public ColorKey As Color
-        Public PlaybackSpeed As Double
-        Public PlaybackVolume As Double
+        Public PlaybackSpeed As Double = 1
+        Public PlaybackVolume As Double = 1
         Public QScale As Double
+        Public Rotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
+        ''' <summary>
+        ''' Angle of rotation in degrees
+        ''' </summary>
+        ''' <returns></returns>
+        Public Property RotationAngle As Integer
+            Get
+                Select Case Rotation
+                    Case RotateFlipType.RotateNoneFlipNone
+                        Return 0
+                    Case RotateFlipType.Rotate90FlipNone
+                        Return 90
+                    Case RotateFlipType.Rotate180FlipNone
+                        Return 180
+                    Case RotateFlipType.Rotate270FlipNone
+                        Return 270
+                    Case Else
+                        Return 0
+                End Select
+            End Get
+            Set(value As Integer)
+                Select Case value
+                    Case 0
+                        Rotation = RotateFlipType.RotateNoneFlipNone
+                    Case 90
+                        Rotation = RotateFlipType.Rotate90FlipNone
+                    Case 180
+                        Rotation = RotateFlipType.Rotate180FlipNone
+                    Case 270
+                        Rotation = RotateFlipType.Rotate270FlipNone
+                    Case Else
+                        Rotation = 0
+                End Select
+            End Set
+        End Property
+
+        Public Function Clone() As Object Implements ICloneable.Clone
+            Return Me.MemberwiseClone
+        End Function
     End Class
 
     Private Class TrimData
@@ -162,14 +202,7 @@ Public Class MainForm
                 My.Computer.FileSystem.DeleteFile(outputPath)
             End If
         End If
-        Dim sProperties As New SpecialOutputProperties With {
-            .Decimate = chkDeleteDuplicates.Checked,
-            .FPS = Me.TargetFPS,
-            .PlaybackSpeed = mdblPlaybackSpeed,
-            .PlaybackVolume = mdblPlaybackVolume,
-            .QScale = If(chkQuality.Checked, 0, -1),
-            .ColorKey = dlgColorKey.Color
-        }
+        Dim sProperties As SpecialOutputProperties = mobjOutputProperties.Clone
         'Limit GIF framerate to whatever is closest to optimal since gif only supports certain equal frame pacing, and ffmpeg will set FPS to like 21.42 with some FPS like 60
         If Not Path.GetExtension(mstrVideoPath).Equals(".gif") AndAlso Path.GetExtension(outputPath).Equals(".gif") Then
             'Gif supports 100, 50, 33.3, 25, 20, 16.6, 14.2, and so on, as delay is set to #/100
@@ -239,11 +272,11 @@ Public Class MainForm
             realwidth = cropRect?.Width
             realheight = cropRect?.Height
         End If
-        If (Not mobjRotation = RotateFlipType.RotateNoneFlipNone) And (Not mobjRotation = RotateFlipType.Rotate180FlipNone) Then
+        If (Not mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone) And (Not mobjOutputProperties.Rotation = RotateFlipType.Rotate180FlipNone) Then
             SwapValues(realwidth, realheight)
         End If
         'Now you can apply everything else
-        RunFfmpeg(intermediateFilePath, outputPath, mobjRotation, realwidth, realheight, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Point(0, 0), mptStartCrop), If(useIntermediate, New Point(0, 0), mptEndCrop))
+        RunFfmpeg(intermediateFilePath, outputPath, mobjOutputProperties.Rotation, realwidth, realheight, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Point(0, 0), mptStartCrop), If(useIntermediate, New Point(0, 0), mptEndCrop))
         If mproFfmpegProcess Is Nothing Then
             Exit Sub
         End If
@@ -683,33 +716,80 @@ Public Class MainForm
     ''' </summary>
     Private Sub picVideo_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles picVideo.Paint
         If Me.mobjMetaData IsNot Nothing Then
-            Dim startCropClient As Point = picVideo.ContentToClient(mptStartCrop, Me.mobjMetaData.Size)
-            Dim endCropClient As Point = picVideo.ContentToClient(mptEndCrop, Me.mobjMetaData.Size)
+            e.Graphics.Clear(picVideo.BackColor)
+
+            'Draw frame info
             Using pen As New Pen(Color.White, 1)
-                If Not Me.CropRect Is Nothing Then
-                    e.Graphics.DrawLine(pen, New Point(startCropClient.X, 0), New Point(startCropClient.X, picVideo.Height))
-                    e.Graphics.DrawLine(pen, New Point(0, startCropClient.Y), New Point(picVideo.Width, startCropClient.Y))
-                    e.Graphics.DrawLine(pen, New Point(endCropClient.X - 1, 0), New Point(endCropClient.X - 1, picVideo.Height))
-                    e.Graphics.DrawLine(pen, New Point(0, endCropClient.Y - 1), New Point(picVideo.Width, endCropClient.Y - 1))
-                End If
                 If mintDisplayInfo <> 0 Then
                     e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
                     e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
                 End If
-                'e.Graphics.DrawRectangle(pen, 10, 75, 100, 100)
             End Using
-            e.Graphics.DrawRectangle(New Pen(Color.Green, 1), startCropClient.X, startCropClient.Y, endCropClient.X - startCropClient.X - 1, endCropClient.Y - startCropClient.Y - 1)
+
+            e.Graphics.Transform = GetVideoToClientMatrix()
+            e.Graphics.DrawImage(picVideo.Image, 0, 0, Me.mobjMetaData.Width, Me.mobjMetaData.Height)
+            Using pen As New Pen(Color.White, 1)
+                If Not Me.CropRect Is Nothing Then
+                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, Me.mobjMetaData.Height))
+                    e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(Me.mobjMetaData.Width, mptStartCrop.Y))
+                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, Me.mobjMetaData.Height))
+                    e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(Me.mobjMetaData.Width, mptEndCrop.Y - 1))
+                End If
+            End Using
+            e.Graphics.DrawRectangle(New Pen(Color.Green, 1), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X - 1, mptEndCrop.Y - mptStartCrop.Y - 1)
         End If
     End Sub
+
+    ''' <summary>
+    ''' Gets the transformation which converts video coorinates into client coordinates of picVideo
+    ''' </summary>
+    Private Function GetVideoToClientMatrix() As System.Drawing.Drawing2D.Matrix
+        Dim resultMatrix As New System.Drawing.Drawing2D.Matrix
+        'Scale to video coordinates
+        Dim clientRect As Rectangle = picVideo.ClientRectangle
+        Dim imageRect As Rectangle = mobjMetaData.Size.ToRect
+        If mobjOutputProperties.RotationAngle = 90 OrElse mobjOutputProperties.RotationAngle = 270 Then
+            imageRect = New Rectangle(0, 0, imageRect.Height, imageRect.Width)
+        End If
+        Dim fitScale As Double = imageRect.FitScale(clientRect)
+        Dim fitImage As Rectangle = Me.mobjMetaData.Size.ToRect
+        Dim xOffset As Integer = ((clientRect.Width / fitScale) - imageRect.Width) / 2
+        Dim yOffset As Integer = ((clientRect.Height / fitScale) - imageRect.Height) / 2
+        Dim offsetPoint As New Point(xOffset, yOffset)
+
+        If mobjOutputProperties.RotationAngle = 90 OrElse mobjOutputProperties.RotationAngle = 270 Then
+            Dim swap As Integer = xOffset
+            xOffset = yOffset
+            yOffset = swap
+        End If
+
+        'Change 0,0 to the relevant corner
+        Select Case mobjOutputProperties.RotationAngle
+            Case 90
+                resultMatrix.Translate(picVideo.Width, 0)
+            Case 180
+                resultMatrix.Translate(picVideo.Width, picVideo.Height)
+            Case 270
+                resultMatrix.Translate(0, picVideo.Height)
+            Case Else
+                'Normal, do nothing
+        End Select
+        resultMatrix.Rotate(Me.mobjOutputProperties.RotationAngle)
+        resultMatrix.Scale(fitScale, fitScale)
+        resultMatrix.Translate(xOffset, yOffset)
+        Return resultMatrix
+    End Function
 
     ''' <summary>
     ''' Modifies the crop region, sets to current point
     ''' </summary>
     Private Sub picVideo_MouseDown(sender As Object, e As MouseEventArgs) Handles picVideo.MouseDown
         If Me.mobjMetaData IsNot Nothing Then
-            Dim startCropClient As Point = picVideo.ContentToClient(mptStartCrop, Me.mobjMetaData.Size)
-            Dim endCropClient As Point = picVideo.ContentToClient(mptEndCrop, Me.mobjMetaData.Size)
-            Dim actualImagePoint As Point = picVideo.PointToImage(e.Location, Me.mobjMetaData.Size)
+            Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
+            Dim startCropClient As Point = mptStartCrop.Transform(videoToClientMatrix)
+            Dim endCropClient As Point = mptEndCrop.Transform(videoToClientMatrix)
+            videoToClientMatrix.Invert()
+            Dim actualImagePoint As Point = e.Location.Transform(videoToClientMatrix)
             'Start dragging start or end point
             If e.Button = Windows.Forms.MouseButtons.Left Then
                 If Not startCropClient.DistanceTo(e.Location) < 10 AndAlso Not endCropClient.DistanceTo(e.Location) < 10 Then
@@ -744,9 +824,11 @@ Public Class MainForm
     Private Sub picVideo_MouseMove(sender As Object, e As MouseEventArgs) Handles picVideo.MouseMove
         'Display mouse position information
         If Me.mobjMetaData IsNot Nothing Then
-            Dim startCropClient As Point = picVideo.ContentToClient(mptStartCrop, Me.mobjMetaData.Size)
-            Dim endCropClient As Point = picVideo.ContentToClient(mptEndCrop, Me.mobjMetaData.Size)
-            Dim actualImagePoint As Point = picVideo.PointToImage(e.Location, Me.mobjMetaData.Size)
+            Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
+            Dim startCropClient As Point = mptStartCrop.Transform(videoToClientMatrix)
+            Dim endCropClient As Point = mptEndCrop.Transform(videoToClientMatrix)
+            videoToClientMatrix.Invert()
+            Dim actualImagePoint As Point = e.Location.Transform(videoToClientMatrix)
             lblStatusMousePosition.Text = $"{actualImagePoint.X}, {actualImagePoint.Y}"
             If e.Button = Windows.Forms.MouseButtons.Left Then
                 'Update the closest crop point so we can drag either
@@ -1292,13 +1374,13 @@ Public Class MainForm
             CType(objItem, ToolStripMenuItem).Checked = False
         Next
         If chkMute.Checked Then
-            mdblPlaybackVolume = 0
+            mobjOutputProperties.PlaybackVolume = 0
             MuteToolStripMenuItem.Checked = True
         Else
-            mdblPlaybackVolume = 1
+            mobjOutputProperties.PlaybackVolume = 1
             UnmuteToolStripMenuItem.Checked = True
         End If
-        Dim volumeString As String = If(mdblPlaybackVolume = 0, "muted.", If(mdblPlaybackVolume = 1, "unmuted.", $"{mdblPlaybackVolume}%"))
+        Dim volumeString As String = If(mobjOutputProperties.PlaybackVolume = 0, "muted.", If(mobjOutputProperties.PlaybackVolume = 1, "unmuted.", $"{mobjOutputProperties.PlaybackVolume}%"))
         mobjGenericToolTip.SetToolTip(chkMute, If(chkMute.Checked, "Unmute", "Mute") & $" the videos audio track.{vbNewLine}Currently " & If(chkMute.Checked, "muted.", volumeString))
     End Sub
 
@@ -1308,6 +1390,7 @@ Public Class MainForm
     ''' </summary>
     Private Sub chkQuality_CheckedChanged(sender As Object, e As EventArgs) Handles chkQuality.CheckChanged
         mobjGenericToolTip.SetToolTip(chkQuality, If(chkQuality.Checked, "Automatic quality.", $"Force equivalent quality.{vbNewLine}WARNING: Slow processing and large file size may occur.") & $"{vbNewLine}Currently " & If(chkQuality.Checked, "forced equivalent (slow and large).", "automatic (fast and small)."))
+        mobjOutputProperties.QScale = chkQuality.Checked
     End Sub
 
     ''' <summary>
@@ -1315,23 +1398,24 @@ Public Class MainForm
     ''' </summary>
     Private Sub chkDeleteDuplicates_CheckedChanged(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.CheckChanged
         mobjGenericToolTip.SetToolTip(chkDeleteDuplicates, If(chkDeleteDuplicates.Checked, "Allow Duplicate Frames", $"Delete Duplicate Frames.{vbNewLine}WARNING: Audio may go out of sync.") & $"{vbNewLine}Currently " & If(chkDeleteDuplicates.Checked, "deleting them.", "allowing them."))
+        mobjOutputProperties.Decimate = chkDeleteDuplicates.Checked
     End Sub
 
     ''' <summary>
     ''' Rotates the final video by 90 degrees per click, and updates the graphic
     ''' </summary>
     Private Sub imgRotate_Click(sender As Object, e As EventArgs) Handles imgRotate.Click
-        Select Case mobjRotation
+        Select Case mobjOutputProperties.Rotation
             Case RotateFlipType.RotateNoneFlipNone
-                mobjRotation = RotateFlipType.Rotate90FlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.Rotate90FlipNone
             Case RotateFlipType.Rotate90FlipNone
-                mobjRotation = RotateFlipType.Rotate180FlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.Rotate180FlipNone
             Case RotateFlipType.Rotate180FlipNone
-                mobjRotation = RotateFlipType.Rotate270FlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.Rotate270FlipNone
             Case RotateFlipType.Rotate270FlipNone
-                mobjRotation = RotateFlipType.RotateNoneFlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone
             Case Else
-                mobjRotation = RotateFlipType.RotateNoneFlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone
         End Select
         UpdateRotationButton()
     End Sub
@@ -1340,7 +1424,7 @@ Public Class MainForm
     ''' Updates the rotation setting icon to reflect the current rotation selection
     ''' </summary>
     Private Sub UpdateRotationButton()
-        Select Case mobjRotation
+        Select Case mobjOutputProperties.Rotation
             Case RotateFlipType.Rotate90FlipNone
                 mobjGenericToolTip.SetToolTip(imgRotate, $"Rotate to 180°.{vbNewLine}Currently 90°.")
             Case RotateFlipType.Rotate180FlipNone
@@ -1351,9 +1435,9 @@ Public Class MainForm
                 mobjGenericToolTip.SetToolTip(imgRotate, $"Rotate to 90°.{vbNewLine}Currently 0°.")
         End Select
         Dim rotatedIcon As Image = New Bitmap(My.Resources.Rotate)
-        rotatedIcon.RotateFlip(mobjRotation)
+        rotatedIcon.RotateFlip(mobjOutputProperties.Rotation)
         imgRotate.Image = rotatedIcon
-        imgRotate.Invalidate()
+        picVideo.Invalidate()
     End Sub
 
     Private Sub cmsRotation_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsRotation.ItemClicked
@@ -1362,13 +1446,13 @@ Public Class MainForm
         Next
         Select Case cmsRotation.Items.IndexOf(e.ClickedItem)
             Case 0
-                mobjRotation = RotateFlipType.RotateNoneFlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone
             Case 1
-                mobjRotation = RotateFlipType.Rotate90FlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.Rotate90FlipNone
             Case 2
-                mobjRotation = RotateFlipType.Rotate180FlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.Rotate180FlipNone
             Case 3
-                mobjRotation = RotateFlipType.Rotate270FlipNone
+                mobjOutputProperties.Rotation = RotateFlipType.Rotate270FlipNone
         End Select
         UpdateRotationButton()
         CType(e.ClickedItem, ToolStripMenuItem).Checked = True
@@ -1386,6 +1470,7 @@ Public Class MainForm
             CType(objItem, ToolStripMenuItem).Checked = False
         Next
         CType(e.ClickedItem, ToolStripMenuItem).Checked = True
+        mobjOutputProperties.PlaybackSpeed = Me.TargetFPS
     End Sub
 
     Private Sub picColorKey_Click(sender As Object, e As EventArgs) Handles picColorKey.Click
@@ -1412,6 +1497,7 @@ Public Class MainForm
             picColorKey.BackColor = Color.Lime
             mobjGenericToolTip.SetToolTip(picColorKey, $"Color that will be made transparent if the output file type supports it.{vbNewLine}Currently not set.")
         End If
+        mobjOutputProperties.ColorKey = picColorKey.BackColor
     End Sub
 
     Private Sub picPlaybackSpeed_Click(sender As Object, e As EventArgs) Handles picPlaybackSpeed.Click
@@ -1426,7 +1512,7 @@ Public Class MainForm
         Dim resultValue As Double = 1
         If Double.TryParse(Regex.Match(CType(e.ClickedItem, ToolStripMenuItem).Text, "\d*.?\d*").Value, resultValue) Then
             CType(e.ClickedItem, ToolStripMenuItem).Checked = True
-            mdblPlaybackSpeed = resultValue
+            mobjOutputProperties.PlaybackSpeed = resultValue
         End If
     End Sub
 
@@ -1447,7 +1533,7 @@ Public Class MainForm
             CType(e.ClickedItem, ToolStripMenuItem).Checked = True
         End If
         Me.chkMute.Checked = (resultValue = 0)
-        mdblPlaybackVolume = resultValue
+        mobjOutputProperties.PlaybackVolume = resultValue
         For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
             objItem.Checked = False
         Next

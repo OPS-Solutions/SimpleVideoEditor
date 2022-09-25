@@ -442,14 +442,14 @@ Partial Class MainForm
         '
         Me.CurrentToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.CurrentToolStripMenuItem.Name = "CurrentToolStripMenuItem"
-        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(154, 22)
+        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.CurrentToolStripMenuItem.Text = "Current"
         '
         'SelectedRangeToolStripMenuItem
         '
         Me.SelectedRangeToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.ExportRange
         Me.SelectedRangeToolStripMenuItem.Name = "SelectedRangeToolStripMenuItem"
-        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(154, 22)
+        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.SelectedRangeToolStripMenuItem.Text = "Selected Range"
         '
         'cmsAutoCrop
@@ -465,14 +465,14 @@ Partial Class MainForm
         '
         Me.ContractToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCropContract
         Me.ContractToolStripMenuItem.Name = "ContractToolStripMenuItem"
-        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
+        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.ContractToolStripMenuItem.Text = "Contract"
         '
         'ExpandToolStripMenuItem
         '
         Me.ExpandToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCropExpand
         Me.ExpandToolStripMenuItem.Name = "ExpandToolStripMenuItem"
-        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
+        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.ExpandToolStripMenuItem.Text = "Expand"
         '
         'dlgColorKey

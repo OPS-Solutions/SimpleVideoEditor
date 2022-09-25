@@ -612,6 +612,26 @@ Module Extensions
     End Function
 
     ''' <summary>
+    ''' Returns this point transformed by the given matrix
+    ''' </summary>
+    <Extension>
+    Public Function Transform(pt1 As Point, m As System.Drawing.Drawing2D.Matrix) As Point
+        Dim resultPoints As Point() = {pt1}
+        m.TransformPoints(resultPoints)
+        Return resultPoints(0)
+    End Function
+
+    ''' <summary>
+    ''' Returns this pointf transformed by the given matrix
+    ''' </summary>
+    <Extension>
+    Public Function Transform(pt1 As PointF, m As System.Drawing.Drawing2D.Matrix) As PointF
+        Dim resultPoints As PointF() = {pt1}
+        m.TransformPoints(resultPoints)
+        Return resultPoints(0)
+    End Function
+
+    ''' <summary>
     ''' Checks if two colors have the same color values within a range
     ''' Limit is per channel how far off the values can be from eachother
     ''' 0 means they must be the exact same values
@@ -681,7 +701,7 @@ Module Extensions
     ''' </summary>
     <Extension>
     Public Function FitScale(thisRect As Rectangle, outerRect As Rectangle) As Double
-        Return Math.Min(thisRect.Width / outerRect.Width, thisRect.Height / outerRect.Height)
+        Return Math.Min(outerRect.Width / thisRect.Width, outerRect.Height / thisRect.Height)
     End Function
 
     ''' <summary>
@@ -690,6 +710,22 @@ Module Extensions
     <Extension>
     Public Function FitScale(thisRect As Size, outerRect As Size) As Double
         Return Math.Min(outerRect.Width / thisRect.Width, outerRect.Height / thisRect.Height)
+    End Function
+
+    ''' <summary>
+    ''' Converts a size to a basic rectangle of its width & height
+    ''' </summary>
+    <Extension>
+    Public Function ToRect(size1 As Size) As Rectangle
+        Return New Rectangle(0, 0, size1.Width, size1.Height)
+    End Function
+
+    ''' <summary>
+    ''' Converts a sizef to a basic rectanglef of its width & height
+    ''' </summary>
+    <Extension>
+    Public Function ToRect(size1 As SizeF) As RectangleF
+        Return New RectangleF(0, 0, size1.Width, size1.Height)
     End Function
 
     ''' <summary>
