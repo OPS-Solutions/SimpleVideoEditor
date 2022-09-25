@@ -727,7 +727,9 @@ Public Class MainForm
             End Using
 
             e.Graphics.Transform = GetVideoToClientMatrix()
-            e.Graphics.DrawImage(picVideo.Image, 0, 0, Me.mobjMetaData.Width, Me.mobjMetaData.Height)
+            If picVideo.Image IsNot Nothing Then
+                e.Graphics.DrawImage(picVideo.Image, 0, 0, Me.mobjMetaData.Width, Me.mobjMetaData.Height)
+            End If
             Using pen As New Pen(Color.White, 1)
                 If Not Me.CropRect Is Nothing Then
                     e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, Me.mobjMetaData.Height))
@@ -1045,7 +1047,7 @@ Public Class MainForm
     Private Sub cmsCrop_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsCrop.Opening
         Dim clipboardData As String = Clipboard.GetText()
         LoadFromClipboardToolStripMenuItem.Enabled = clipboardData.Length > 0 AndAlso ReadCropData(clipboardData) IsNot Nothing
-        CopyToolStripMenuItem.Enabled = GetRealCrop(mptStartCrop, mptEndCrop, New Size(mintAspectWidth, mintAspectHeight)) IsNot Nothing
+        CopyToolStripMenuItem.Enabled = Me.CropRect IsNot Nothing
     End Sub
 #End Region
 
@@ -1203,26 +1205,6 @@ Public Class MainForm
     ''' </summary>
     Public Shared Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
         Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
-    End Function
-
-    ''' <summary>
-    ''' Gets the rectangle in video coordinates defining the crop region
-    ''' </summary>
-    Public Function GetRealCrop(cropTopLeft As Point, cropBottomRight As Point, contentSize As Size) As Rectangle?
-        If Me.InvokeRequired Then
-            Me.Invoke(Sub()
-                          GetRealCrop(cropTopLeft, cropBottomRight, contentSize)
-                      End Sub)
-        Else
-            Dim realTopLeft As Point = picVideo.PointToImage(cropTopLeft, contentSize)
-            Dim realBottomRight As Point = picVideo.PointToImage(cropBottomRight, contentSize)
-            If ((cropBottomRight.X - cropTopLeft.X) > 0 AndAlso (cropBottomRight.Y - cropTopLeft.Y) > 0) Then
-                'Calculate actual crop locations due to bars and aspect ratio changes
-                Return New Rectangle(realTopLeft.X, realTopLeft.Y, realBottomRight.X - realTopLeft.X + 1, realBottomRight.Y - realTopLeft.Y + 1)
-            Else
-                Return Nothing
-            End If
-        End If
     End Function
 
     ''' <summary>
@@ -1570,7 +1552,7 @@ Public Class MainForm
                                  If File.Exists(sfdExportFrame.FileName) Then
                                      My.Computer.FileSystem.DeleteFile(sfdExportFrame.FileName)
                                  End If
-                                 mobjMetaData.ExportFfmpegFrames(mintCurrentFrame, mintCurrentFrame, sfdExportFrame.FileName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
+                                 mobjMetaData.ExportFfmpegFrames(mintCurrentFrame, mintCurrentFrame, sfdExportFrame.FileName, Me.CropRect, mobjOutputProperties.Rotation)
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = False
                                            End Sub)
@@ -1609,7 +1591,7 @@ Public Class MainForm
                                  Else
                                      chosenName = Path.Combine({Path.GetDirectoryName(chosenName), Path.GetFileNameWithoutExtension(chosenName), "%03d", ".png"})
                                  End If
-                                 mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, GetRealCrop(mptStartCrop, mptEndCrop, Me.mobjMetaData.Size))
+                                 mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, Me.CropRect, mobjOutputProperties.Rotation)
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = False
                                            End Sub)

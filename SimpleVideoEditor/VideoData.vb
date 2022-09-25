@@ -732,7 +732,7 @@ Public Class VideoData
     ''' <summary>
     ''' Tells ffmpeg to make files for the given frame(s)
     ''' </summary>
-    Public Sub ExportFfmpegFrames(ByVal frameStart As Integer, ByVal frameEnd As Integer, targetFilePath As String, Optional cropRect As Rectangle? = Nothing)
+    Public Sub ExportFfmpegFrames(ByVal frameStart As Integer, ByVal frameEnd As Integer, targetFilePath As String, Optional cropRect As Rectangle? = Nothing, Optional rotation As RotateFlipType = RotateFlipType.RotateNoneFlipNone)
         'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
@@ -744,6 +744,9 @@ Public Class VideoData
             processInfo.Arguments += ($", crop={cropRect?.Width}:{cropRect?.Height}:{cropRect?.X}:{cropRect?.Y}""")
         Else
             processInfo.Arguments += """"
+        End If
+        If Not rotation = RotateFlipType.RotateNoneFlipNone Then
+            processInfo.Arguments += "," + If(rotation = RotateFlipType.Rotate90FlipNone, "transpose=1", If(rotation = RotateFlipType.Rotate180FlipNone, """transpose=2,transpose=2""", If(rotation = RotateFlipType.Rotate270FlipNone, "transpose=2", "")))
         End If
         processInfo.Arguments += $" -vsync 0 ""{targetFilePath}"""
 
