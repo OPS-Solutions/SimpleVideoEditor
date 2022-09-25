@@ -1541,6 +1541,7 @@ Public Class MainForm
             sfdExportFrame.OverwritePrompt = True
             Select Case sfdExportFrame.ShowDialog()
                 Case DialogResult.OK
+                    Dim chosenName As String = sfdExportFrame.FileName
                     Task.Run(Sub()
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = True
@@ -1549,13 +1550,17 @@ Public Class MainForm
                                                pgbOperationProgress.Value = pgbOperationProgress.Minimum
                                                pgbOperationProgress.Visible = True
                                            End Sub)
-                                 If File.Exists(sfdExportFrame.FileName) Then
-                                     My.Computer.FileSystem.DeleteFile(sfdExportFrame.FileName)
+                                 If File.Exists(chosenName) Then
+                                     My.Computer.FileSystem.DeleteFile(chosenName)
                                  End If
-                                 mobjMetaData.ExportFfmpegFrames(mintCurrentFrame, mintCurrentFrame, sfdExportFrame.FileName, Me.CropRect, mobjOutputProperties.Rotation)
+                                 mobjMetaData.ExportFfmpegFrames(mintCurrentFrame, mintCurrentFrame, chosenName, Me.CropRect, mobjOutputProperties.Rotation)
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = False
                                            End Sub)
+                                 If File.Exists(chosenName) Then
+                                     'Show file location of saved file
+                                     OpenOrFocusFile(chosenName)
+                                 End If
                              End Sub)
                 Case Else
                     'Do nothing
@@ -1577,6 +1582,7 @@ Public Class MainForm
             sfdExportFrame.OverwritePrompt = True
             Select Case sfdExportFrame.ShowDialog()
                 Case DialogResult.OK
+                    Dim chosenName As String = sfdExportFrame.FileName
                     Task.Run(Sub()
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = True
@@ -1585,16 +1591,21 @@ Public Class MainForm
                                                pgbOperationProgress.Value = pgbOperationProgress.Minimum
                                                pgbOperationProgress.Visible = True
                                            End Sub)
-                                 Dim chosenName As String = sfdExportFrame.FileName
+
                                  If chosenName.Contains("#") Then
                                      chosenName = chosenName.Replace("#", "%03d")
                                  Else
                                      chosenName = Path.Combine({Path.GetDirectoryName(chosenName), Path.GetFileNameWithoutExtension(chosenName), "%03d", ".png"})
                                  End If
+                                 Dim firstFrame As String = Regex.Replace(chosenName, "%03d", "001")
                                  mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, Me.CropRect, mobjOutputProperties.Rotation)
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = False
                                            End Sub)
+                                 If File.Exists(firstFrame) Then
+                                     'Show file location of saved file
+                                     OpenOrFocusFile(firstFrame)
+                                 End If
                              End Sub)
                 Case Else
                     'Do nothing
@@ -1764,6 +1775,10 @@ Public Class MainForm
                         My.Computer.FileSystem.DeleteFile(sfdExportAudio.FileName)
                     End If
                     mobjMetaData.ExportFfmpegAudioStream(sfdExportAudio.FileName, detectedStreamExtension)
+                    If File.Exists(sfdExportAudio.FileName) Then
+                        'Show file location of saved file
+                        OpenOrFocusFile(sfdExportAudio.FileName)
+                    End If
                 Case Else
                     'Do nothing
             End Select
