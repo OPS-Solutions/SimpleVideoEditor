@@ -1479,7 +1479,7 @@ Public Class MainForm
             picColorKey.BackColor = Color.Lime
             mobjGenericToolTip.SetToolTip(picColorKey, $"Color that will be made transparent if the output file type supports it.{vbNewLine}Currently not set.")
         End If
-        mobjOutputProperties.ColorKey = picColorKey.BackColor
+        mobjOutputProperties.ColorKey = dlgColorKey.Color
     End Sub
 
     Private Sub picPlaybackSpeed_Click(sender As Object, e As EventArgs) Handles picPlaybackSpeed.Click
