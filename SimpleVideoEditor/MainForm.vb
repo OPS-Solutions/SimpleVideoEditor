@@ -317,14 +317,14 @@ Public Class MainForm
     Private Sub NewErrorData(sender As Object, e As System.Diagnostics.DataReceivedEventArgs)
         If e.Data IsNot Nothing AndAlso Not String.IsNullOrEmpty(e.Data) Then
             'TODO Process information and expose status information to the user
-            mobjOutputLog.AppendLine(e.Data)
+            mobjErrorLog.AppendLine(e.Data)
         End If
     End Sub
 
     Private Sub NewOutputData(sender As Object, e As System.Diagnostics.DataReceivedEventArgs)
         If e.Data IsNot Nothing AndAlso Not String.IsNullOrEmpty(e.Data) Then
             'TODO Process information and expose status information to the user
-            mobjErrorLog.AppendLine(e.Data)
+            mobjOutputLog.AppendLine(e.Data)
         End If
     End Sub
 
