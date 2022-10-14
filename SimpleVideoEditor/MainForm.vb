@@ -255,6 +255,7 @@ Public Class MainForm
         Dim errorLog As New StringBuilder
         Dim outputLog As New StringBuilder
         Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mintAspectWidth, mintAspectHeight))
+        Dim runArgs As String = ""
         If useIntermediate Then
             intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
             If isMP4 Then
@@ -272,6 +273,7 @@ Public Class MainForm
             'Await Task.Run(Sub() mproFfmpegProcess.WaitForExit())
             mproFfmpegProcess.BeginErrorReadLine()
             mproFfmpegProcess.BeginOutputReadLine()
+            runArgs += mproFfmpegProcess.StartInfo.Arguments
             Await mproFfmpegProcess.WaitForExitAsync()
             'Check if user canceled manual entry
             If Not File.Exists(intermediateFilePath) Then
@@ -295,6 +297,7 @@ Public Class MainForm
         End If
         mproFfmpegProcess.BeginErrorReadLine()
         mproFfmpegProcess.BeginOutputReadLine()
+        runArgs += mproFfmpegProcess.StartInfo.Arguments
         Await mproFfmpegProcess.WaitForExitAsync()
         If overwriteOriginal Or (useIntermediate) Then
             My.Computer.FileSystem.DeleteFile(intermediateFilePath)
@@ -303,7 +306,8 @@ Public Class MainForm
             'Show file location of saved file
             OpenOrFocusFile(outputPath)
         Else
-            MessageBox.Show($"Failed to generate output '{outputPath}'{vbNewLine}Stdout: {mobjOutputLog}{vbNewLine}Stderr: {mobjErrorLog}")
+            MessageBox.Show(Me, $"Failed to generate output '{outputPath}' using ffmpeg{vbNewLine}{vbNewLine}Arguments:{runArgs}{vbNewLine}{vbNewLine}Stdout: {mobjOutputLog}{vbNewLine}{vbNewLine}Stderr: {mobjErrorLog}",
+                            "Save failed", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
         Me.UseWaitCursor = False
     End Sub
