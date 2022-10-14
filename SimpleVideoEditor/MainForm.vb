@@ -132,6 +132,7 @@ Public Class MainForm
     ''' </summary>
     Public Sub LoadFile(ByVal fullPath As String, Optional inputMash As Boolean = False)
         mstrVideoPath = fullPath
+        sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
         Me.Text = Me.Text.Split("-")(0).Trim + $" - {System.IO.Path.GetFileName(mstrVideoPath)}" + " - Open Source"
         If mobjMetaData IsNot Nothing Then
             mobjMetaData.Dispose()
@@ -342,13 +343,19 @@ Public Class MainForm
     Private Sub SaveAs()
         sfdVideoOut.Filter = "MP4|*.mp4|GIF|*.gif|MKV|*.mkv|WMV|*.wmv|AVI|*.avi|MOV|*.mov|All files (*.*)|*.*"
         Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
+        Dim targetName As String = System.IO.Path.GetFileName(sfdVideoOut.FileName)
         For index As Integer = 1 To validExtensions.Count - 1 Step 2
-            If System.IO.Path.GetExtension(mstrVideoPath).Contains(validExtensions(index).Replace("*", "")) Then
+            If System.IO.Path.GetExtension(targetName).Contains(validExtensions(index).Replace("*", "")) Then
                 sfdVideoOut.FilterIndex = ((index - 1) \ 2) + 1
                 Exit For
             End If
         Next
-        sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
+        'Retarget the location of the last attempted save, as when you save, the full path gets placed into the FileName member
+        Dim initialDir As String = Path.GetDirectoryName(sfdVideoOut.FileName)
+        If IO.Directory.Exists(initialDir) Then
+            sfdVideoOut.InitialDirectory = initialDir
+        End If
+        sfdVideoOut.FileName = targetName
         sfdVideoOut.OverwritePrompt = True
         sfdVideoOut.ShowDialog()
     End Sub
