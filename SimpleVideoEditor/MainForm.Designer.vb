@@ -38,13 +38,10 @@ Partial Class MainForm
         Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
         Me.MotionInterpolationToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.grpSettings = New System.Windows.Forms.GroupBox()
-        Me.chkQuality = New SimpleVideoEditor.ImageSwitch()
         Me.picPlaybackSpeed = New System.Windows.Forms.PictureBox()
         Me.picColorKey = New System.Windows.Forms.PictureBox()
         Me.cmsColorKey = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.ClearToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
-        Me.chkMute = New SimpleVideoEditor.ImageSwitch()
         Me.cmsPlaybackVolume = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.MuteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripMenuItem10 = New System.Windows.Forms.ToolStripMenuItem()
@@ -103,14 +100,14 @@ Partial Class MainForm
         Me.LoadFromClipboardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.CopyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
+        Me.chkQuality = New SimpleVideoEditor.ImageSwitch()
+        Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
+        Me.chkMute = New SimpleVideoEditor.ImageSwitch()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
-        CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picColorKey, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsColorKey.SuspendLayout()
-        CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.chkMute, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsPlaybackVolume.SuspendLayout()
         CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsRotation.SuspendLayout()
@@ -127,6 +124,9 @@ Partial Class MainForm
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsCrop.SuspendLayout()
+        CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.chkMute, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'ofdVideoIn
@@ -234,19 +234,6 @@ Partial Class MainForm
         Me.grpSettings.TabStop = False
         Me.grpSettings.Text = "Settings"
         '
-        'chkQuality
-        '
-        Me.chkQuality.Checked = False
-        Me.chkQuality.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.chkQuality.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOff
-        Me.chkQuality.Image = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOff
-        Me.chkQuality.Location = New System.Drawing.Point(52, 95)
-        Me.chkQuality.Name = "chkQuality"
-        Me.chkQuality.Size = New System.Drawing.Size(18, 18)
-        Me.chkQuality.TabIndex = 25
-        Me.chkQuality.TabStop = False
-        Me.chkQuality.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOn
-        '
         'picPlaybackSpeed
         '
         Me.picPlaybackSpeed.Cursor = System.Windows.Forms.Cursors.Hand
@@ -283,33 +270,6 @@ Partial Class MainForm
         Me.ClearToolStripMenuItem.Name = "ClearToolStripMenuItem"
         Me.ClearToolStripMenuItem.Size = New System.Drawing.Size(101, 22)
         Me.ClearToolStripMenuItem.Text = "Clear"
-        '
-        'chkDeleteDuplicates
-        '
-        Me.chkDeleteDuplicates.Checked = False
-        Me.chkDeleteDuplicates.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.chkDeleteDuplicates.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
-        Me.chkDeleteDuplicates.Image = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
-        Me.chkDeleteDuplicates.Location = New System.Drawing.Point(17, 59)
-        Me.chkDeleteDuplicates.Name = "chkDeleteDuplicates"
-        Me.chkDeleteDuplicates.Size = New System.Drawing.Size(18, 18)
-        Me.chkDeleteDuplicates.TabIndex = 22
-        Me.chkDeleteDuplicates.TabStop = False
-        Me.chkDeleteDuplicates.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOff
-        '
-        'chkMute
-        '
-        Me.chkMute.Checked = True
-        Me.chkMute.ContextMenuStrip = Me.cmsPlaybackVolume
-        Me.chkMute.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.chkMute.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOn
-        Me.chkMute.Image = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
-        Me.chkMute.Location = New System.Drawing.Point(52, 23)
-        Me.chkMute.Name = "chkMute"
-        Me.chkMute.Size = New System.Drawing.Size(18, 18)
-        Me.chkMute.TabIndex = 21
-        Me.chkMute.TabStop = False
-        Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
         '
         'cmsPlaybackVolume
         '
@@ -442,14 +402,14 @@ Partial Class MainForm
         '
         Me.CurrentToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.CurrentToolStripMenuItem.Name = "CurrentToolStripMenuItem"
-        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(154, 22)
         Me.CurrentToolStripMenuItem.Text = "Current"
         '
         'SelectedRangeToolStripMenuItem
         '
         Me.SelectedRangeToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.ExportRange
         Me.SelectedRangeToolStripMenuItem.Name = "SelectedRangeToolStripMenuItem"
-        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(154, 22)
         Me.SelectedRangeToolStripMenuItem.Text = "Selected Range"
         '
         'cmsAutoCrop
@@ -465,14 +425,14 @@ Partial Class MainForm
         '
         Me.ContractToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCropContract
         Me.ContractToolStripMenuItem.Name = "ContractToolStripMenuItem"
-        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
         Me.ContractToolStripMenuItem.Text = "Contract"
         '
         'ExpandToolStripMenuItem
         '
         Me.ExpandToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCropExpand
         Me.ExpandToolStripMenuItem.Name = "ExpandToolStripMenuItem"
-        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
         Me.ExpandToolStripMenuItem.Text = "Expand"
         '
         'dlgColorKey
@@ -573,7 +533,7 @@ Partial Class MainForm
         '
         Me.cmsSaveOptions.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.InjectCustomArgumentsToolStripMenuItem})
         Me.cmsSaveOptions.Name = "cmsSaveOptions"
-        Me.cmsSaveOptions.Size = New System.Drawing.Size(211, 26)
+        Me.cmsSaveOptions.Size = New System.Drawing.Size(211, 48)
         '
         'InjectCustomArgumentsToolStripMenuItem
         '
@@ -764,6 +724,46 @@ Partial Class MainForm
         Me.ctlVideoSeeker.Size = New System.Drawing.Size(227, 23)
         Me.ctlVideoSeeker.TabIndex = 21
         '
+        'chkQuality
+        '
+        Me.chkQuality.Checked = False
+        Me.chkQuality.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.chkQuality.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOff
+        Me.chkQuality.Image = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOff
+        Me.chkQuality.Location = New System.Drawing.Point(52, 95)
+        Me.chkQuality.Name = "chkQuality"
+        Me.chkQuality.Size = New System.Drawing.Size(18, 18)
+        Me.chkQuality.TabIndex = 25
+        Me.chkQuality.TabStop = False
+        Me.chkQuality.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOn
+        '
+        'chkDeleteDuplicates
+        '
+        Me.chkDeleteDuplicates.Checked = False
+        Me.chkDeleteDuplicates.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.chkDeleteDuplicates.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
+        Me.chkDeleteDuplicates.Image = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
+        Me.chkDeleteDuplicates.Location = New System.Drawing.Point(17, 59)
+        Me.chkDeleteDuplicates.Name = "chkDeleteDuplicates"
+        Me.chkDeleteDuplicates.Size = New System.Drawing.Size(18, 18)
+        Me.chkDeleteDuplicates.TabIndex = 22
+        Me.chkDeleteDuplicates.TabStop = False
+        Me.chkDeleteDuplicates.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOff
+        '
+        'chkMute
+        '
+        Me.chkMute.Checked = True
+        Me.chkMute.ContextMenuStrip = Me.cmsPlaybackVolume
+        Me.chkMute.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.chkMute.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOn
+        Me.chkMute.Image = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
+        Me.chkMute.Location = New System.Drawing.Point(52, 23)
+        Me.chkMute.Name = "chkMute"
+        Me.chkMute.Size = New System.Drawing.Size(18, 18)
+        Me.chkMute.TabIndex = 21
+        Me.chkMute.TabStop = False
+        Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
+        '
         'MainForm
         '
         Me.AllowDrop = True
@@ -794,12 +794,9 @@ Partial Class MainForm
         Me.Text = "Simple Video Editor"
         Me.cmsFrameRate.ResumeLayout(False)
         Me.grpSettings.ResumeLayout(False)
-        CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picColorKey, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsColorKey.ResumeLayout(False)
-        CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.chkMute, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsPlaybackVolume.ResumeLayout(False)
         CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsRotation.ResumeLayout(False)
@@ -817,6 +814,9 @@ Partial Class MainForm
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsCrop.ResumeLayout(False)
+        CType(Me.chkQuality, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.chkMute, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 

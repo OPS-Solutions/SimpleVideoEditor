@@ -1,6 +1,7 @@
 ﻿Imports System.Drawing.Imaging
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
+Imports System.Threading
 Imports Shell32
 
 Module Extensions
@@ -814,6 +815,22 @@ Module Extensions
             End If
         Next
         Return builder.ToString
+    End Function
+
+    <Extension()>
+    Public Function WaitForExitAsync(process As Process, Optional cancellationToken As CancellationToken = Nothing) As Task
+        If process.HasExited Then
+            Return Task.CompletedTask
+        End If
+        Dim completionSource As New TaskCompletionSource(Of Object)
+        process.EnableRaisingEvents = True
+        AddHandler process.Exited, (Sub(sender, args)
+                                        completionSource.TrySetResult(Nothing)
+                                    End Sub)
+        If cancellationToken <> Nothing Then
+            cancellationToken.Register(Sub() completionSource.SetCanceled())
+        End If
+        Return If(process.HasExited, Task.CompletedTask, completionSource.Task)
     End Function
 
 #Region "Filters"

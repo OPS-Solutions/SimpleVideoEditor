@@ -1,7 +1,9 @@
 ﻿Imports System.Drawing.Imaging
 Imports System.IO
 Imports System.IO.Pipes
+Imports System.Runtime.CompilerServices
 Imports System.Runtime.Remoting.Metadata.W3cXsd2001
+Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
 
@@ -11,6 +13,8 @@ Public Class MainForm
 
     Private mstrVideoPath As String = "" 'Fullpath of the video file being edited
     Private mproFfmpegProcess As Process 'TODO This doesn't really need to be module level
+    Private mobjErrorLog As New StringBuilder 'Keeps track of process error data from RunFfmpeg()
+    Private mobjOutputLog As New StringBuilder 'Keeps track of process output data from RunFfmpeg()
     Private mthdDefaultLoadThread As System.Threading.Thread 'Thread for loading images upon open
     Private mobjGenericToolTip As ToolTipPlus = New ToolTipPlus() 'Tooltip object required for setting tootips on controls
 
@@ -189,7 +193,8 @@ Public Class MainForm
     ''' <summary>
     ''' Sets up necessary information and runs ffmpeg targetting the desired filepath, saving to the target location, overwriting or deleting as necessary
     ''' </summary>
-    Private Sub SaveFile(ByVal outputPath As String, Optional overwrite As Boolean = False)
+    Private Async Sub SaveFile(ByVal outputPath As String, Optional overwrite As Boolean = False)
+        Me.UseWaitCursor = True
         'If overwrite is checked, re-name the current video, then run ffmpeg and output to original, and delete the re-named one
         Dim overwriteOriginal As Boolean = False
         If overwrite And System.IO.File.Exists(outputPath) Then
@@ -246,20 +251,27 @@ Public Class MainForm
             .EndFrame = ctlVideoSeeker.RangeMaxValue,
             .EndPTS = lastFramePTS
         }
+        Dim errorLog As New StringBuilder
+        Dim outputLog As New StringBuilder
+        Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mintAspectWidth, mintAspectHeight))
         If useIntermediate Then
             intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
             If isMP4 Then
                 intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
             End If
             'Don't pass in special properties yet, it would be better to decimate after cropping
-            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, mintAspectWidth, mintAspectHeight, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = 1, .QScale = 0}, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(0), mptStartCrop, mptEndCrop)
+            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = 1, .QScale = 0}, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(0), cropArea)
             If Not ignoreTrim Then
                 ignoreTrim = True
             End If
             If mproFfmpegProcess Is Nothing Then
                 Exit Sub
             End If
-            mproFfmpegProcess.WaitForExit()
+
+            'Await Task.Run(Sub() mproFfmpegProcess.WaitForExit())
+            mproFfmpegProcess.BeginErrorReadLine()
+            mproFfmpegProcess.BeginOutputReadLine()
+            Await mproFfmpegProcess.WaitForExitAsync()
             'Check if user canceled manual entry
             If Not File.Exists(intermediateFilePath) Then
                 Exit Sub
@@ -276,17 +288,43 @@ Public Class MainForm
             SwapValues(realwidth, realheight)
         End If
         'Now you can apply everything else
-        RunFfmpeg(intermediateFilePath, outputPath, mobjOutputProperties.Rotation, realwidth, realheight, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Point(0, 0), mptStartCrop), If(useIntermediate, New Point(0, 0), mptEndCrop))
+        RunFfmpeg(intermediateFilePath, outputPath, mobjOutputProperties.Rotation, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Rectangle?, cropArea))
         If mproFfmpegProcess Is Nothing Then
             Exit Sub
         End If
-        mproFfmpegProcess.WaitForExit()
+        mproFfmpegProcess.BeginErrorReadLine()
+        mproFfmpegProcess.BeginOutputReadLine()
+        Await mproFfmpegProcess.WaitForExitAsync()
         If overwriteOriginal Or (useIntermediate) Then
             My.Computer.FileSystem.DeleteFile(intermediateFilePath)
         End If
         If File.Exists(outputPath) Then
             'Show file location of saved file
             OpenOrFocusFile(outputPath)
+        Else
+            MessageBox.Show($"Failed to generate output '{outputPath}'{vbNewLine}Stdout: {mobjOutputLog}{vbNewLine}Stderr: {mobjErrorLog}")
+        End If
+        Me.UseWaitCursor = False
+    End Sub
+
+    Private Sub AddRunHandlers()
+        If mproFfmpegProcess IsNot Nothing Then
+            AddHandler mproFfmpegProcess.ErrorDataReceived, AddressOf NewErrorData
+            AddHandler mproFfmpegProcess.OutputDataReceived, AddressOf NewOutputData
+        End If
+    End Sub
+
+    Private Sub NewErrorData(sender As Object, e As System.Diagnostics.DataReceivedEventArgs)
+        If e.Data IsNot Nothing AndAlso Not String.IsNullOrEmpty(e.Data) Then
+            'TODO Process information and expose status information to the user
+            mobjOutputLog.AppendLine(e.Data)
+        End If
+    End Sub
+
+    Private Sub NewOutputData(sender As Object, e As System.Diagnostics.DataReceivedEventArgs)
+        If e.Data IsNot Nothing AndAlso Not String.IsNullOrEmpty(e.Data) Then
+            'TODO Process information and expose status information to the user
+            mobjErrorLog.AppendLine(e.Data)
         End If
     End Sub
 
@@ -490,7 +528,10 @@ Public Class MainForm
     ''' <summary>
     ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
     ''' </summary>
-    Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal newWidth As Integer, ByVal newHeight As Integer, ByVal specProperties As SpecialOutputProperties, ByVal trimData As TrimData, ByVal targetDefinition As String, ByVal cropTopLeft As Point, ByVal cropBottomRight As Point)
+    Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal specProperties As SpecialOutputProperties, ByVal trimData As TrimData, ByVal targetDefinition As String, croprect As Rectangle?)
+        mobjErrorLog.Clear()
+        mobjOutputLog.Clear()
+
         If specProperties?.PlaybackSpeed <> 0 AndAlso trimData IsNot Nothing Then
             'duration /= specProperties.PlaybackSpeed
             trimData.StartPTS *= specProperties.PlaybackSpeed
@@ -522,15 +563,16 @@ Public Class MainForm
         processInfo.Arguments += $" -i ""{inputFile}"""
 
         'CROP VIDEO(Can not be done with a rotate, must run twice)
-        Dim cropWidth As Integer = newWidth
-        Dim cropHeight As Integer = newHeight
-        Dim cropRect As Rectangle? = Me.CropRect()
-        If cropRect IsNot Nothing Then
-            videoFilterParams.Add(GetCropArgs(cropRect))
+        Dim cropWidth As Integer = mintAspectWidth
+        Dim cropHeight As Integer = mintAspectHeight
+        If croprect IsNot Nothing Then
+            cropWidth = croprect.Value.Width
+            cropHeight = croprect.Value.Height
+            videoFilterParams.Add(GetCropArgs(croprect))
         End If
 
         'SCALE VIDEO
-        Dim scale As Double = newHeight
+        Dim scale As Double = cropHeight
         Select Case targetDefinition
             Case "Original"
             Case "120p"
@@ -546,7 +588,7 @@ Public Class MainForm
             Case "1080p"
                 scale = 1080
         End Select
-        scale /= newHeight
+        scale /= cropHeight
         If scale <> 1 Then
             Dim scaleX As Integer = ForceEven(Math.Floor(cropWidth * scale))
             Dim scaleY As Integer = ForceEven(Math.Floor(cropHeight * scale))
@@ -602,9 +644,9 @@ Public Class MainForm
         End If
 
         'Maintain transparency when making a gif from images or other transparent content
-        If (mobjMetaData.InputMash OrElse specProperties.ColorKey.A <> 0 OrElse mobjMetaData.GetImageFromCache(0).GetBytes(3) = 0) AndAlso IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif") Then
-            videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=bayer")
-            'processInfo.Arguments += " -filter_complex ""[0:v] split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=bayer"""
+        Dim isGif As Boolean = IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif")
+        If isGif Then
+            videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none")
         End If
 
         'Check if the user wants to do motion interpolation when using a framerate that would cause duplicate frames
@@ -633,11 +675,6 @@ Public Class MainForm
                 complexFilterString = complexFilterString.Substring(0, complexFilterString.Length - outParam.Length)
                 complexFilterString += """"
             End If
-            'TODO Build complex filter for maintaining trasparency for gifs
-            'If IO.Path.GetExtension(inputFile).ToLower.Equals(".gif") Then
-            '    filterString = " -filter_complex ""[0:v] " & videoFilterParams(paramIndex) + ", split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse"""
-            'End If
-            'processInfo.Arguments += filterString
         Next
         processInfo.Arguments += complexFilterString
 
@@ -676,9 +713,14 @@ Public Class MainForm
             End Select
             processInfo.Arguments = manualEntryForm.ModifiedText
         End If
-        processInfo.UseShellExecute = True
-        processInfo.WindowStyle = ProcessWindowStyle.Normal
-        mproFfmpegProcess = Process.Start(processInfo)
+        processInfo.RedirectStandardError = True
+        processInfo.RedirectStandardOutput = True
+        processInfo.UseShellExecute = False
+        processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        mproFfmpegProcess = New Process()
+        AddRunHandlers()
+        mproFfmpegProcess.StartInfo = processInfo
+        mproFfmpegProcess.Start()
     End Sub
 
 #Region "CROPPING"
