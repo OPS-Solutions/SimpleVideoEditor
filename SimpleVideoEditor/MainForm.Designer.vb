@@ -77,6 +77,9 @@ Partial Class MainForm
         Me.OneAndAHalfSpeedToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.OneAndThreeQuarterSpeedToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.DoubleSpeedToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator3 = New System.Windows.Forms.ToolStripSeparator()
+        Me.CustomToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.CustomSpeedTextToolStripMenuItem = New System.Windows.Forms.ToolStripTextBox()
         Me.cmsBrowse = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.HolePuncherToolToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsVideoSeeker = New System.Windows.Forms.ContextMenuStrip(Me.components)
@@ -443,32 +446,32 @@ Partial Class MainForm
         '
         'cmsPlaybackSpeed
         '
-        Me.cmsPlaybackSpeed.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.QuarterSpeedToolstripMenuItem, Me.OneThirdSpeedToolStripMenuItem, Me.HalfSpeedToolStripMenuItem, Me.ThreeQuarterSpeedToolStripMenuItem, Me.DefaultSpeedToolStripMenuItem, Me.OneAndAQuarterSpeedToolStripMenuItem, Me.OneAndAHalfSpeedToolStripMenuItem, Me.OneAndThreeQuarterSpeedToolStripMenuItem, Me.DoubleSpeedToolStripMenuItem})
+        Me.cmsPlaybackSpeed.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.QuarterSpeedToolstripMenuItem, Me.OneThirdSpeedToolStripMenuItem, Me.HalfSpeedToolStripMenuItem, Me.ThreeQuarterSpeedToolStripMenuItem, Me.DefaultSpeedToolStripMenuItem, Me.OneAndAQuarterSpeedToolStripMenuItem, Me.OneAndAHalfSpeedToolStripMenuItem, Me.OneAndThreeQuarterSpeedToolStripMenuItem, Me.DoubleSpeedToolStripMenuItem, Me.CustomToolStripMenuItem, Me.ToolStripSeparator3, Me.CustomSpeedTextToolStripMenuItem})
         Me.cmsPlaybackSpeed.Name = "cmsPlaybackSpeed"
-        Me.cmsPlaybackSpeed.Size = New System.Drawing.Size(130, 202)
+        Me.cmsPlaybackSpeed.Size = New System.Drawing.Size(181, 277)
         '
         'QuarterSpeedToolstripMenuItem
         '
         Me.QuarterSpeedToolstripMenuItem.Name = "QuarterSpeedToolstripMenuItem"
-        Me.QuarterSpeedToolstripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.QuarterSpeedToolstripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.QuarterSpeedToolstripMenuItem.Text = "0.25"
         '
         'OneThirdSpeedToolStripMenuItem
         '
         Me.OneThirdSpeedToolStripMenuItem.Name = "OneThirdSpeedToolStripMenuItem"
-        Me.OneThirdSpeedToolStripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.OneThirdSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.OneThirdSpeedToolStripMenuItem.Text = "0.333"
         '
         'HalfSpeedToolStripMenuItem
         '
         Me.HalfSpeedToolStripMenuItem.Name = "HalfSpeedToolStripMenuItem"
-        Me.HalfSpeedToolStripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.HalfSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.HalfSpeedToolStripMenuItem.Text = "0.5"
         '
         'ThreeQuarterSpeedToolStripMenuItem
         '
         Me.ThreeQuarterSpeedToolStripMenuItem.Name = "ThreeQuarterSpeedToolStripMenuItem"
-        Me.ThreeQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.ThreeQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.ThreeQuarterSpeedToolStripMenuItem.Text = "0.75"
         '
         'DefaultSpeedToolStripMenuItem
@@ -476,32 +479,50 @@ Partial Class MainForm
         Me.DefaultSpeedToolStripMenuItem.Checked = True
         Me.DefaultSpeedToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
         Me.DefaultSpeedToolStripMenuItem.Name = "DefaultSpeedToolStripMenuItem"
-        Me.DefaultSpeedToolStripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.DefaultSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.DefaultSpeedToolStripMenuItem.Text = "1 (Default)"
         '
         'OneAndAQuarterSpeedToolStripMenuItem
         '
         Me.OneAndAQuarterSpeedToolStripMenuItem.Name = "OneAndAQuarterSpeedToolStripMenuItem"
-        Me.OneAndAQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.OneAndAQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.OneAndAQuarterSpeedToolStripMenuItem.Text = "1.25"
         '
         'OneAndAHalfSpeedToolStripMenuItem
         '
         Me.OneAndAHalfSpeedToolStripMenuItem.Name = "OneAndAHalfSpeedToolStripMenuItem"
-        Me.OneAndAHalfSpeedToolStripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.OneAndAHalfSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.OneAndAHalfSpeedToolStripMenuItem.Text = "1.5"
         '
         'OneAndThreeQuarterSpeedToolStripMenuItem
         '
         Me.OneAndThreeQuarterSpeedToolStripMenuItem.Name = "OneAndThreeQuarterSpeedToolStripMenuItem"
-        Me.OneAndThreeQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.OneAndThreeQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.OneAndThreeQuarterSpeedToolStripMenuItem.Text = "1.75"
         '
         'DoubleSpeedToolStripMenuItem
         '
         Me.DoubleSpeedToolStripMenuItem.Name = "DoubleSpeedToolStripMenuItem"
-        Me.DoubleSpeedToolStripMenuItem.Size = New System.Drawing.Size(129, 22)
+        Me.DoubleSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.DoubleSpeedToolStripMenuItem.Text = "2"
+        '
+        'ToolStripSeparator3
+        '
+        Me.ToolStripSeparator3.Name = "ToolStripSeparator3"
+        Me.ToolStripSeparator3.Size = New System.Drawing.Size(177, 6)
+        '
+        'CustomToolStripMenuItem
+        '
+        Me.CustomToolStripMenuItem.Name = "CustomToolStripMenuItem"
+        Me.CustomToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.CustomToolStripMenuItem.Text = "Custom"
+        '
+        'CustomSpeedTextToolStripMenuItem
+        '
+        Me.CustomSpeedTextToolStripMenuItem.Name = "CustomSpeedTextToolStripMenuItem"
+        Me.CustomSpeedTextToolStripMenuItem.Size = New System.Drawing.Size(100, 23)
+        Me.CustomSpeedTextToolStripMenuItem.Text = "0.1666"
+        Me.CustomSpeedTextToolStripMenuItem.ToolTipText = "Custom playback speed"
         '
         'cmsBrowse
         '
@@ -533,7 +554,7 @@ Partial Class MainForm
         '
         Me.cmsSaveOptions.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.InjectCustomArgumentsToolStripMenuItem})
         Me.cmsSaveOptions.Name = "cmsSaveOptions"
-        Me.cmsSaveOptions.Size = New System.Drawing.Size(211, 48)
+        Me.cmsSaveOptions.Size = New System.Drawing.Size(211, 26)
         '
         'InjectCustomArgumentsToolStripMenuItem
         '
@@ -802,6 +823,7 @@ Partial Class MainForm
         Me.cmsRotation.ResumeLayout(False)
         Me.cmsPicVideo.ResumeLayout(False)
         Me.cmsPlaybackSpeed.ResumeLayout(False)
+        Me.cmsPlaybackSpeed.PerformLayout()
         Me.cmsBrowse.ResumeLayout(False)
         Me.cmsVideoSeeker.ResumeLayout(False)
         Me.cmsSaveOptions.ResumeLayout(False)
@@ -900,4 +922,7 @@ Partial Class MainForm
     Friend WithEvents LoadFromClipboardToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents CopyToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents pgbOperationProgress As ToolStripProgressBar
+    Friend WithEvents ToolStripSeparator3 As ToolStripSeparator
+    Friend WithEvents CustomToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents CustomSpeedTextToolStripMenuItem As ToolStripTextBox
 End Class

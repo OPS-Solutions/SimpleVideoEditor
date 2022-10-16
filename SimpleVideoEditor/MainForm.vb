@@ -256,8 +256,11 @@ Public Class MainForm
         Dim outputLog As New StringBuilder
         Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mintAspectWidth, mintAspectHeight))
         Dim runArgs As String = ""
+        'If doing an intermediate conversion when making a gif, we don't want to mess up the framerate, so save as an avi first
+        Dim isGIF As Boolean = IO.Path.GetExtension(outputPath) = ".gif"
+        Dim sourceIsGIF As Boolean = IO.Path.GetExtension(mstrVideoPath) = ".gif"
         If useIntermediate Then
-            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4, ".avi", "")
+            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4 OrElse (Not sourceIsGIF AndAlso isGIF), ".avi", "")
             If isMP4 Then
                 intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
             End If
@@ -1540,14 +1543,27 @@ Public Class MainForm
     End Sub
 
     Private Sub cmsPlaybackSpeed_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsPlaybackSpeed.ItemClicked
-        For Each objItem As ToolStripMenuItem In cmsPlaybackSpeed.Items
-            objItem.Checked = False
+        If e.ClickedItem.GetType <> GetType(ToolStripMenuItem) Then
+            Exit Sub
+        End If
+        For Each objItem As ToolStripItem In cmsPlaybackSpeed.Items
+            If objItem.GetType = GetType(ToolStripSeparator) Then
+                Exit For
+            End If
+            CType(objItem, ToolStripMenuItem).Checked = False
         Next
         'Sets the target playback speed global based on the text in the context menu
         Dim resultValue As Double = 1
         If Double.TryParse(Regex.Match(CType(e.ClickedItem, ToolStripMenuItem).Text, "\d*.?\d*").Value, resultValue) Then
             CType(e.ClickedItem, ToolStripMenuItem).Checked = True
             mobjOutputProperties.PlaybackSpeed = resultValue
+        ElseIf e.ClickedItem Is CustomToolStripMenuItem Then
+            CType(e.ClickedItem, ToolStripMenuItem).Checked = True
+            If CustomSpeedTextToolStripMenuItem.Text.Length = 0 Then
+                mobjOutputProperties.PlaybackSpeed = 1
+            Else
+                mobjOutputProperties.PlaybackSpeed = Double.Parse(CustomSpeedTextToolStripMenuItem.Text)
+            End If
         End If
     End Sub
 
@@ -1836,6 +1852,19 @@ Public Class MainForm
                     'Do nothing
             End Select
         End Using
+    End Sub
+
+    ''' <summary>
+    ''' Ensure value in custom playback speed is a number
+    ''' </summary>
+    Private Sub CustomSpeedTextToolStripMenuItem_TextChanged(sender As Object, e As EventArgs) Handles CustomSpeedTextToolStripMenuItem.TextChanged
+        CustomSpeedTextToolStripMenuItem.Text = Regex.Match(CustomSpeedTextToolStripMenuItem.Text, "\d*.?\d*").Value
+    End Sub
+
+    Private Sub cmsPlaybackSpeed_Closing(sender As Object, e As ToolStripDropDownClosingEventArgs) Handles cmsPlaybackSpeed.Closing
+        If CustomToolStripMenuItem.Checked Then
+            cmsPlaybackVolume_ItemClicked(Me, New ToolStripItemClickedEventArgs(CustomToolStripMenuItem))
+        End If
     End Sub
 #End Region
 
