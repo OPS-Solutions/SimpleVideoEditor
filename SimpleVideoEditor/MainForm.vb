@@ -1585,12 +1585,6 @@ Public Class MainForm
         End If
         Me.chkMute.Checked = (resultValue = 0)
         mobjOutputProperties.PlaybackVolume = resultValue
-        For Each objItem As ToolStripMenuItem In cmsPlaybackVolume.Items
-            objItem.Checked = False
-        Next
-        If Double.TryParse(Regex.Match(CType(e.ClickedItem, ToolStripMenuItem).Text, "\d*.?\d*").Value, resultValue) Then
-            CType(e.ClickedItem, ToolStripMenuItem).Checked = True
-        End If
     End Sub
 #End Region
 
