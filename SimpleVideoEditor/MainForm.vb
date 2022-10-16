@@ -265,7 +265,7 @@ Public Class MainForm
                 intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
             End If
             'Don't pass in special properties yet, it would be better to decimate after cropping
-            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = 1, .QScale = 0}, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(0), cropArea)
+            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = If(mobjOutputProperties.PlaybackVolume <= 0, 0, 1), .QScale = 0}, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(0), cropArea)
             If Not ignoreTrim Then
                 ignoreTrim = True
             End If
