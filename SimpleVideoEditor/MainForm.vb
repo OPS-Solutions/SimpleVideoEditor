@@ -774,14 +774,7 @@ Public Class MainForm
         If Me.mobjMetaData IsNot Nothing Then
             e.Graphics.Clear(picVideo.BackColor)
 
-            'Draw frame info
-            Using pen As New Pen(Color.White, 1)
-                If mintDisplayInfo <> 0 Then
-                    e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
-                    e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
-                End If
-            End Using
-
+            Dim lastTransform As Drawing2D.Matrix = e.Graphics.Transform
             e.Graphics.Transform = GetVideoToClientMatrix()
             If picVideo.Image IsNot Nothing Then
                 e.Graphics.DrawImage(picVideo.Image, 0, 0, Me.mobjMetaData.Width, Me.mobjMetaData.Height)
@@ -795,6 +788,15 @@ Public Class MainForm
                 End If
             End Using
             e.Graphics.DrawRectangle(New Pen(Color.Green, 1), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X - 1, mptEndCrop.Y - mptStartCrop.Y - 1)
+            e.Graphics.Transform = lastTransform
+
+            'Draw frame info
+            Using pen As New Pen(Color.White, 1)
+                If mintDisplayInfo <> 0 Then
+                    e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
+                    e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
+                End If
+            End Using
         End If
     End Sub
 
