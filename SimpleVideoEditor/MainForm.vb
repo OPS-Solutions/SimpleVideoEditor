@@ -21,9 +21,6 @@ Public Class MainForm
     Private mptStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle, in video coordinates
     Private mptEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle, in video coordinates
 
-    Private mintAspectWidth As Integer 'Holds onto the width of the video frame for aspect ration computation(Not correct width, but correct aspect)
-    Private mintAspectHeight As Integer 'Holds onto the height of the video frame for aspect ration computation(Not correct height, but correct aspect)
-
     Private mintCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
     Private mintDisplayInfo As Integer = 0 'Timer value for how long to render special info to the main image
     Private Const RENDER_DECAY_TIME As Integer = 2000
@@ -172,7 +169,7 @@ Public Class MainForm
         PollPreviewFrames()
         cmsPicVideoExportFrame.Enabled = True
         cmsAutoCrop.Enabled = True
-        lblStatusResolution.Text = $"{Me.mobjMetaData.Width} x {Me.mobjMetaData.Height}"
+        lblStatusResolution.Text = $"{mobjMetaData.Width} x {mobjMetaData.Height}"
         DefaultToolStripMenuItem.Text = $"Default ({Me.mobjMetaData.Framerate})"
     End Sub
 
@@ -256,7 +253,7 @@ Public Class MainForm
         }
         Dim errorLog As New StringBuilder
         Dim outputLog As New StringBuilder
-        Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mintAspectWidth, mintAspectHeight))
+        Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mobjMetaData.Width, mobjMetaData.Height))
         Dim runArgs As String = ""
         'If doing an intermediate conversion when making a gif, we don't want to mess up the framerate, so save as an avi first
         Dim isGIF As Boolean = IO.Path.GetExtension(outputPath) = ".gif"
@@ -287,8 +284,8 @@ Public Class MainForm
             End If
         End If
         Dim cropRect As Rectangle? = Me.CropRect()
-        Dim realwidth As Integer = mintAspectWidth
-        Dim realheight As Integer = mintAspectHeight
+        Dim realwidth As Integer = mobjMetaData.Width
+        Dim realheight As Integer = mobjMetaData.Height
         If cropRect IsNot Nothing Then
             realwidth = cropRect?.Width
             realheight = cropRect?.Height
@@ -469,18 +466,22 @@ Public Class MainForm
         If Me.InvokeRequired Then
             Me.Invoke(Sub() PreviewFinished())
         Else
-            mintAspectWidth = mobjMetaData.Width
-            mintAspectHeight = mobjMetaData.Height
+            Dim detectedWidth As Integer = mobjMetaData.Width
+            Dim detectedHeight As Integer = mobjMetaData.Height
             If picVideo.Image IsNot Nothing Then
                 'If the resolution failed to load, put in something
-                If mintAspectWidth = 0 Or mintAspectHeight = 0 Then
-                    mintAspectWidth = picFrame1.Image.Width
-                    mintAspectHeight = picFrame1.Image.Height
+                If detectedWidth = 0 Or detectedHeight = 0 Then
+                    detectedWidth = picFrame1.Image.Width
+                    detectedHeight = picFrame1.Image.Height
+                    mobjMetaData.OverrideResolution(New Size(detectedWidth, detectedHeight))
+                    picVideo.Invalidate()
                 End If
                 'If the aspect ratio was somehow saved wrong, fix it
                 'Try flipping the known aspect, if its closer to what was loaded, change it
-                If Math.Abs((mintAspectWidth / mintAspectHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((mintAspectHeight / mintAspectWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
-                    SwapValues(mintAspectWidth, mintAspectHeight)
+                If Math.Abs((detectedWidth / detectedHeight) - (picVideo.Image.Height / picVideo.Image.Width)) < Math.Abs((detectedHeight / detectedWidth) - (picVideo.Image.Height / picVideo.Image.Width)) Then
+                    SwapValues(detectedWidth, detectedHeight)
+                    mobjMetaData.OverrideResolution(New Size(detectedWidth, detectedHeight))
+                    picVideo.Invalidate()
                 End If
             End If
 
@@ -597,8 +598,8 @@ Public Class MainForm
         processInfo.Arguments += $" -i ""{inputFile}"""
 
         'CROP VIDEO(Can not be done with a rotate, must run twice)
-        Dim cropWidth As Integer = mintAspectWidth
-        Dim cropHeight As Integer = mintAspectHeight
+        Dim cropWidth As Integer = mobjMetaData.Width
+        Dim cropHeight As Integer = mobjMetaData.Height
         If croprect IsNot Nothing Then
             cropWidth = croprect.Value.Width
             cropHeight = croprect.Value.Height
@@ -798,14 +799,14 @@ Public Class MainForm
             Dim lastTransform As Drawing2D.Matrix = e.Graphics.Transform
             e.Graphics.Transform = GetVideoToClientMatrix()
             If picVideo.Image IsNot Nothing Then
-                e.Graphics.DrawImage(picVideo.Image, 0, 0, Me.mobjMetaData.Width, Me.mobjMetaData.Height)
+                e.Graphics.DrawImage(picVideo.Image, 0, 0, mobjMetaData.Width, mobjMetaData.Height)
             End If
             Using pen As New Pen(Color.White, 1)
                 If Not Me.CropRect Is Nothing Then
-                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, Me.mobjMetaData.Height))
-                    e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(Me.mobjMetaData.Width, mptStartCrop.Y))
-                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, Me.mobjMetaData.Height))
-                    e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(Me.mobjMetaData.Width, mptEndCrop.Y - 1))
+                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, mobjMetaData.Height))
+                    e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(mobjMetaData.Width, mptStartCrop.Y))
+                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, mobjMetaData.Height))
+                    e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(mobjMetaData.Width, mptEndCrop.Y - 1))
                 End If
             End Using
             e.Graphics.DrawRectangle(New Pen(Color.Green, 1), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X - 1, mptEndCrop.Y - mptStartCrop.Y - 1)
@@ -920,8 +921,8 @@ Public Class MainForm
                 End If
                 Dim minX As Integer = Math.Max(0, Math.Min(mptStartCrop.X, mptEndCrop.X))
                 Dim minY As Integer = Math.Max(0, Math.Min(mptStartCrop.Y, mptEndCrop.Y))
-                Dim maxX As Integer = Math.Min(Me.mobjMetaData.Width, Math.Max(mptStartCrop.X, mptEndCrop.X))
-                Dim maxY As Integer = Math.Min(Me.mobjMetaData.Height, Math.Max(mptStartCrop.Y, mptEndCrop.Y))
+                Dim maxX As Integer = Math.Min(mobjMetaData.Width, Math.Max(mptStartCrop.X, mptEndCrop.X))
+                Dim maxY As Integer = Math.Min(mobjMetaData.Height, Math.Max(mptStartCrop.Y, mptEndCrop.Y))
                 mptStartCrop.X = minX
                 mptStartCrop.Y = minY
                 mptEndCrop.X = maxX
@@ -1100,7 +1101,7 @@ Public Class MainForm
         Dim cropRect As Rectangle = ReadCropData(clipboardData)
         'Update crop locations if needed
         Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
-        Dim scale As Single = New Point(displaySize.Width, displaySize.Height).Magnitude / New Point(Me.mobjMetaData.Width, Me.mobjMetaData.Height).Magnitude
+        Dim scale As Single = New Point(displaySize.Width, displaySize.Height).Magnitude / New Point(mobjMetaData.Width, mobjMetaData.Height).Magnitude
         mptStartCrop = cropRect.TopLeft
         mptEndCrop = mptStartCrop.Add(New Point(cropRect.Width - 1, cropRect.Height - 1))
         UpdateCropStatus()
@@ -1290,7 +1291,7 @@ Public Class MainForm
     ''' Sets the crop points to the given values, setting them to nothing in the case where the entire image is selected
     ''' </summary>
     Public Sub SetCropPoints(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point)
-        If cropTopLeft.X = 0 AndAlso cropTopLeft.Y = 0 AndAlso cropBottomRight.X = Me.mobjMetaData.Width - 1 AndAlso cropBottomRight.Y = Me.mobjMetaData.Height - 1 Then
+        If cropTopLeft.X = 0 AndAlso cropTopLeft.Y = 0 AndAlso cropBottomRight.X = mobjMetaData.Width - 1 AndAlso cropBottomRight.Y = mobjMetaData.Height - 1 Then
             'Perfectly bounds the image
             mptStartCrop = Nothing
             mptEndCrop = Nothing

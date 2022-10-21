@@ -75,6 +75,7 @@ Public Class VideoData
     Private mobjImageCache As ImageCache
     Private mobjThumbCache As ImageCache
     Private mblnInputMash As Boolean 'Data we set manaully saying the type of input we are using is actually a way to specify multiple files
+    Private mobjSizeOverride As Size? 'For holding resolution data, such as when the resolution fails to be read, but we can still get an image from the stream and figure it out
 
     Private Shared mobjLock As String = "Lock"
 
@@ -829,7 +830,11 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property Width As Integer
         Get
-            Return mobjMetaData.VideoStreams(0).Resolution.Width
+            If mobjSizeOverride.HasValue Then
+                Return mobjSizeOverride?.Width
+            Else
+                Return mobjMetaData.VideoStreams(0).Resolution.Width
+            End If
         End Get
     End Property
 
@@ -838,7 +843,11 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property Height As Integer
         Get
-            Return mobjMetaData.VideoStreams(0).Resolution.Height
+            If mobjSizeOverride.HasValue Then
+                Return mobjSizeOverride?.Height
+            Else
+                Return mobjMetaData.VideoStreams(0).Resolution.Height
+            End If
         End Get
     End Property
 
@@ -847,9 +856,20 @@ Public Class VideoData
     ''' </summary>
     Public ReadOnly Property Size As Size
         Get
-            Return New Size(mobjMetaData.VideoStreams(0).Resolution.Width, mobjMetaData.VideoStreams(0).Resolution.Height)
+            If mobjSizeOverride.HasValue Then
+                Return mobjSizeOverride
+            Else
+                Return New Size(mobjMetaData.VideoStreams(0).Resolution.Width, mobjMetaData.VideoStreams(0).Resolution.Height)
+            End If
         End Get
     End Property
+
+    ''' <summary>
+    ''' Sets a variable that will be used for future Size, Height, Width calls
+    ''' Should only be used if the stream resolution is incorrect
+    Public Sub OverrideResolution(newResolution As Size?)
+        mobjSizeOverride = newResolution
+    End Sub
 
     ''' <summary>
     ''' Frames per second of the video, fps or framerate
