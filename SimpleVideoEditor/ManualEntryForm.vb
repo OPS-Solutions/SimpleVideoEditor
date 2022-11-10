@@ -2,8 +2,11 @@
 ''' A form for modification of a string
 ''' </summary>
 Public Class ManualEntryForm
-	Public ModifiedText As String = ""
-	Public Sub New(ByRef text As String)
+    Public ModifiedText As String = ""
+
+    Public Property Persistent As Boolean = False
+
+    Public Sub New(ByRef text As String)
 		' This call is required by the designer.
 		InitializeComponent()
 
@@ -38,5 +41,25 @@ Public Class ManualEntryForm
                     txtConsole.SelectAll()
                 End If
         End Select
+    End Sub
+
+    ''' <summary>
+    ''' Sets the console textbox to display the current text, scrolled to the bottom
+    ''' </summary>
+    Public Sub SetText(newText As String)
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub() SetText(newText))
+        Else
+            txtConsole.Text = newText
+            txtConsole.SelectionStart = newText.Length
+            txtConsole.ScrollToCaret()
+        End If
+    End Sub
+
+    Private Sub ManualEntryForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        If Persistent Then
+            Me.Hide()
+            e.Cancel = True
+        End If
     End Sub
 End Class

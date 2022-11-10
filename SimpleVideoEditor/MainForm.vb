@@ -37,6 +37,8 @@ Public Class MainForm
 
     Private mtskPreview As Task(Of Boolean) = Nothing 'Task for grabbing preview frames
 
+    Private runTextbox As ManualEntryForm = New ManualEntryForm("") With {.Text = "FFMPEG Data", .Width = 680, .Height = 400, .Persistent = True} 'For displaying data as it comes in from ffmpeg so the user gets more than just a loading cursor
+
     Private Class SpecialOutputProperties
         Implements ICloneable
 
@@ -279,6 +281,7 @@ Public Class MainForm
             runArgs += mproFfmpegProcess.StartInfo.Arguments
             Await mproFfmpegProcess.WaitForExitAsync()
             'Check if user canceled manual entry
+            CheckOutput(intermediateFilePath, runArgs, False)
             If Not File.Exists(intermediateFilePath) Then
                 Exit Sub
             End If
@@ -300,22 +303,35 @@ Public Class MainForm
         End If
         mproFfmpegProcess.BeginErrorReadLine()
         mproFfmpegProcess.BeginOutputReadLine()
-        runArgs += mproFfmpegProcess.StartInfo.Arguments
+        runArgs += vbNewLine & mproFfmpegProcess.StartInfo.Arguments
         Await mproFfmpegProcess.WaitForExitAsync()
+
         If overwriteOriginal Or (useIntermediate) Then
             My.Computer.FileSystem.DeleteFile(intermediateFilePath)
         End If
+        CheckOutput(outputPath, runArgs, True)
+    End Sub
+
+    ''' <summary>
+    ''' Checks if the output file exists, displaying a popup message if it doesn't
+    ''' </summary>
+    Private Sub CheckOutput(outputPath As String, runargs As String, focusFile As Boolean)
+        runTextbox.Hide()
         If File.Exists(outputPath) Then
-            'Show file location of saved file
-            OpenOrFocusFile(outputPath)
+            If focusFile Then
+                'Show file location of saved file
+                OpenOrFocusFile(outputPath)
+            End If
         Else
-            MessageBox.Show(Me, $"Failed to generate output '{outputPath}' using ffmpeg{vbNewLine}{vbNewLine}Arguments:{runArgs}{vbNewLine}{vbNewLine}Stdout: {mobjOutputLog}{vbNewLine}{vbNewLine}Stderr: {mobjErrorLog}",
+            MessageBox.Show(Me, $"Failed to generate output '{outputPath}' using ffmpeg{vbNewLine}{vbNewLine}Arguments:{runargs}{vbNewLine}{vbNewLine}Stdout: {mobjOutputLog}{vbNewLine}{vbNewLine}Stderr: {mobjErrorLog}",
                             "Save failed", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
-        Me.UseWaitCursor = False
     End Sub
 
     Private Sub AddRunHandlers()
+        If Not runTextbox.Visible Then
+            runTextbox.Show(Me)
+        End If
         If mproFfmpegProcess IsNot Nothing Then
             AddHandler mproFfmpegProcess.ErrorDataReceived, AddressOf NewErrorData
             AddHandler mproFfmpegProcess.OutputDataReceived, AddressOf NewOutputData
@@ -326,6 +342,9 @@ Public Class MainForm
         If e.Data IsNot Nothing AndAlso Not String.IsNullOrEmpty(e.Data) Then
             'TODO Process information and expose status information to the user
             mobjErrorLog.AppendLine(e.Data)
+            If runTextbox IsNot Nothing Then
+                runTextbox.SetText(mobjErrorLog.ToString)
+            End If
         End If
     End Sub
 
@@ -376,6 +395,7 @@ Public Class MainForm
             sfdVideoOut.FileName += IO.Path.GetExtension(mstrVideoPath)
         End If
         SaveFile(sfdVideoOut.FileName, System.IO.File.Exists(sfdVideoOut.FileName))
+        Me.UseWaitCursor = False
     End Sub
 #End Region
 
@@ -731,6 +751,7 @@ Public Class MainForm
         processInfo.RedirectStandardOutput = True
         processInfo.UseShellExecute = False
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
+        processInfo.CreateNoWindow = True
         mproFfmpegProcess = New Process()
         AddRunHandlers()
         mproFfmpegProcess.StartInfo = processInfo
