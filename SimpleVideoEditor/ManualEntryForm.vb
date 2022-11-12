@@ -57,7 +57,7 @@ Public Class ManualEntryForm
     End Sub
 
     Private Sub ManualEntryForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        If Persistent Then
+        If Persistent AndAlso e.CloseReason = CloseReason.UserClosing Then
             Me.Hide()
             e.Cancel = True
         End If
