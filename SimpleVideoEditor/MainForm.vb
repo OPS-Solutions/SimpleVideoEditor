@@ -953,6 +953,11 @@ Public Class MainForm
         cmsPicVideo.Close()
         'Loop through all images, find any pixel different than the respective corners
         Me.UseWaitCursor = True
+        pgbOperationProgress.Minimum = ctlVideoSeeker.RangeMinValue
+        pgbOperationProgress.Maximum = ctlVideoSeeker.RangeMaxValue + 1
+        pgbOperationProgress.Value = pgbOperationProgress.Minimum
+        pgbOperationProgress.Visible = True
+
         'Only grab frames we have confirmed the existence of so the function can return immediately
         Dim allCached As Boolean = False
         For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
@@ -997,7 +1002,14 @@ Public Class MainForm
                                        End If
                                    End Using
                                End If
+                               Dim currentFrame As Integer = index
+                               Me.Invoke(Sub()
+                                             pgbOperationProgress.Value = currentFrame + 1
+                                         End Sub)
                            Next
+                           Me.Invoke(Sub()
+                                         pgbOperationProgress.Visible = False
+                                     End Sub)
                        End Sub)
         ctlVideoSeeker.PreviewLocation = largestFrame
         'Scale to actual size
@@ -1021,6 +1033,11 @@ Public Class MainForm
     Private Async Sub AutoCropExpandToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExpandToolStripMenuItem.Click
         'Loop through all images, find any pixel different than the respective corners
         Me.UseWaitCursor = True
+        pgbOperationProgress.Minimum = ctlVideoSeeker.RangeMinValue
+        pgbOperationProgress.Maximum = ctlVideoSeeker.RangeMaxValue + 1
+        pgbOperationProgress.Value = pgbOperationProgress.Minimum
+        pgbOperationProgress.Visible = True
+
         'Only grab frames we have confirmed the existence of so the function can return immediately
         Dim allCached As Boolean = True
         For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
@@ -1046,24 +1063,37 @@ Public Class MainForm
         Dim right As Integer = 0
         Dim largestFrame As Integer = mintCurrentFrame
         Await Task.Run(Sub()
-                           For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
-                               If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                                   'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
-                                   Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
-                                       Dim boundRect As Rectangle = checkImage.ExpandContents(cropRect, 4)
-                                       Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
-                                       left = Math.Min(boundRect.Left, left)
-                                       top = Math.Min(boundRect.Top, top)
-                                       right = Math.Max(boundRect.Right, right)
-                                       bottom = Math.Max(boundRect.Bottom, bottom)
-                                       Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
+                           Dim stillExpanding As Boolean = False
+                           Do
+                               stillExpanding = False
+                               For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
+                                   If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                                       'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
+                                       Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
+                                           Dim boundRect As Rectangle = checkImage.ExpandContents(cropRect, 4)
+                                           Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
+                                           left = Math.Min(boundRect.Left, left)
+                                           top = Math.Min(boundRect.Top, top)
+                                           right = Math.Max(boundRect.Right, right)
+                                           bottom = Math.Max(boundRect.Bottom, bottom)
+                                           Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
 
-                                       If potentialRect.Area > currentRect.Area Then
-                                           largestFrame = index
-                                       End If
-                                   End Using
-                               End If
-                           Next
+                                           If potentialRect.Area > currentRect.Area Then
+                                               largestFrame = index
+                                               stillExpanding = True
+                                               cropRect = potentialRect
+                                           End If
+                                       End Using
+                                   End If
+                                   Dim currentFrame As Integer = index
+                                   Me.Invoke(Sub()
+                                                 pgbOperationProgress.Value = currentFrame + 1
+                                             End Sub)
+                               Next
+                           Loop While stillExpanding
+                           Me.Invoke(Sub()
+                                         pgbOperationProgress.Visible = False
+                                     End Sub)
                        End Sub)
         ctlVideoSeeker.PreviewLocation = largestFrame
         'Scale to actual size
