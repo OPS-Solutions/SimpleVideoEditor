@@ -1640,8 +1640,8 @@ Public Class MainForm
                     Task.Run(Sub()
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = True
-                                               pgbOperationProgress.Minimum = mintCurrentFrame - 1
-                                               pgbOperationProgress.Maximum = mintCurrentFrame
+                                               pgbOperationProgress.Minimum = mintCurrentFrame
+                                               pgbOperationProgress.Maximum = mintCurrentFrame + 1
                                                pgbOperationProgress.Value = pgbOperationProgress.Minimum
                                                pgbOperationProgress.Visible = True
                                            End Sub)
@@ -1715,7 +1715,7 @@ Public Class MainForm
                       End Sub)
         Else
             If pgbOperationProgress.Minimum <= newFrame AndAlso pgbOperationProgress.Maximum >= newFrame Then
-                pgbOperationProgress.Value = newFrame
+                pgbOperationProgress.Value = newFrame + 1
             End If
             If pgbOperationProgress.Maximum = newFrame Then
                 pgbOperationProgress.Visible = False
