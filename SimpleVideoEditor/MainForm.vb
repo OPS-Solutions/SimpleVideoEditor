@@ -968,7 +968,12 @@ Public Class MainForm
         Dim topLeftCropStart As Point = mptStartCrop
         Dim bottomRightCropStart As Point = mptEndCrop
         Dim fitScale As Double = Me.mobjMetaData.Size.FitScale(displaySize)
-        Dim cropRect As Rectangle? = Me.CropRect().Value.Scale(fitScale)
+        Dim cropRect As Rectangle? = Me.CropRect()
+        If Not cropRect.HasValue Then
+            cropRect = New Rectangle(0, 0, displaySize.Width, displaySize.Height)
+        Else
+            cropRect = cropRect.Value.Scale(fitScale)
+        End If
         Dim left As Integer = displaySize.Width - 1
         Dim top As Integer = displaySize.Height - 1
         Dim bottom As Integer = 0
@@ -1031,6 +1036,9 @@ Public Class MainForm
         Dim topLeftCropStart As Point = mptStartCrop
         Dim bottomRightCropStart As Point = mptEndCrop
         Dim fitScale As Double = Me.mobjMetaData.Size.FitScale(displaySize)
+        If Me.CropRect Is Nothing Then
+            Exit Sub
+        End If
         Dim cropRect As Rectangle? = Me.CropRect().Value.Scale(fitScale)
         Dim left As Integer = displaySize.Width - 1
         Dim top As Integer = displaySize.Height - 1
