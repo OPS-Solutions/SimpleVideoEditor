@@ -2,6 +2,11 @@
 Imports System.Text.RegularExpressions
 Imports System.Threading
 Imports System.IO.Compression
+Imports System.IO
+Imports System.Security.AccessControl
+Imports System.Security.Principal
+Imports System.Security
+Imports System.Security.Permissions
 
 Public NotInheritable Class AboutForm
 
@@ -49,11 +54,11 @@ Public NotInheritable Class AboutForm
 				If allMatches.Count > 0 Then
 					mstrLatestVersion = allMatches(0).Value
 					lblLatestVersion.Text = $"Latest Version: {allMatches(0).Value}"
-                    If My.Application.Info.Version.ToString.CompareNatural(allMatches(0).Value) < 0 Then
-                        btnUpdate.Enabled = True
-                        btnUpdate.Text = "Update"
-                    Else
-                        btnUpdate.Enabled = False
+					If My.Application.Info.Version.ToString.CompareNatural(allMatches(0).Value) < 0 Then
+						btnUpdate.Enabled = True
+						btnUpdate.Text = "Update"
+					Else
+						btnUpdate.Enabled = False
 						btnUpdate.Text = "Up to date"
 					End If
 				Else
@@ -107,11 +112,13 @@ Public NotInheritable Class AboutForm
 	End Sub
 
 	Private Sub DownloadUpdate()
+		Dim canWrite As Boolean = False
+		Dim abort As Boolean = False
+		Dim updateExtractPath As String = System.IO.Path.GetTempPath + "SimpleVideoEditorUpdateFiles"
 		Try
 			'Download latest release zip
 			Dim remoteUri As String = $"https://github.com/OPS-Solutions/SimpleVideoEditor/releases/download/{mstrLatestVersion}/Simple.Video.Editor.zip"
 			Dim exePath As String = System.Reflection.Assembly.GetExecutingAssembly.Location
-			Dim updateExtractPath As String = System.IO.Path.GetTempPath + "SimpleVideoEditorUpdateFiles"
 			'Clear anything that was in there before
 			If System.IO.Directory.Exists(updateExtractPath) Then
 				For Each objFile In System.IO.Directory.GetFiles(updateExtractPath)
@@ -120,6 +127,28 @@ Public NotInheritable Class AboutForm
 				System.IO.Directory.Delete(updateExtractPath)
 			End If
 			System.IO.Directory.CreateDirectory(updateExtractPath)
+			'Check for permissions of current .exe
+			Try
+				Dim checkPath As String = IO.Path.Combine(IO.Path.GetDirectoryName(exePath), "DeletableUpdateAccessCheck.txt")
+				Using tempFile As StreamWriter = System.IO.File.CreateText(checkPath)
+					tempFile.WriteLine("This file can be deleted, and it's only purpose is to check for access to")
+				End Using
+				File.Delete(checkPath)
+				canWrite = True
+			Catch ex As Exception
+				Me.Invoke(Sub()
+							  Select Case MessageBox.Show(Me, "Failed to write to program location. Updating may require you to run with administrator privilages, or to manually move the files into place yourself. Download anyways?", "Update Permission Error Check", MessageBoxButtons.YesNo, MessageBoxIcon.Error)
+								  Case DialogResult.Yes
+								  Case Else
+									  abort = True
+							  End Select
+						  End Sub)
+			End Try
+			If abort Then
+				Exit Sub
+			End If
+
+
 			Dim downloadedZipPath As String = updateExtractPath + "\" + "Simple.Video.Editor.zip"
 			Dim downloadBarrier As New Barrier(2)
 			ThreadPool.QueueUserWorkItem(Sub()
@@ -171,8 +200,14 @@ Public NotInheritable Class AboutForm
 			RefreshUpdateButton("Restart", True)
 		Catch ex As Exception
 			RefreshUpdateButton("Error", False)
+			Dim wasWarned As Boolean = Not canWrite AndAlso Not abort
+			Dim warnMessage As String = ""
+			If wasWarned Then
+				OpenOrFocusFile(IO.Path.Combine(updateExtractPath, "SimpleVideoEditor.exe"))
+				warnMessage = $"{vbNewLine}Files may need to be moved into place manually."
+			End If
 			Me.Invoke(Sub()
-						  MessageBox.Show(Me, ex.Message, "Error While Updating", MessageBoxButtons.OK, MessageBoxIcon.Error)
+						  MessageBox.Show(New Form() With {.TopMost = True}, ex.Message & warnMessage, "Error While Updating", MessageBoxButtons.OK, MessageBoxIcon.Error)
 					  End Sub)
 		End Try
 	End Sub

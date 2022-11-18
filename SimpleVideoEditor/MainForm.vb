@@ -1269,7 +1269,11 @@ Public Class MainForm
                 Try
                     File.Delete(badExePath)
                 Catch ex As Exception
-                    'Exception, oh well, hopefully it's just because the application is still open, not because the user has no permissions <.<
+                    'Exception, hopefully it's just because the application is still open, not because the user has no permissions <.<
+                    If index = 10 Then
+                        OpenOrFocusFile(badExePath)
+                        MessageBox.Show(New Form() With {.TopMost = True}, $"Failed to remove update files. Please remove them manually.{vbNewLine}{ex.Message}", "Update Cleanup Failure", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    End If
                 End Try
                 Threading.Thread.Sleep(500)
             Next
