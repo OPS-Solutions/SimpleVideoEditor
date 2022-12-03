@@ -294,6 +294,7 @@ Public Class VideoData
                 targetCache.TryQueue(objRange(0), objRange(1))
             Next
         End SyncLock
+        RaiseEvent QueuedFrames(Me, targetCache, ranges)
 
         Dim tempWatch As New Stopwatch
         tempWatch.Start()
@@ -569,7 +570,7 @@ Public Class VideoData
         'processInfo.Arguments += $" -ss {FormatHHMMSSm((startFrame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         If frameSize.Width = 0 AndAlso frameSize.Height = 0 Then
-            frameSize.Width = 288
+            frameSize.Width = Math.Min(Me.Width, 288)
         End If
         'processInfo.Arguments += $" -r {Me.Framerate} -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
         'FFMPEG expression evaluation https://ffmpeg.org/ffmpeg-utils.html

@@ -949,128 +949,48 @@ Public Class MainForm
     ''' Sets the crop start and end to a position based on bounding non-background contents of the current region
     ''' </summary>
     Private Async Sub AutoCropContractToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles cmsAutoCrop.Click, ContractToolStripMenuItem.Click
-        'Ensure context menu goes away when clicking on items that normally may not close it
-        cmsPicVideo.Close()
-        'Loop through all images, find any pixel different than the respective corners
-        Me.UseWaitCursor = True
-        pgbOperationProgress.Minimum = ctlVideoSeeker.RangeMinValue
-        pgbOperationProgress.Maximum = ctlVideoSeeker.RangeMaxValue + 1
-        pgbOperationProgress.Value = pgbOperationProgress.Minimum
-        pgbOperationProgress.Visible = True
+        Try
+            'Ensure context menu goes away when clicking on items that normally may not close it
+            cmsPicVideo.Close()
+            'Loop through all images, find any pixel different than the respective corners
+            Me.UseWaitCursor = True
+            pgbOperationProgress.Minimum = ctlVideoSeeker.RangeMinValue
+            pgbOperationProgress.Maximum = ctlVideoSeeker.RangeMaxValue + 1
+            pgbOperationProgress.Value = pgbOperationProgress.Minimum
+            pgbOperationProgress.Visible = True
 
-        'Only grab frames we have confirmed the existence of so the function can return immediately
-        Dim allCached As Boolean = False
-        For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
-            If Me.mobjMetaData.ImageCacheStatus(index) <> ImageCache.CacheStatus.Cached Then
-                allCached = True
-                Exit For
+            'Only grab frames we have confirmed the existence of so the function can return immediately
+            Dim allCached As Boolean = True
+            For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
+                If Me.mobjMetaData.ImageCacheStatus(index) <> ImageCache.CacheStatus.Cached Then
+                    allCached = False
+                    Exit For
+                End If
+            Next
+            If Not allCached Then
+                Await mobjMetaData.GetFfmpegFramesAsync(Me.ctlVideoSeeker.RangeMinValue, Me.ctlVideoSeeker.RangeMaxValue)
             End If
-        Next
-        If Not allCached Then
-            Await mobjMetaData.GetFfmpegFramesAsync(Me.ctlVideoSeeker.RangeMinValue, Me.ctlVideoSeeker.RangeMaxValue)
-        End If
-        Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
-        Dim topLeftCropStart As Point = mptStartCrop
-        Dim bottomRightCropStart As Point = mptEndCrop
-        Dim fitScale As Double = Me.mobjMetaData.Size.FitScale(displaySize)
-        Dim cropRect As Rectangle? = Me.CropRect()
-        If Not cropRect.HasValue Then
-            cropRect = New Rectangle(0, 0, displaySize.Width, displaySize.Height)
-        Else
-            cropRect = cropRect.Value.Scale(fitScale)
-        End If
-        Dim left As Integer = displaySize.Width - 1
-        Dim top As Integer = displaySize.Height - 1
-        Dim bottom As Integer = 0
-        Dim right As Integer = 0
-        Dim largestFrame As Integer = mintCurrentFrame
-        Await Task.Run(Sub()
-                           For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
-                               If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                                   'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
-                                   Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
-                                       Dim boundRect As Rectangle = checkImage.BoundContents(cropRect,, 127)
-                                       Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
-                                       left = Math.Min(boundRect.Left, left)
-                                       top = Math.Min(boundRect.Top, top)
-                                       right = Math.Max(boundRect.Right, right)
-                                       bottom = Math.Max(boundRect.Bottom, bottom)
-                                       Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
-
-                                       If potentialRect.Area > currentRect.Area Then
-                                           largestFrame = index
-                                       End If
-                                   End Using
-                               End If
-                               Dim currentFrame As Integer = index
-                               Me.Invoke(Sub()
-                                             pgbOperationProgress.Value = currentFrame + 1
-                                         End Sub)
-                           Next
-                           Me.Invoke(Sub()
-                                         pgbOperationProgress.Visible = False
-                                     End Sub)
-                       End Sub)
-        ctlVideoSeeker.PreviewLocation = largestFrame
-        'Scale to actual size
-        If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
-            SetCropPoints(New Point(0, 0), New Point(0, 0))
-        Else
-            top = top / fitScale
-            bottom = bottom / fitScale
-            right = right / fitScale
-            left = left / fitScale
-            SetCropPoints(New Point(left, top), New Point(right, bottom))
-        End If
-        picVideo.Invalidate()
-        Me.UseWaitCursor = False
-    End Sub
-
-    ''' <summary>
-    ''' Add autocrop expand option, where the region will expand until a hard line perpendicular to the expand direction is found, such as black bars
-    ''' Expands to the first largest border found
-    ''' </summary>
-    Private Async Sub AutoCropExpandToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExpandToolStripMenuItem.Click
-        'Loop through all images, find any pixel different than the respective corners
-        Me.UseWaitCursor = True
-        pgbOperationProgress.Minimum = ctlVideoSeeker.RangeMinValue
-        pgbOperationProgress.Maximum = ctlVideoSeeker.RangeMaxValue + 1
-        pgbOperationProgress.Value = pgbOperationProgress.Minimum
-        pgbOperationProgress.Visible = True
-
-        'Only grab frames we have confirmed the existence of so the function can return immediately
-        Dim allCached As Boolean = True
-        For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
-            If Me.mobjMetaData.ImageCacheStatus(index) <> ImageCache.CacheStatus.Cached Then
-                allCached = False
-                Exit For
+            Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
+            Dim topLeftCropStart As Point = mptStartCrop
+            Dim bottomRightCropStart As Point = mptEndCrop
+            Dim fitScale As Double = Me.mobjMetaData.Size.FitScale(displaySize)
+            Dim cropRect As Rectangle? = Me.CropRect()
+            If Not cropRect.HasValue Then
+                cropRect = New Rectangle(0, 0, displaySize.Width, displaySize.Height)
+            Else
+                cropRect = cropRect.Value.Scale(fitScale)
             End If
-        Next
-        If Not allCached Then
-            Await mobjMetaData.GetFfmpegFramesAsync(Me.ctlVideoSeeker.RangeMinValue, Me.ctlVideoSeeker.RangeMaxValue)
-        End If
-        Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
-        Dim topLeftCropStart As Point = mptStartCrop
-        Dim bottomRightCropStart As Point = mptEndCrop
-        Dim fitScale As Double = Me.mobjMetaData.Size.FitScale(displaySize)
-        If Me.CropRect Is Nothing Then
-            Exit Sub
-        End If
-        Dim cropRect As Rectangle? = Me.CropRect().Value.Scale(fitScale)
-        Dim left As Integer = displaySize.Width - 1
-        Dim top As Integer = displaySize.Height - 1
-        Dim bottom As Integer = 0
-        Dim right As Integer = 0
-        Dim largestFrame As Integer = mintCurrentFrame
-        Await Task.Run(Sub()
-                           Dim stillExpanding As Boolean = False
-                           Do
-                               stillExpanding = False
+            Dim left As Integer = displaySize.Width - 1
+            Dim top As Integer = displaySize.Height - 1
+            Dim bottom As Integer = 0
+            Dim right As Integer = 0
+            Dim largestFrame As Integer = mintCurrentFrame
+            Await Task.Run(Sub()
                                For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                    If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                        'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
                                        Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
-                                           Dim boundRect As Rectangle = checkImage.ExpandContents(cropRect, 4)
+                                           Dim boundRect As Rectangle = checkImage.BoundContents(cropRect,, 127)
                                            Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
                                            left = Math.Min(boundRect.Left, left)
                                            top = Math.Min(boundRect.Top, top)
@@ -1080,8 +1000,6 @@ Public Class MainForm
 
                                            If potentialRect.Area > currentRect.Area Then
                                                largestFrame = index
-                                               stillExpanding = True
-                                               cropRect = potentialRect
                                            End If
                                        End Using
                                    End If
@@ -1090,24 +1008,112 @@ Public Class MainForm
                                                  pgbOperationProgress.Value = currentFrame + 1
                                              End Sub)
                                Next
-                           Loop While stillExpanding
-                           Me.Invoke(Sub()
-                                         pgbOperationProgress.Visible = False
-                                     End Sub)
-                       End Sub)
-        ctlVideoSeeker.PreviewLocation = largestFrame
-        'Scale to actual size
-        If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
-            SetCropPoints(New Point(0, 0), New Point(0, 0))
-        Else
-            top = top / fitScale
-            bottom = bottom / fitScale
-            right = right / fitScale
-            left = left / fitScale
-            SetCropPoints(New Point(left, top), New Point(right, bottom))
-        End If
-        picVideo.Invalidate()
-        Me.UseWaitCursor = False
+                           End Sub)
+            ctlVideoSeeker.PreviewLocation = largestFrame
+            'Scale to actual size
+            If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
+                SetCropPoints(New Point(0, 0), New Point(0, 0))
+            Else
+                top = top / fitScale
+                bottom = bottom / fitScale
+                right = right / fitScale
+                left = left / fitScale
+                SetCropPoints(New Point(left, top), New Point(right, bottom))
+            End If
+            picVideo.Invalidate()
+        Catch ex As Exception
+            Throw ex
+        Finally
+            pgbOperationProgress.Visible = False
+            Me.UseWaitCursor = False
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Add autocrop expand option, where the region will expand until a hard line perpendicular to the expand direction is found, such as black bars
+    ''' Expands to the first largest border found
+    ''' </summary>
+    Private Async Sub AutoCropExpandToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExpandToolStripMenuItem.Click
+        Try
+            'Loop through all images, find any pixel different than the respective corners
+            Me.UseWaitCursor = True
+            pgbOperationProgress.Minimum = ctlVideoSeeker.RangeMinValue
+            pgbOperationProgress.Maximum = ctlVideoSeeker.RangeMaxValue + 1
+            pgbOperationProgress.Value = pgbOperationProgress.Minimum
+            pgbOperationProgress.Visible = True
+
+            'Only grab frames we have confirmed the existence of so the function can return immediately
+            Dim allCached As Boolean = True
+            For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
+                If Me.mobjMetaData.ImageCacheStatus(index) <> ImageCache.CacheStatus.Cached Then
+                    allCached = False
+                    Exit For
+                End If
+            Next
+            If Not allCached Then
+                Await mobjMetaData.GetFfmpegFramesAsync(Me.ctlVideoSeeker.RangeMinValue, Me.ctlVideoSeeker.RangeMaxValue)
+            End If
+            Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
+            Dim topLeftCropStart As Point = mptStartCrop
+            Dim bottomRightCropStart As Point = mptEndCrop
+            Dim fitScale As Double = Me.mobjMetaData.Size.FitScale(displaySize)
+            If Me.CropRect Is Nothing Then
+                Exit Sub
+            End If
+            Dim cropRect As Rectangle? = Me.CropRect().Value.Scale(fitScale)
+            Dim left As Integer = displaySize.Width - 1
+            Dim top As Integer = displaySize.Height - 1
+            Dim bottom As Integer = 0
+            Dim right As Integer = 0
+            Dim largestFrame As Integer = mintCurrentFrame
+            Await Task.Run(Sub()
+                               Dim stillExpanding As Boolean = False
+                               Do
+                                   stillExpanding = False
+                                   For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
+                                       If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                                           'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
+                                           Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
+                                               Dim boundRect As Rectangle = checkImage.ExpandContents(cropRect, 4)
+                                               Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
+                                               left = Math.Min(boundRect.Left, left)
+                                               top = Math.Min(boundRect.Top, top)
+                                               right = Math.Max(boundRect.Right, right)
+                                               bottom = Math.Max(boundRect.Bottom, bottom)
+                                               Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
+
+                                               If potentialRect.Area > currentRect.Area Then
+                                                   largestFrame = index
+                                                   stillExpanding = True
+                                                   cropRect = potentialRect
+                                               End If
+                                           End Using
+                                       End If
+                                       Dim currentFrame As Integer = index
+                                       Me.Invoke(Sub()
+                                                     pgbOperationProgress.Value = currentFrame + 1
+                                                 End Sub)
+                                   Next
+                               Loop While stillExpanding
+                           End Sub)
+            ctlVideoSeeker.PreviewLocation = largestFrame
+            'Scale to actual size
+            If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
+                SetCropPoints(New Point(0, 0), New Point(0, 0))
+            Else
+                top = top / fitScale
+                bottom = bottom / fitScale
+                right = right / fitScale
+                left = left / fitScale
+                SetCropPoints(New Point(left, top), New Point(right, bottom))
+            End If
+            picVideo.Invalidate()
+        Catch ex As Exception
+            Throw ex
+        Finally
+            pgbOperationProgress.Visible = False
+            Me.UseWaitCursor = False
+        End Try
     End Sub
 
     Private Function GetCropArgs(cropRect As Rectangle) As String

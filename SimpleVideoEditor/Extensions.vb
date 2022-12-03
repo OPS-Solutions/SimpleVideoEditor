@@ -234,10 +234,23 @@ Module Extensions
             possibleColors.Add(imageBytes.GetPixel(startingRect.Right - 1, startingRect.Bottom - 1, stride, 4))
             possibleColors.Add(imageBytes.GetPixel(startingRect.Left, startingRect.Bottom - 1, stride, 4))
 
-            Dim uniqueColors As List(Of Color) = possibleColors.Distinct(Function(clr1, clr2) clr1.CompareTo(clr2))
-            Dim colorOccurance(uniqueColors.Count - 1) As Integer
-            uniqueColors.Sort(Function(obj1, obj2) possibleColors.FindAll(Function(obj As Color) obj.Equals(obj2)).Count.CompareTo(possibleColors.FindAll(Function(obj As Color) obj.Equals(obj1)).Count))
-            backColor = uniqueColors(0)
+            'Do three passes to find a common color, one that shows up at least 2 times
+            For index As Integer = 0 To 2
+                Dim uniqueColors As List(Of Color) = possibleColors.Distinct(Function(clr1, clr2) clr1.CompareTo(clr2))
+                Dim occurance As New List(Of Integer)
+                Dim multiPassIndex As Integer = index
+                For uniqueColorIndex As Integer = 0 To uniqueColors.Count - 1
+                    Dim uniqueLambaIndex As Integer = uniqueColorIndex
+                    occurance.Add(possibleColors.FindAll(Function(obj As Color)
+                                                             Return obj.Equivalent(uniqueColors(uniqueLambaIndex), (multiPassIndex * 2) + 1)
+                                                         End Function).Count)
+                Next
+                backColor = uniqueColors(occurance.IndexOf(occurance.Max()))
+                If occurance.Max() >= 2 Then
+                    Exit For
+                End If
+            Next
+
         End If
 
         Dim left As Integer = startingRect.X + startingRect.Width - 1
@@ -298,7 +311,7 @@ Module Extensions
                 End If
             Next
         Next
-        Return New Rectangle(left, top, right - left, bottom - top)
+        Return New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
     End Function
 
     ''' <summary>
@@ -349,10 +362,19 @@ Module Extensions
                 bottom = bottomExp
             End If
 
-            currentBounds = New Rectangle(left, top, right - left, bottom - top)
+            currentBounds = New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
         End While
 
-        Return New Rectangle(left, top, right - left, bottom - top)
+        Dim potentialRect As Rectangle = New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
+        'As the algorithm continues until finding a solid border, it would create a rectangle including a 1px border, so we should remove it
+        If potentialRect.Area > startingRect.Area Then
+            Dim bestX As Integer = Math.Min(potentialRect.X + 1, startingRect.X)
+            Dim bestY As Integer = Math.Min(potentialRect.Y + 1, startingRect.Y)
+            Dim bestRight As Integer = Math.Max(potentialRect.Right - 2, startingRect.Right - 1)
+            Dim bestBottom As Integer = Math.Max(potentialRect.Bottom - 2, startingRect.Bottom - 1)
+            Return New Rectangle(bestX, bestY, (bestRight - bestX) + 1, (bestBottom - bestY) + 1)
+        End If
+        Return New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
     End Function
 
     ''' <summary>
@@ -382,10 +404,10 @@ Module Extensions
                 startIndex = boundRect.Top
                 endIndex = 0
             Case 2 'Right
-                startIndex = boundRect.Right
+                startIndex = boundRect.Right - 1
                 endIndex = img1.Width - 1
             Case 3 'Bottom
-                startIndex = boundRect.Bottom
+                startIndex = boundRect.Bottom - 1
                 endIndex = img1.Height - 1
         End Select
 
@@ -393,12 +415,12 @@ Module Extensions
             Case 0, 2 'Left,right
                 startPerp = boundCenter.Y
                 endPerp1 = boundRect.Top
-                endPerp2 = boundRect.Bottom
+                endPerp2 = boundRect.Bottom - 1
                 isHorizontal = True
             Case 1, 3 'Top,bottom
                 startPerp = boundCenter.X
                 endPerp1 = boundRect.Left
-                endPerp2 = boundRect.Right
+                endPerp2 = boundRect.Right - 1
                 isHorizontal = False
         End Select
 
@@ -651,9 +673,13 @@ Module Extensions
     ''' Returns less than 0 if the given color grayscale intensity is higher than the current
     ''' Returns 0 if they are the same grayscale intensity
     ''' Returns greater than 0 if the given color grayscale intensity is lower than the current
+    ''' Allowance can be defined to say that two colors are the same as long as their intensity is within the allowance, with 0 meaning they must be exactly the same.
     ''' </summary>
     <Extension>
-    Public Function CompareTo(color1 As Color, color2 As Color) As Integer
+    Public Function CompareTo(color1 As Color, color2 As Color, Optional allowance As Integer = 0) As Integer
+        If Math.Abs(CType(color1.Intensity, Integer) - color2.Intensity) <= allowance Then
+            Return 0
+        End If
         Return color1.Intensity.CompareTo(color2.Intensity)
     End Function
 
