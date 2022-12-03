@@ -30,7 +30,15 @@ Public Class VideoData
         Private Sub New(streamDescription As String)
             _Raw = streamDescription
             Dim resolutionString As String = Regex.Match(streamDescription, "(?<=, )\d*x\d*").Groups(0).Value
+            Dim sarMatch As Match = Regex.Match(streamDescription, "sar (?<width>\d+):(?<height>\d+)")
+            Dim sarWidth As Integer = sarMatch.Groups("width").Value
+            Dim sarHeight As Integer = sarMatch.Groups("height").Value
             _Resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
+            If sarWidth <> sarHeight Then
+                If sarWidth > sarHeight Then
+                    _Resolution = New Size(_Resolution.Width * sarWidth / sarHeight, _Resolution.Height)
+                End If
+            End If
             'Get framerate from "30.00 fps"
             _Framerate = Double.Parse(Regex.Match(streamDescription, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
             _Type = Regex.Match(streamDescription, "stream.*video.*? (?<Type>.*?) .*").Groups("Type").Value
