@@ -283,6 +283,13 @@ Public Class VideoData
         End If
 
         SyncLock targetCache
+            For index As Integer = 0 To ranges.Count - 1
+                ranges(index) = targetCache.TrimRange(ranges(index)(0), ranges(index)(1))
+            Next
+            ranges.RemoveAll(Function(obj) obj Is Nothing)
+            If ranges.Count <= 0 Then
+                Return True
+            End If
             For Each objRange In ranges
                 targetCache.TryQueue(objRange(0), objRange(1))
             Next

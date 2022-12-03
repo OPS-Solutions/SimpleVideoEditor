@@ -305,6 +305,34 @@ Public Class ImageCache
         Return itemsQueued
     End Function
 
+    ''' <summary>
+    ''' Checks the given range, compressing it if frames are already detected as queued or cached in the range. Will return nothing if all frames are already ok
+    ''' </summary>
+    Public Function TrimRange(startFrame As Integer, endFrame As Integer) As List(Of Integer)
+        Dim resultRange As New List(Of Integer) From {startFrame, endFrame}
+        Dim frameNeeded As Boolean = False
+        'Find first non-cached frame
+        For index As Integer = startFrame To endFrame
+            If mobjCollection(index).Status = CacheStatus.None Then
+                resultRange(0) = index
+                frameNeeded = True
+                Exit For
+            End If
+        Next
+        For index As Integer = endFrame To startFrame Step -1
+            If mobjCollection(index).Status = CacheStatus.None Then
+                resultRange(1) = index
+                frameNeeded = True
+                Exit For
+            End If
+        Next
+        If frameNeeded Then
+            Return resultRange
+        Else
+            Return Nothing
+        End If
+    End Function
+
 #Region "Serialization"
     ''' <summary>
     ''' Serialize to xml file
