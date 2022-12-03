@@ -304,7 +304,7 @@ Public Class VideoData
         'processInfo.Arguments += $" -ss {FormatHHMMSSm((startFrame) / Me.Framerate)}"
         processInfo.Arguments += " -i """ & Me.FullPath & """"
         If frameSize.Width = 0 AndAlso frameSize.Height = 0 Then
-            frameSize.Width = 288
+            frameSize.Width = Math.Min(Me.Width, 288)
         End If
         'processInfo.Arguments += $" -r {Me.Framerate} -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
         'FFMPEG expression evaluation https://ffmpeg.org/ffmpeg-utils.html
@@ -338,7 +338,7 @@ Public Class VideoData
 #End If
             Dim currentFrame As Integer = 0
             Dim currentErrorFrame As Integer = 0
-            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
+            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]+|nan)")
             Dim framesRetrieved As New List(Of Integer)
             'Dim frameRegex As New Regex("frame=\s*(\d*)")
             'tempProcess.BeginErrorReadLine()
@@ -418,7 +418,8 @@ Public Class VideoData
 #End If
                             Dim infoMatch As Match = showInfoRegex.Match(lineRead)
                             If infoMatch.Success Then
-                                Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
+                                Dim matchPTS As Double = 0
+                                Double.TryParse(infoMatch.Groups(2).Value, matchPTS)
                                 Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
                                 If frames(matchValue) = frames(currentErrorFrame) Then
                                     targetCache(frames(currentErrorFrame)).PTSTime = matchPTS
@@ -598,7 +599,7 @@ Public Class VideoData
 #End If
             Dim currentFrame As Integer = startFrame
             Dim currentErrorFrame As Integer = startFrame
-            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]*)")
+            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]+|nan)")
             Dim framesRetrieved As New List(Of Integer)
             'Dim frameRegex As New Regex("frame=\s*(\d*)")
             'tempProcess.BeginErrorReadLine()
@@ -684,7 +685,8 @@ Public Class VideoData
 #End If
                                 Dim infoMatch As Match = showInfoRegex.Match(lineRead)
                                 If infoMatch.Success Then
-                                    Dim matchPTS As Double = Double.Parse(infoMatch.Groups(2).Value)
+                                    Dim matchPTS As Double = 0
+                                    Double.TryParse(infoMatch.Groups(2).Value, matchPTS)
                                     Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
                                     If (matchValue + startFrame) = currentErrorFrame Then
                                         targetCache(currentErrorFrame).PTSTime = matchPTS

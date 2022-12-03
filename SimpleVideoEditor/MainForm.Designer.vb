@@ -94,13 +94,13 @@ Partial Class MainForm
         Me.lblStatusCropRect = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblStatusResolution = New System.Windows.Forms.ToolStripStatusLabel()
         Me.pgbOperationProgress = New System.Windows.Forms.ToolStripProgressBar()
-        Me.picFrame5 = New System.Windows.Forms.PictureBox()
+        Me.picFrame5 = New PictureBoxPlus()
         Me.btnいくよ = New System.Windows.Forms.Button()
-        Me.picFrame4 = New System.Windows.Forms.PictureBox()
-        Me.picFrame3 = New System.Windows.Forms.PictureBox()
-        Me.picFrame2 = New System.Windows.Forms.PictureBox()
-        Me.picFrame1 = New System.Windows.Forms.PictureBox()
-        Me.picVideo = New System.Windows.Forms.PictureBox()
+        Me.picFrame4 = New PictureBoxPlus()
+        Me.picFrame3 = New PictureBoxPlus()
+        Me.picFrame2 = New PictureBoxPlus()
+        Me.picFrame1 = New PictureBoxPlus()
+        Me.picVideo = New PictureBoxPlus()
         Me.btnBrowse = New System.Windows.Forms.Button()
         Me.cmsCrop = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.LoadFromClipboardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -846,14 +846,14 @@ Partial Class MainForm
     Friend WithEvents ofdVideoIn As System.Windows.Forms.OpenFileDialog
     Friend WithEvents btnBrowse As System.Windows.Forms.Button
     Friend WithEvents btnいくよ As System.Windows.Forms.Button
-    Friend WithEvents picVideo As System.Windows.Forms.PictureBox
-    Friend WithEvents picFrame1 As System.Windows.Forms.PictureBox
-    Friend WithEvents picFrame2 As System.Windows.Forms.PictureBox
-    Friend WithEvents picFrame3 As System.Windows.Forms.PictureBox
-    Friend WithEvents picFrame4 As System.Windows.Forms.PictureBox
+    Friend WithEvents picVideo As PictureBoxPlus
+    Friend WithEvents picFrame1 As PictureBoxPlus
+    Friend WithEvents picFrame2 As PictureBoxPlus
+    Friend WithEvents picFrame3 As PictureBoxPlus
+    Friend WithEvents picFrame4 As PictureBoxPlus
     Friend WithEvents cmbDefinition As System.Windows.Forms.ComboBox
     Friend WithEvents grpSettings As System.Windows.Forms.GroupBox
-    Friend WithEvents picFrame5 As System.Windows.Forms.PictureBox
+    Friend WithEvents picFrame5 As PictureBoxPlus
     Friend WithEvents sfdVideoOut As System.Windows.Forms.SaveFileDialog
     Friend WithEvents cmsPicVideo As ContextMenuStrip
     Friend WithEvents cmsPicVideoClear As ToolStripMenuItem

@@ -126,6 +126,9 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controls\PictureBoxPlus.vb">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Extensions.vb" />
     <Compile Include="AboutForm.Designer.vb">
       <DependentUpon>AboutForm.vb</DependentUpon>
@@ -151,7 +154,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="ToolTipPlus.vb" />
+    <Compile Include="Controls\ToolTipPlus.vb" />
     <Compile Include="VideoData.vb" />
     <Compile Include="MainForm.vb">
       <SubType>Form</SubType>
@@ -171,16 +174,16 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <Compile Include="ImageSwitch.Designer.vb">
+    <Compile Include="Controls\ImageSwitch.Designer.vb">
       <DependentUpon>ImageSwitch.vb</DependentUpon>
     </Compile>
-    <Compile Include="ImageSwitch.vb">
+    <Compile Include="Controls\ImageSwitch.vb">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="VideoSeeker.Designer.vb">
+    <Compile Include="Controls\VideoSeeker.Designer.vb">
       <DependentUpon>VideoSeeker.vb</DependentUpon>
     </Compile>
-    <Compile Include="VideoSeeker.vb">
+    <Compile Include="Controls\VideoSeeker.vb">
       <SubType>UserControl</SubType>
     </Compile>
   </ItemGroup>
@@ -203,10 +206,10 @@
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ImageSwitch.resx">
+    <EmbeddedResource Include="Controls\ImageSwitch.resx">
       <DependentUpon>ImageSwitch.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="VideoSeeker.resx">
+    <EmbeddedResource Include="Controls\VideoSeeker.resx">
       <DependentUpon>VideoSeeker.vb</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>

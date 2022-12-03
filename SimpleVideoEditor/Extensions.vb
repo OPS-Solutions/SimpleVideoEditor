@@ -759,11 +759,16 @@ Module Extensions
     ''' Sets the image of a picturebox, ensuring the previous image is disposed
     ''' </summary>
     <Extension>
-    Public Sub SetImage(pictureBox As PictureBox, newImage As Image)
+    Public Sub SetImage(pictureBox As PictureBoxPlus, newImage As Image)
         If pictureBox.Image IsNot Nothing Then
             pictureBox.Image.Dispose()
         End If
         If newImage IsNot Nothing Then
+            If newImage.Size.FitScale(pictureBox.Size) > 1 Then
+                pictureBox.InterpolationMode = Drawing2D.InterpolationMode.NearestNeighbor
+            Else
+                pictureBox.InterpolationMode = Drawing2D.InterpolationMode.Default
+            End If
             pictureBox.Image = newImage
         Else
             pictureBox.Image = Nothing

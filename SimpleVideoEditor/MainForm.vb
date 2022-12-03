@@ -526,7 +526,7 @@ Public Class MainForm
                     Dim gotImage As Bitmap = Nothing
                     If previewFrames(previewIndex) >= objRange(0) AndAlso previewFrames(previewIndex) <= objRange(1) Then
                         gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
-                        Dim targetPreview As PictureBox = Nothing
+                        Dim targetPreview As PictureBoxPlus = Nothing
                         Select Case previewIndex
                             Case 0
                                 targetPreview = picFrame1

@@ -198,7 +198,7 @@
 
     Private Sub InitializePreviewForm()
         mobjPreviewForm = New Form With {.FormBorderStyle = FormBorderStyle.None, .MinimumSize = New Size(32, 32), .TopMost = True, .MaximumSize = New Size(32, 32)}
-        mobjPreviewForm.Controls.Add(New PictureBox With {.SizeMode = PictureBoxSizeMode.Zoom, .Dock = DockStyle.Fill})
+        mobjPreviewForm.Controls.Add(New PictureBoxPlus With {.SizeMode = PictureBoxSizeMode.Zoom, .Dock = DockStyle.Fill})
     End Sub
 
     Private Const COLOR_HEIGHT As Integer = 12
@@ -499,7 +499,7 @@
                 End If
                 If imageToPreview IsNot Nothing Then
                     'Setup preview frame
-                    CType(mobjPreviewForm.Controls(0), PictureBox).SetImage(imageToPreview)
+                    CType(mobjPreviewForm.Controls(0), PictureBoxPlus).SetImage(imageToPreview)
                     mobjPreviewForm.Visible = True
                     mobjPreviewForm.Location = Me.PointToScreen(New Point(actualPoint.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
                     Me.Focus()
