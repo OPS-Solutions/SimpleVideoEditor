@@ -1574,7 +1574,7 @@ Public Class MainForm
             CType(objItem, ToolStripMenuItem).Checked = False
         Next
         CType(e.ClickedItem, ToolStripMenuItem).Checked = True
-        mobjOutputProperties.PlaybackSpeed = Me.TargetFPS
+        mobjOutputProperties.FPS = Me.TargetFPS
     End Sub
 
     Private Sub picColorKey_Click(sender As Object, e As EventArgs) Handles picColorKey.Click
