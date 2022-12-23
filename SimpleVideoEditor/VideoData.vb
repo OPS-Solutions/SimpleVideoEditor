@@ -31,8 +31,12 @@ Public Class VideoData
             _Raw = streamDescription
             Dim resolutionString As String = Regex.Match(streamDescription, "(?<=, )\d*x\d*").Groups(0).Value
             Dim sarMatch As Match = Regex.Match(streamDescription, "sar (?<width>\d+):(?<height>\d+)")
-            Dim sarWidth As Integer = sarMatch.Groups("width").Value
-            Dim sarHeight As Integer = sarMatch.Groups("height").Value
+            Dim sarWidth As Integer = 1
+            Dim sarHeight As Integer = 1
+            If sarMatch.Success Then
+                sarWidth = sarMatch.Groups("width").Value
+                sarHeight = sarMatch.Groups("height").Value
+            End If
             _Resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
             If sarWidth <> sarHeight Then
                 If sarWidth > sarHeight Then
