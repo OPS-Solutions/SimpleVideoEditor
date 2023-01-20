@@ -261,7 +261,7 @@
   <PropertyGroup>
     <PostBuildEvent>if $(ConfigurationName) == Release (
   del /f "$(TargetPath).config"
-"C:\Security\SignExeDrag.bat" "$(TargetPath)"
+"C:\Security\EvSignExeDrag.bat" "$(TargetPath)"
   del /f "..\Simple Video Editor.zip"
 "C:\Program Files\7-Zip\7z.exe" a "..\Simple Video Editor.zip" "$(TargetDir)*" -aoa
 )</PostBuildEvent>
