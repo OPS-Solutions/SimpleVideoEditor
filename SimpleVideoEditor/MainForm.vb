@@ -406,20 +406,9 @@ Public Class MainForm
         Me.UseWaitCursor = True
         mintCurrentFrame = 0
 
-        'Create temporary task to supress warnings for async usage in Task.Run()
-        Dim tempTask As Task
-
         'Try to read from file, otherwise go ahead and extract them
         If Not mobjMetaData.ReadScenesFromFile Then
-            tempTask = Task.Run(Async Function()
-                                    Await mobjMetaData.ExtractSceneChanges()
-                                    Me.BeginInvoke(Sub()
-                                                       If mobjMetaData.SceneFrames IsNot Nothing Then
-                                                           'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
-                                                           ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
-                                                       End If
-                                                   End Sub)
-                                End Function)
+            mobjMetaData.ExtractSceneChanges(mobjMetaData.TotalFrames / ctlVideoSeeker.Width)
             'mobjMetaData.SaveScenesToFile()
         End If
         Dim fullFrameGrab As Task(Of Bitmap) = Nothing
@@ -1841,6 +1830,14 @@ Public Class MainForm
                 Exit For
             End If
         Next
+    End Sub
+
+    Private Sub NewSceneCached(sender As Object, newFrame As Integer) Handles mobjMetaData.ProcessedScene
+        If mobjMetaData.SceneFrames IsNot Nothing Then
+            Dim increments As Integer = mobjMetaData.TotalFrames / ctlVideoSeeker.Width
+            'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
+            ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+        End If
     End Sub
 
     Private Async Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click

@@ -1,4 +1,5 @@
 ﻿Imports System.IO
+Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
 
@@ -82,6 +83,7 @@ Public Class VideoData
 
     Private mobjMetaData As New MetaData
     Private mdblSceneFrames As Double()
+    Private mblnSceneFramesLoaded As Boolean = False
 
 
     Private mobjImageCache As ImageCache
@@ -100,6 +102,9 @@ Public Class VideoData
 
     ''' <summary>Event for when a frame that was requested to export is detected as having a file created for it</summary>
     Public Event ExportProgressed(sender As Object, frame As Integer)
+
+    ''' <summary>Event for a scene frame value being retrieved. Frame -1 when finished</summary>
+    Public Event ProcessedScene(sender As Object, frame As Integer)
 
 
     ''' <summary>
@@ -169,7 +174,7 @@ Public Class VideoData
     ''' <summary>
     ''' Gets a list of frames where a scene has changed
     ''' </summary>
-    Public Async Function ExtractSceneChanges() As Task(Of Double())
+    Public Async Function ExtractSceneChanges(Optional eventFrequency As Integer = -1) As Task(Of Double())
         Dim tempWatch As New Stopwatch
         tempWatch.Start()
         'ffmpeg -i GEVideo.wmv -vf select=gt(scene\,0.2),showinfo -f null -
@@ -185,10 +190,11 @@ Public Class VideoData
         Dim tempProcess As Process = Process.Start(processInfo)
 
 #If DEBUG Then
-        Dim fullDataRead As String = ""
+        Dim fullDataRead As New StringBuilder
 #End If
 
         Dim sceneValues(mobjMetaData.TotalFrames - 1) As Double
+        Me.mdblSceneFrames = sceneValues
         Dim currentFrame As Integer = 0
         Using recievedStream As New System.IO.MemoryStream
             Dim sceneMatcher As New Regex("(?<=.scene_score=)\d+\.\d+")
@@ -206,16 +212,22 @@ Public Class VideoData
                     Else
                         sceneValues(currentFrame) = Double.Parse(matchAttempt.Value)
                         currentFrame += 1
+                        If eventFrequency > 0 Then
+                            If currentFrame Mod eventFrequency = 0 Then
+                                RaiseEvent ProcessedScene(Me, currentFrame)
+                            End If
+                        End If
                     End If
                 End If
 #If DEBUG Then
-                fullDataRead += currentLine & vbCrLf
+                fullDataRead.Append(currentLine & vbCrLf)
 #End If
             End While
         End Using
-        Me.mdblSceneFrames = sceneValues
+        mblnSceneFramesLoaded = True
         tempWatch.Stop()
         Debug.Print($"Extracted {currentFrame} scene frames in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
+        RaiseEvent ProcessedScene(Me, -1)
         Return Me.mdblSceneFrames
     End Function
 
@@ -322,7 +334,11 @@ Public Class VideoData
         'FFMPEG expression evaluation https://ffmpeg.org/ffmpeg-utils.html
         Dim rangeExpression As String = ""
         For Each objRange In ranges
-            rangeExpression += $"between(n,{objRange(0)},{objRange(1)})+"
+            If objRange(0) = objRange(1) Then
+                rangeExpression += $"eq(n,{objRange(0)})+"
+            Else
+                rangeExpression += $"between(n,{objRange(0)},{objRange(1)})+"
+            End If
         Next
         rangeExpression = rangeExpression.Substring(0, rangeExpression.Length - 1)
         processInfo.Arguments += $" -vf select='{rangeExpression}',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vcodec png -f image2pipe -"
@@ -459,14 +475,19 @@ Public Class VideoData
             End While
 
             tempWatch.Stop()
+            Dim rangeText As String = ""
             For Each objRange In ranges
-                Debug.Print($"Grabbed frames {objRange(0)}-{objRange(1)} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
-
+                If objRange(0) = objRange(1) Then
+                    rangeText += $"{objRange(0)}, "
+                Else
+                    rangeText += $"{objRange(0)}-{objRange(1)}, "
+                End If
                 'unmark in case there was an issue
                 For index As Integer = objRange(0) To objRange(1)
                     targetCache(index).QueueTime = Nothing
                 Next
             Next
+            Debug.Print($"Grabbed frames {rangeText.Substring(0, rangeText.Length - 2)} In {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
             If framesRetrieved.Count > 0 Then
                 RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
             End If
@@ -604,7 +625,7 @@ Public Class VideoData
             'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
             'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
 #If DEBUG Then
-            Dim fullDataRead As String = ""
+            Dim fullDataRead As New StringBuilder
             'Do
             '    Debug.Print(tempProcess.StandardError.ReadLine)
             'Loop While Not tempProcess.StandardError.EndOfStream
@@ -693,7 +714,7 @@ Public Class VideoData
                             Dim lineRead As String = readError.Result
                             If lineRead IsNot Nothing Then
 #If DEBUG Then
-                                fullDataRead += lineRead + vbCrLf
+                                fullDataRead.Append(lineRead + vbCrLf)
 #End If
                                 Dim infoMatch As Match = showInfoRegex.Match(lineRead)
                                 If infoMatch.Success Then
@@ -966,6 +987,16 @@ Public Class VideoData
         End Get
     End Property
 
+    ''' <summary>
+    ''' Whether or not the scene scores have finished loading for each frame
+    ''' </summary>
+    ''' <returns></returns>
+    Public ReadOnly Property ScenesReady As Boolean
+        Get
+            Return mblnSceneFramesLoaded
+        End Get
+    End Property
+
 
     ''' <summary>
     ''' Modified path to saved scene frames
@@ -998,6 +1029,7 @@ Public Class VideoData
                 For index As Integer = 0 To Me.mdblSceneFrames.Count - 1
                     Me.mdblSceneFrames(index) = Double.Parse(streamReader.ReadLine())
                 Next
+                mblnSceneFramesLoaded = True
                 streamReader.Close()
             End Using
             Return True
