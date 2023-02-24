@@ -137,6 +137,7 @@ Public Class MainForm
             mobjMetaData.Dispose()
             mobjMetaData = Nothing
         End If
+        ClearControls()
         mobjMetaData = VideoData.FromFile(mstrVideoPath, inputMash)
         RefreshStatusToolTips()
 
@@ -169,6 +170,7 @@ Public Class MainForm
         PollPreviewFrames()
         cmsPicVideoExportFrame.Enabled = True
         cmsAutoCrop.Enabled = True
+        CheckSave()
         lblStatusResolution.Text = $"{mobjMetaData.Width} x {mobjMetaData.Height}"
         DefaultToolStripMenuItem.Text = $"Default ({Me.mobjMetaData.Framerate})"
     End Sub
@@ -182,7 +184,6 @@ Public Class MainForm
         Dim dummyArgs As List(Of String) = files.ToList
         dummyArgs.Insert(0, "")
         Dim mash As String = GetInputMash(dummyArgs.ToArray)
-        ClearControls()
         If mash Is Nothing Then
             LoadFile(files(0))
         Else
@@ -222,7 +223,31 @@ Public Class MainForm
             Next
             sProperties.FPS = optimalRate
         End If
-        Dim ignoreTrim As Boolean = ctlVideoSeeker.RangeMin = ctlVideoSeeker.RangeMinValue And ctlVideoSeeker.RangeMax = ctlVideoSeeker.RangeMaxValue
+        Dim ignoreTrim As Boolean = Not ctlVideoSeeker.RangeModified
+        Dim trimData As TrimData = Nothing
+        If Not ignoreTrim Then
+            Dim endFrame As Integer = ctlVideoSeeker.RangeMaxValue
+            Dim lastPossible As Integer = mobjMetaData.TotalFrames - 1
+            'Find the last frame we actually know exists
+            For index As Integer = mobjMetaData.TotalFrames - 1 To 0 Step -1
+                If mobjMetaData.ThumbImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                    lastPossible = index
+                    Exit For
+                End If
+            Next
+            endFrame = Math.Min(endFrame, lastPossible)
+            Dim frameAfterEnd As Integer = Math.Min(endFrame + 1, lastPossible)
+            'Apply very marginal reduction to last frame duration to ensure -ss -t can be used with frame perfect precision
+            Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(frameAfterEnd) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, frameAfterEnd - 1))
+            Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) + lastFrameDuration * 0.99
+            trimData = New TrimData With {
+                .StartFrame = ctlVideoSeeker.RangeMinValue,
+                .StartPTS = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue),
+                .EndFrame = ctlVideoSeeker.RangeMaxValue,
+                .EndPTS = lastFramePTS
+            }
+        End If
+
         'First check if something would conflict with cropping, if it will, just crop it first
         Dim willCrop As Boolean = mptStartCrop.X <> mptEndCrop.X AndAlso mptStartCrop.Y <> mptEndCrop.Y
         Dim postCropOperation As Boolean = sProperties.Decimate
@@ -231,26 +256,7 @@ Public Class MainForm
         Dim intermediateFilePath As String = mstrVideoPath
         mproFfmpegProcess = Nothing
         Dim useIntermediate As Boolean = (sProperties.Decimate AndAlso isMP4) OrElse (sProperties.PlaybackSpeed <> 1 AndAlso Not ignoreTrim)
-        Dim endFrame As Integer = ctlVideoSeeker.RangeMaxValue
-        Dim lastPossible As Integer = mobjMetaData.TotalFrames - 1
-        'Find the last frame we actually know exists
-        For index As Integer = mobjMetaData.TotalFrames - 1 To 0 Step -1
-            If mobjMetaData.ThumbImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                lastPossible = index
-                Exit For
-            End If
-        Next
-        endFrame = Math.Min(endFrame, lastPossible)
-        Dim frameAfterEnd As Integer = Math.Min(endFrame + 1, lastPossible)
-        'Apply very marginal reduction to last frame duration to ensure -ss -t can be used with frame perfect precision
-        Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(frameAfterEnd) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, frameAfterEnd - 1))
-        Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) + lastFrameDuration * 0.99
-        Dim trimData As New TrimData With {
-            .StartFrame = ctlVideoSeeker.RangeMinValue,
-            .StartPTS = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue),
-            .EndFrame = ctlVideoSeeker.RangeMaxValue,
-            .EndPTS = lastFramePTS
-        }
+
         Dim errorLog As New StringBuilder
         Dim outputLog As New StringBuilder
         Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mobjMetaData.Width, mobjMetaData.Height))
@@ -355,7 +361,7 @@ Public Class MainForm
     ''' <summary>
     ''' Checks for the user to be holding ctrl for injection, then opens a "save as" dialog
     ''' </summary>
-    Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
+    Private Sub btnSave_Click(sender As Object, e As EventArgs) Handles btnSave.Click
         mblnUserInjection = My.Computer.Keyboard.CtrlKeyDown
         SaveAs()
     End Sub
@@ -382,6 +388,28 @@ Public Class MainForm
         sfdVideoOut.OverwritePrompt = True
         sfdVideoOut.ShowDialog()
     End Sub
+
+    ''' <summary>
+    ''' Checks if save button should be available for use, enabling or disabling when needed
+    ''' </summary>
+    Private Sub CheckSave()
+        If Me.InvokeRequired Then
+            Me.BeginInvoke(Sub() CheckSave())
+        Else
+            If mobjMetaData IsNot Nothing Then
+                If ctlVideoSeeker.RangeModified Then
+                    If mobjMetaData.TotalOk AndAlso mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).Status = ImageCache.CacheStatus.Cached Then
+                        btnSave.Enabled = True
+                    Else
+                        btnSave.Enabled = False
+                    End If
+                Else
+                    btnSave.Enabled = True
+                End If
+            End If
+        End If
+    End Sub
+
 
     ''' <summary>
     ''' Save file when the save file dialog is finished with an "ok" click
@@ -477,7 +505,7 @@ Public Class MainForm
             'Re-enable everything, even if we failed to grab the last frame
             Me.UseWaitCursor = False
             ctlVideoSeeker.Enabled = True
-            btnいくよ.Enabled = True
+            CheckSave()
             ExportAudioToolStripMenuItem.Enabled = mobjMetaData.AudioStream IsNot Nothing
         End If
     End Sub
@@ -501,6 +529,9 @@ Public Class MainForm
     Private Sub PreviewsLoaded(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
         'Don't use thumbs for previews
         If objCache Is mobjMetaData.ThumbFrames Then
+            If ctlVideoSeeker.RangeMaxValue.InRange(ranges(0)(0), ranges(0)(1)) Then
+                CheckSave()
+            End If
             Exit Sub
         End If
         If Me.InvokeRequired Then
@@ -1180,7 +1211,7 @@ Public Class MainForm
         mobjGenericToolTip.SetToolTip(ctlVideoSeeker, $"Move sliders to trim video.{vbNewLine}Use [A][D][←][→] to move trim sliders frame by frame.{vbNewLine}Hold [Shift] to move preview slider instead.")
         mobjGenericToolTip.SetToolTip(picVideo, $"Left click and drag to crop.{vbNewLine}Right click to clear crop selection.")
         mobjGenericToolTip.SetToolTip(cmbDefinition, $"Select the ending height of your video.{vbNewLine}Right click for FPS options.")
-        mobjGenericToolTip.SetToolTip(btnいくよ, $"Save video.{vbNewLine}Hold ctrl to manually modify ffmpeg arguments.")
+        mobjGenericToolTip.SetToolTip(btnSave, $"Save video.{vbNewLine}Hold ctrl to manually modify ffmpeg arguments.")
         mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame3, "View middle frame of video.")
@@ -1290,7 +1321,7 @@ Public Class MainForm
         picFrame5.Image = Nothing
         ctlVideoSeeker.SceneFrames = Nothing
         ctlVideoSeeker.Enabled = False
-        btnいくよ.Enabled = False
+        CheckSave()
         ExportAudioToolStripMenuItem.Enabled = False
         Me.Text = Me.Text.Split("-")(0).Trim + $" - {ProductVersion} - Open Source"
         DefaultToolStripMenuItem.Text = "Default"
@@ -1808,6 +1839,7 @@ Public Class MainForm
             End If
             mintDisplayInfo = RENDER_DECAY_TIME
         End If
+        CheckSave()
     End Sub
 
     Private Sub NewFrameCached(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
@@ -1828,6 +1860,9 @@ Public Class MainForm
                     End If
                 End If
                 Exit For
+            End If
+            If ctlVideoSeeker.RangeMaxValue.InRange(objRange(0), objRange(1)) Then
+                CheckSave()
             End If
         Next
     End Sub

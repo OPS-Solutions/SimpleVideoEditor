@@ -9,8 +9,16 @@ Module Extensions
     ''' Checks that a given value is equal to another within a given margen of error
     ''' </summary>
     <Extension>
-    Public Function EqualsWithin(value1 As Double, value2 As Double, margin As Double)
+    Public Function EqualsWithin(value1 As Double, value2 As Double, margin As Double) As Boolean
         Return value2 <= value1 + margin AndAlso value2 >= value1 - margin
+    End Function
+
+    ''' <summary>
+    ''' Checks if the given value is within the range from min to max inclusive
+    ''' </summary>
+    <Extension>
+    Public Function InRange(value1 As Integer, min As Integer, max As Integer) As Boolean
+        Return value1 >= min AndAlso value1 <= max
     End Function
 
     ''' <summary>

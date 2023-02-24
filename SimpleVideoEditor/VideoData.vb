@@ -84,6 +84,7 @@ Public Class VideoData
     Private mobjMetaData As New MetaData
     Private mdblSceneFrames As Double()
     Private mblnSceneFramesLoaded As Boolean = False
+    Private mblnTotalOk As Boolean = False
 
 
     Private mobjImageCache As ImageCache
@@ -958,7 +959,20 @@ Public Class VideoData
     ''' </summary>
     Public Sub OverrideTotalFrames(realFrames As Integer)
         mobjMetaData.TotalFrames = realFrames
+        mblnTotalOk = True
     End Sub
+
+    ''' <summary>
+    ''' An indicator that the total frames is the correct number, set manually, or automatically through OverrideTotalFrames
+    ''' </summary>
+    Public Property TotalOk As Boolean
+        Get
+            Return mblnTotalOk
+        End Get
+        Set(value As Boolean)
+            mblnTotalOk = value
+        End Set
+    End Property
 
     ''' <summary>
     ''' The raw stream data given by ffmpeg for stream 0

@@ -65,6 +65,17 @@
             mRangeMax = value
         End Set
     End Property
+
+    ''' <summary>
+    ''' Boolean indicating if the range selection is different than the max bounds
+    ''' </summary>
+    Public ReadOnly Property RangeModified
+        Get
+            Return RangeMin <> RangeMinValue OrElse RangeMax <> RangeMaxValue
+        End Get
+    End Property
+
+
     Private mRangeMax As Integer = 100
 
     ''' <summary>

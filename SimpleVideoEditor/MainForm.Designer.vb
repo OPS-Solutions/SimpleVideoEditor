@@ -95,7 +95,7 @@ Partial Class MainForm
         Me.lblStatusResolution = New System.Windows.Forms.ToolStripStatusLabel()
         Me.pgbOperationProgress = New System.Windows.Forms.ToolStripProgressBar()
         Me.picFrame5 = New PictureBoxPlus()
-        Me.btnいくよ = New System.Windows.Forms.Button()
+        Me.btnSave = New System.Windows.Forms.Button()
         Me.picFrame4 = New PictureBoxPlus()
         Me.picFrame3 = New PictureBoxPlus()
         Me.picFrame2 = New PictureBoxPlus()
@@ -658,19 +658,19 @@ Partial Class MainForm
         Me.picFrame5.TabIndex = 20
         Me.picFrame5.TabStop = False
         '
-        'btnいくよ
+        'btnSave
         '
-        Me.btnいくよ.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.btnいくよ.BackColor = System.Drawing.SystemColors.Control
-        Me.btnいくよ.ContextMenuStrip = Me.cmsSaveOptions
-        Me.btnいくよ.Enabled = False
-        Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.btnいくよ.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
-        Me.btnいくよ.Location = New System.Drawing.Point(244, 199)
-        Me.btnいくよ.Name = "btnいくよ"
-        Me.btnいくよ.Size = New System.Drawing.Size(88, 35)
-        Me.btnいくよ.TabIndex = 19
-        Me.btnいくよ.UseVisualStyleBackColor = False
+        Me.btnSave.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.btnSave.BackColor = System.Drawing.SystemColors.Control
+        Me.btnSave.ContextMenuStrip = Me.cmsSaveOptions
+        Me.btnSave.Enabled = False
+        Me.btnSave.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.btnSave.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
+        Me.btnSave.Location = New System.Drawing.Point(244, 199)
+        Me.btnSave.Name = "btnSave"
+        Me.btnSave.Size = New System.Drawing.Size(88, 35)
+        Me.btnSave.TabIndex = 19
+        Me.btnSave.UseVisualStyleBackColor = False
         '
         'picFrame4
         '
@@ -794,7 +794,7 @@ Partial Class MainForm
         Me.Controls.Add(Me.StatusStrip1)
         Me.Controls.Add(Me.ctlVideoSeeker)
         Me.Controls.Add(Me.picFrame5)
-        Me.Controls.Add(Me.btnいくよ)
+        Me.Controls.Add(Me.btnSave)
         Me.Controls.Add(Me.grpSettings)
         Me.Controls.Add(Me.picFrame4)
         Me.Controls.Add(Me.picFrame3)
@@ -845,7 +845,7 @@ Partial Class MainForm
     End Sub
     Friend WithEvents ofdVideoIn As System.Windows.Forms.OpenFileDialog
     Friend WithEvents btnBrowse As System.Windows.Forms.Button
-    Friend WithEvents btnいくよ As System.Windows.Forms.Button
+    Friend WithEvents btnSave As System.Windows.Forms.Button
     Friend WithEvents picVideo As PictureBoxPlus
     Friend WithEvents picFrame1 As PictureBoxPlus
     Friend WithEvents picFrame2 As PictureBoxPlus

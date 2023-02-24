@@ -23,7 +23,7 @@ Partial Class HolePuncherForm
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(HolePuncherForm))
-        Me.btnいくよ = New System.Windows.Forms.Button()
+        Me.btnSaveHolePunch = New System.Windows.Forms.Button()
         Me.numThreshold = New System.Windows.Forms.NumericUpDown()
         Me.lblThreshold = New System.Windows.Forms.Label()
         Me.pnlSeekers = New System.Windows.Forms.Panel()
@@ -36,18 +36,18 @@ Partial Class HolePuncherForm
         CType(Me.numMinChain, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
-        'btnいくよ
+        'btnSaveHolePunch
         '
-        Me.btnいくよ.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.btnいくよ.BackColor = System.Drawing.SystemColors.Control
-        Me.btnいくよ.Enabled = False
-        Me.btnいくよ.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.btnいくよ.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
-        Me.btnいくよ.Location = New System.Drawing.Point(260, 215)
-        Me.btnいくよ.Name = "btnいくよ"
-        Me.btnいくよ.Size = New System.Drawing.Size(72, 35)
-        Me.btnいくよ.TabIndex = 10
-        Me.btnいくよ.UseVisualStyleBackColor = False
+        Me.btnSaveHolePunch.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.btnSaveHolePunch.BackColor = System.Drawing.SystemColors.Control
+        Me.btnSaveHolePunch.Enabled = False
+        Me.btnSaveHolePunch.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.btnSaveHolePunch.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
+        Me.btnSaveHolePunch.Location = New System.Drawing.Point(260, 215)
+        Me.btnSaveHolePunch.Name = "btnSaveHolePunch"
+        Me.btnSaveHolePunch.Size = New System.Drawing.Size(72, 35)
+        Me.btnSaveHolePunch.TabIndex = 10
+        Me.btnSaveHolePunch.UseVisualStyleBackColor = False
         '
         'numThreshold
         '
@@ -135,7 +135,7 @@ Partial Class HolePuncherForm
         Me.Controls.Add(Me.pnlSeekers)
         Me.Controls.Add(Me.lblThreshold)
         Me.Controls.Add(Me.numThreshold)
-        Me.Controls.Add(Me.btnいくよ)
+        Me.Controls.Add(Me.btnSaveHolePunch)
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.Name = "HolePuncherForm"
         Me.Text = "Hole Puncher Tool"
@@ -145,7 +145,7 @@ Partial Class HolePuncherForm
 
     End Sub
 
-    Friend WithEvents btnいくよ As Button
+    Friend WithEvents btnSaveHolePunch As Button
     Friend WithEvents numThreshold As NumericUpDown
     Friend WithEvents lblThreshold As Label
     Friend WithEvents pnlSeekers As Panel

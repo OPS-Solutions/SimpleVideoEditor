@@ -126,7 +126,7 @@
 
     Private Sub btnBrowse_Click(sender As Object, e As EventArgs) Handles btnBrowse.Click
         ResetMetrics()
-        btnいくよ.Enabled = False
+        btnSaveHolePunch.Enabled = False
         'Set up progress bar
         Dim maxComparisons As Integer = (mlstMetaDatas.Count * (mlstMetaDatas.Count - 1)) / 2
         pgbProgress.Maximum = maxComparisons
@@ -329,7 +329,7 @@
     Private Delegate Sub SubDelegate()
 
     Private Sub DetectionComplete()
-        btnいくよ.Enabled = True
+        btnSaveHolePunch.Enabled = True
     End Sub
 
     Private Function TestFrame(masterFrame As Integer, masterIndex As Integer, slaveIndex As Integer, ByRef metaDatas As List(Of VideoData), ByRef objChainList As List(Of List(Of Chain))) As Boolean
@@ -409,7 +409,7 @@
         Public endFrame As Integer
     End Structure
 
-    Private Sub btnいくよ_Click(sender As Object, e As EventArgs) Handles btnいくよ.Click
+    Private Sub btnSaveHolePunch_Click(sender As Object, e As EventArgs) Handles btnSaveHolePunch.Click
         Dim blnUserInjection = My.Computer.Keyboard.CtrlKeyDown
         'Save all the stuff via ffmpeg
         Dim videoIndex As Integer = 0
