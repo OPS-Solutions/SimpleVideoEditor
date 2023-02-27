@@ -31,6 +31,8 @@ Public Class VideoData
         Private Sub New(streamDescription As String)
             _Raw = streamDescription
             Dim resolutionString As String = Regex.Match(streamDescription, "(?<=, )\d*x\d*").Groups(0).Value
+
+            'Sample Aspect Ratio
             Dim sarMatch As Match = Regex.Match(streamDescription, "sar (?<width>\d+):(?<height>\d+)")
             Dim sarWidth As Integer = 1
             Dim sarHeight As Integer = 1
@@ -38,18 +40,38 @@ Public Class VideoData
                 sarWidth = sarMatch.Groups("width").Value
                 sarHeight = sarMatch.Groups("height").Value
             End If
+
+            'Display Aspect Ratio
+            Dim darMatch As Match = Regex.Match(streamDescription, "dar (?<width>\d+):(?<height>\d+)")
+            Dim darWidth As Integer = 1
+            Dim darHeight As Integer = 1
+            If darMatch.Success Then
+                darWidth = darMatch.Groups("width").Value
+                darHeight = darMatch.Groups("height").Value
+            End If
+
             _Resolution = New System.Drawing.Size(Integer.Parse(resolutionString.Split("x")(0)), Integer.Parse(resolutionString.Split("x")(1)))
             If sarWidth <> sarHeight Then
                 If sarWidth > sarHeight Then
                     _Resolution = New Size(_Resolution.Width * sarWidth / sarHeight, _Resolution.Height)
                 End If
             End If
+
+            'Displaymatrix
+            Dim matrixRotation As String = Regex.Match(streamDescription, "displaymatrix: rotation of (?<rotation>(-|)\d*.\d*)").Groups("rotation").Value
+            Dim rotationValue As Double = 0
+            If Double.TryParse(matrixRotation, rotationValue) Then
+                If rotationValue = -90.0 OrElse rotationValue = 90 Then
+                    _Resolution = New Size(_Resolution.Height, _Resolution.Width)
+                End If
+            End If
+
             'Get framerate from "30.00 fps"
             _Framerate = Double.Parse(Regex.Match(streamDescription, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
             _Type = Regex.Match(streamDescription, "stream.*video.*? (?<Type>.*?) .*").Groups("Type").Value
         End Sub
         Public Shared Function FromDescription(streamDescription As String)
-            If streamDescription?.Length > 0 Then
+            If Regex.Match(streamDescription, "stream.*video.*").Groups(0).Value?.Length > 0 Then
                 Return New VideoStreamData(streamDescription)
             Else
                 Return Nothing
@@ -147,7 +169,7 @@ Public Class VideoData
         mobjMetaData.Duration = Regex.Match(dataDump, "(?<=duration: )\d\d:\d\d:\d\d\.\d\d").Groups(0).Value
 
         'Video Stream Info
-        Dim newVideoData As VideoStreamData = VideoStreamData.FromDescription(Regex.Match(dataDump, "stream.*video.*").Groups(0).Value)
+        Dim newVideoData As VideoStreamData = VideoStreamData.FromDescription(dataDump)
         If newVideoData IsNot Nothing Then
             mobjMetaData.VideoStreams = New List(Of VideoStreamData)
             mobjMetaData.VideoStreams.Add(newVideoData)
