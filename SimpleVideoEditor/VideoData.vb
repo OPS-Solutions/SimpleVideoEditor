@@ -199,6 +199,7 @@ Public Class VideoData
         Dim currentFrame As Integer = 0
         Using recievedStream As New System.IO.MemoryStream
             Dim sceneMatcher As New Regex("(?<=.scene_score=)\d+\.\d+")
+            Dim ptsMatcher As New Regex("pts_time:(?<pts_time>[\d\.]+|nan)")
             While True
                 Dim currentLine As String = Await tempProcess.StandardError.ReadLineAsync()
                 'Check end of stream
@@ -217,6 +218,18 @@ Public Class VideoData
                             If currentFrame Mod eventFrequency = 0 Then
                                 RaiseEvent ProcessedScene(Me, currentFrame)
                             End If
+                        End If
+                    End If
+                Else
+                    Dim ptsMatch As Match = ptsMatcher.Match(currentLine)
+                    If ptsMatch.Success Then
+                        Dim ptsValue As Double = Double.NaN
+                        If Double.TryParse(ptsMatch.Groups("pts_time").Value, ptsValue) Then
+                            SyncLock ThumbFrames
+                                If ThumbFrames().Item(currentFrame).PTSTime Is Nothing Then
+                                    ThumbFrames().Item(currentFrame).PTSTime = ptsValue
+                                End If
+                            End SyncLock
                         End If
                     End If
                 End If

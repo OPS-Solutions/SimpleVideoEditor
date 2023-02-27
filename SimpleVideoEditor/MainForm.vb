@@ -36,6 +36,9 @@ Public Class MainForm
 
     Private runTextbox As ManualEntryForm = New ManualEntryForm("") With {.Text = "FFMPEG Data", .Width = 680, .Height = 400, .Persistent = True} 'For displaying data as it comes in from ffmpeg so the user gets more than just a loading cursor
 
+    Private mthdFrameGrabber As Thread 'Handles grabbing frames when user clicks to view
+    Private mobjFramesToGrab As New System.Collections.Concurrent.BlockingCollection(Of Integer) 'Queue of frames to grab, will be emptied until latest relevant item to avoid wasting CPU
+
     Private Class SpecialOutputProperties
         Implements ICloneable
 
@@ -139,6 +142,7 @@ Public Class MainForm
         End If
         ClearControls()
         mobjMetaData = VideoData.FromFile(mstrVideoPath, inputMash)
+        ctlVideoSeeker.Enabled = True
         RefreshStatusToolTips()
 
         RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
@@ -398,7 +402,7 @@ Public Class MainForm
         Else
             If mobjMetaData IsNot Nothing Then
                 If ctlVideoSeeker.RangeModified Then
-                    If mobjMetaData.TotalOk AndAlso mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).Status = ImageCache.CacheStatus.Cached Then
+                    If mobjMetaData.TotalOk AndAlso mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime IsNot Nothing Then
                         btnSave.Enabled = True
                     Else
                         btnSave.Enabled = False
@@ -504,7 +508,6 @@ Public Class MainForm
 
             'Re-enable everything, even if we failed to grab the last frame
             Me.UseWaitCursor = False
-            ctlVideoSeeker.Enabled = True
             CheckSave()
             ExportAudioToolStripMenuItem.Enabled = mobjMetaData.AudioStream IsNot Nothing
         End If
@@ -1804,42 +1807,53 @@ Public Class MainForm
 
     Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
         If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
-            If Not mintCurrentFrame = newVal Then
-                mintCurrentFrame = newVal
-                If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-                    'Grab immediate
-                    picVideo.SetImage(mobjMetaData.GetImageFromCache(mintCurrentFrame))
-                Else
-                    If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-                        'Check for low res thumbnail if we have it
-                        picVideo.SetImage(mobjMetaData.GetImageFromThumbCache(mintCurrentFrame))
-                    Else
-                        'Loading image...
-                        picVideo.SetImage(Nothing)
-                    End If
-                    'Queue, event will change the image for us
-                    If mobjSlideQueue Is Nothing OrElse Not mobjSlideQueue.IsAlive Then
-                        mobjSlideQueue = New Thread(Sub()
-                                                        Dim startFrame As Integer
-                                                        Do
-                                                            startFrame = mintCurrentFrame
-                                                            mobjMetaData.GetFfmpegFrame(mintCurrentFrame)
-                                                        Loop While startFrame <> mintCurrentFrame
-                                                    End Sub)
-                        mobjSlideQueue.Start()
-                    End If
-                End If
+            mintCurrentFrame = newVal
+            If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+                'Grab immediate
+                picVideo.SetImage(mobjMetaData.GetImageFromCache(mintCurrentFrame))
             Else
-                If mobjSlideQueue IsNot Nothing AndAlso mobjSlideQueue.IsAlive AndAlso ctlVideoSeeker.SelectedSlider = VideoSeeker.SliderID.None Then
-                    'Force frame grab because the user let go
-                    ThreadPool.QueueUserWorkItem(Sub()
-                                                     mobjMetaData.GetFfmpegFrame(mintCurrentFrame)
-                                                 End Sub)
+                If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+                    'Check for low res thumbnail if we have it
+                    picVideo.SetImage(mobjMetaData.GetImageFromThumbCache(mintCurrentFrame))
+                Else
+                    'Loading image...
+                    picVideo.SetImage(Nothing)
                 End If
+                'Queue, event will change the image for us
+                If mthdFrameGrabber Is Nothing OrElse Not mthdFrameGrabber.IsAlive Then
+                    mthdFrameGrabber = New Thread(Sub()
+                                                      FrameQueueProcessor()
+                                                  End Sub)
+                    mthdFrameGrabber.IsBackground = True
+                    mthdFrameGrabber.Start()
+                End If
+                mobjFramesToGrab.Add(mintCurrentFrame)
             End If
             mintDisplayInfo = RENDER_DECAY_TIME
         End If
         CheckSave()
+    End Sub
+
+    ''' <summary>
+    ''' Eats anything in frame queue such that only the latest is grabbed
+    ''' </summary>
+    Private Sub FrameQueueProcessor()
+        Thread.CurrentThread.Name = "FrameQueueProcessor"
+        While True
+            Dim latestFrameRequest As Integer = mobjFramesToGrab.Take()
+            Dim discardCount As Integer = 0
+            Dim latestValue As Integer = 0
+            While mobjFramesToGrab.TryTake(latestValue)
+                discardCount += 1
+                latestFrameRequest = latestValue
+                'Loops until no elements in the queue, meaning we have the latest relevant request
+                'All others are discarded to avoid wasting CPU resources on frames the user doesn't care for anymore
+            End While
+            If discardCount > 0 Then
+                Debug.Print($"Discarded {discardCount} frame requests")
+            End If
+            mobjMetaData.GetFfmpegFrame(latestFrameRequest)
+        End While
     End Sub
 
     Private Sub NewFrameCached(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
@@ -1872,6 +1886,9 @@ Public Class MainForm
             Dim increments As Integer = mobjMetaData.TotalFrames / ctlVideoSeeker.Width
             'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
             ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+        End If
+        If ctlVideoSeeker.RangeMaxValue.InRange(0, newFrame) Then
+            CheckSave()
         End If
     End Sub
 
