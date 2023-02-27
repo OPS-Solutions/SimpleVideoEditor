@@ -247,7 +247,7 @@ Public Class VideoData
 
     Public Async Function ExtractThumbFrames() As Task(Of ImageCache)
         'TODO merge this with scene changes, also maybe ignore it and just grab all frames at full size if the video is short enough
-        Await GetFfmpegFrameAsync(0, -1, New Size(0, 10), mobjThumbCache)
+        Await GetFfmpegFrameAsync(0, -1, New Size(0, 32), mobjThumbCache)
         Return mobjThumbCache
     End Function
 
