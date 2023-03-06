@@ -1385,7 +1385,7 @@ Public Class MainForm
     Private Function GetInputMash(args() As String) As String
         'Check if the input is a folder, or list of files
         'If so, try to generate a type of input like image%d.png that ffmpeg accepts as a single input
-        Dim fileNames As New List(Of String)
+        Dim imageFiles As New List(Of String)
         Dim largestPad As Integer = 0
         If args.Count = 2 Then
             If IO.File.Exists(args(1)) Then
@@ -1395,7 +1395,7 @@ Public Class MainForm
                 Dim objFiles As String() = Directory.GetFiles(args(1))
                 For index As Integer = 0 To objFiles.Count - 1
                     If objFiles(index).IsVBImage() Then
-                        fileNames.Add(objFiles(index))
+                        imageFiles.Add(objFiles(index))
                     End If
                 Next
             End If
@@ -1405,13 +1405,13 @@ Public Class MainForm
             Dim defaultExt As String = Path.GetExtension(args(1))
             For index As Integer = 1 To args.Count - 1
                 If args(index).IsVBImage() Then
-                    fileNames.Add(args(index))
+                    imageFiles.Add(args(index))
                 End If
                 If Not Path.GetExtension(args(index)).ToLower.Equals(defaultExt.ToLower) Then
                     sameExt = False
                 End If
             Next
-            If fileNames.Count = 0 AndAlso sameExt Then
+            If imageFiles.Count = 0 AndAlso sameExt Then
                 'Might be some other kind of files, ask to concatenate
                 Select Case MessageBox.Show(Me, $"Detected multiple {defaultExt} inputs. Concatenate {args.Count - 1} files temporarily?", "Concatenate Files?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                     Case DialogResult.Yes
@@ -1444,29 +1444,60 @@ Public Class MainForm
                 End Select
             End If
         End If
-        If fileNames.Count < 1 Then
+        If imageFiles.Count < 1 Then
             Return Nothing
         End If
-        'Sort the files in case the user dragged them in a way that caused something that was not the first file to appear first in the args list
-        fileNames.Sort(Function(string1, string2) string1.CompareNatural(string2))
 
-        'Try to extract the constant data between the file names by removing numbers
-        Dim numberRegex As New Text.RegularExpressions.Regex("(?<zeros>0+)*\d+")
-        'Check padding intensity
-        Dim firstMatch As Match = numberRegex.Match(fileNames(0))
-        Dim leadingZeros As Integer = firstMatch.Groups("zeros").Length
-        Dim pattern As String = ""
-        If leadingZeros = 0 Then
-            pattern = "%d"
-        ElseIf leadingZeros > 0 Then
-            pattern = "%0" & leadingZeros + 1 & "d"
-        Else
-            Return Nothing
+        'Sort the files in case the user dragged them in a way that caused something that was not the first file to appear first in the args list
+        imageFiles.Sort(Function(string1, string2) string1.CompareNatural(string2))
+
+        'Check if the names are the proper pattern and unbroken so we know they will actually load
+        Dim numberRegex As New Text.RegularExpressions.Regex("(?<zeros>0+)*(?<number>\d+)")
+        Dim lastNumber As Integer = -1
+        Dim padLength As Integer = -1
+        Dim brokenPattern As Boolean = False
+        For Each objFilename In imageFiles
+            Dim currentMatch As Match = numberRegex.Match(objFilename)
+            If currentMatch.Success Then
+                Dim imageNumber As Integer = Integer.Parse(currentMatch.Groups("number").Value)
+                Dim padNumber As Integer = Integer.Parse(currentMatch.Groups("zeros").Value.Length)
+                If padLength = -1 Then
+                    padLength = padNumber
+                ElseIf padNumber <> padLength Then
+                    brokenPattern = True
+                    Exit For
+                End If
+                If lastNumber = -1 OrElse (Not imageNumber - lastNumber > 1) Then
+                    lastNumber = imageNumber
+                Else
+                    brokenPattern = True
+                    Exit For
+                End If
+            End If
+        Next
+
+        'TODO A user may select a working set of filenames, but it could be a subset of all files in the directory, which will end with ffmpeg loading everything instead of just what they selected
+        If brokenPattern Then
+            Select Case MessageBox.Show(Me, $"Detected multiple {Path.GetExtension(args(1))} inputs, but could not detect a consistent filename pattern like 'image_001{Path.GetExtension(args(1))}'.{vbCrLf}Copy and rename {args.Count - 1} files temporarily?", "Copy and Rename Files?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                Case DialogResult.Yes
+                    'Copy files over into temp directory in case user tried to select files that didn't strictly follow the pattern
+                    Dim tempDir As String = Path.Combine(Globals.TempPath, $"mash {Now.ToString("yyyy-MM-dd hh-mm-ss")}")
+                    If Not Directory.Exists(tempDir) Then
+                        Directory.CreateDirectory(tempDir)
+                    End If
+
+                    Dim digits As Integer = imageFiles.Count.ToString.Length
+                    For fileIndex As Integer = 0 To imageFiles.Count - 1
+                        Dim newName As String = Path.Combine(tempDir, "image_" + fileIndex.ToString.PadLeft(digits, "0") + Path.GetExtension(imageFiles(fileIndex)))
+                        System.IO.File.Copy(imageFiles(fileIndex), newName)
+                        imageFiles(fileIndex) = newName
+                    Next
+                Case Else
+                    'This will end up with ffmpeg just doing whatever it can with the bad pattern, usually loading just the first chunk of ok images
+            End Select
         End If
-        Dim directoryPath As String = System.IO.Path.GetDirectoryName(fileNames(0))
-        Dim fileName As String = System.IO.Path.GetFileName(fileNames(0))
-        fileName = numberRegex.Replace(fileName, pattern)
-        Return System.IO.Path.Combine(directoryPath, fileName)
+
+        Return imageFiles(0).ExtractPattern
     End Function
 #End Region
 

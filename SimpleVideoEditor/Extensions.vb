@@ -1,6 +1,7 @@
 ﻿Imports System.Drawing.Imaging
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
+Imports System.Text.RegularExpressions
 Imports System.Threading
 Imports Shell32
 
@@ -934,5 +935,29 @@ Module Extensions
         Return filteredImage
     End Function
 #End Region
+
+    ''' <summary>
+    ''' Gets a pattern like "image_%03d.png" from a filename like "image_001.png"
+    ''' </summary>
+    <Extension()>
+    Public Function ExtractPattern(fileName As String) As String
+        'Try to extract the constant data between the file names by removing numbers
+        Dim numberRegex As New Text.RegularExpressions.Regex("(?<zeros>0+)*\d+")
+        'Check padding intensity
+        Dim firstMatch As Match = numberRegex.Match(fileName)
+        Dim leadingZeros As Integer = firstMatch.Groups("zeros").Length
+        Dim pattern As String = ""
+        If leadingZeros = 0 Then
+            pattern = "%d"
+        ElseIf leadingZeros > 0 Then
+            pattern = "%0" & leadingZeros + 1 & "d"
+        Else
+            Return Nothing
+        End If
+        Dim directoryPath As String = System.IO.Path.GetDirectoryName(fileName)
+        Dim patternedName As String = System.IO.Path.GetFileName(fileName)
+        patternedName = numberRegex.Replace(patternedName, pattern)
+        Return System.IO.Path.Combine(directoryPath, patternedName)
+    End Function
 
 End Module
