@@ -15,7 +15,6 @@ Public Class MainForm
     Private mproFfmpegProcess As Process 'TODO This doesn't really need to be module level
     Private mobjErrorLog As New StringBuilder 'Keeps track of process error data from RunFfmpeg()
     Private mobjOutputLog As New StringBuilder 'Keeps track of process output data from RunFfmpeg()
-    Private mthdDefaultLoadThread As System.Threading.Thread 'Thread for loading images upon open
     Private mobjGenericToolTip As ToolTipPlus = New ToolTipPlus() 'Tooltip object required for setting tootips on controls
 
     Private mptStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle, in video coordinates
@@ -28,7 +27,6 @@ Public Class MainForm
     Private WithEvents mobjMetaData As VideoData 'Video metadata, including things like resolution, framerate, bitrate, etc.
     Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
     Private mblnInputMash As Boolean = False 'Whether or not the loaded file is a mash of multiple inputs like image%d.png
-    Private mobjSlideQueue As Thread 'Thread for handling changing the preview image when moving seek sliders with the mouse, to avoid doing too many and impacting performance
 
     Private mobjOutputProperties As New SpecialOutputProperties 'Keeps track of settings to apply to the final output video
 
@@ -1204,9 +1202,10 @@ Public Class MainForm
     ''' </summary>
     Private Sub SimpleVideoEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'Destroy old version from any updates
-        Threading.ThreadPool.QueueUserWorkItem(Sub()
-                                                   DeleteUpdateFiles()
-                                               End Sub)
+        CleanupTempFolder()
+        Task.Run(Sub()
+                     DeleteUpdateFiles()
+                 End Sub)
 
         cmbDefinition.SelectedIndex = 0
 
@@ -1335,30 +1334,6 @@ Public Class MainForm
 
 #Region "Misc Functions"
     ''' <summary>
-    ''' Recursively deletes directories in as safe a manner as possible.
-    ''' </summary>
-    Public Shared Sub DeleteDirectory(ByVal directoryPath As String)
-        'Assure each file is not read-only, then delete them
-        For Each file As String In System.IO.Directory.GetFiles(directoryPath)
-            System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal)
-            System.IO.File.Delete(file)
-        Next
-        'Delete each directory inside
-        For Each directory As String In System.IO.Directory.GetDirectories(directoryPath)
-            DeleteDirectory(directory)
-        Next
-        'Delete parent directory
-        System.IO.Directory.Delete(directoryPath, False)
-    End Sub
-
-    ''' <summary>
-    ''' Add a little bit of text to the end of a file name string between its extension like "-temp" or "-SHINY".
-    ''' </summary>
-    Public Shared Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
-        Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
-    End Function
-
-    ''' <summary>
     ''' Sets the crop points to the given values, setting them to nothing in the case where the entire image is selected
     ''' </summary>
     Public Sub SetCropPoints(ByRef cropTopLeft As Point, ByRef cropBottomRight As Point)
@@ -1426,11 +1401,48 @@ Public Class MainForm
             End If
         ElseIf args.Count > 2 Then
             'Multiple files
+            Dim sameExt As Boolean = True
+            Dim defaultExt As String = Path.GetExtension(args(1))
             For index As Integer = 1 To args.Count - 1
                 If args(index).IsVBImage() Then
                     fileNames.Add(args(index))
                 End If
+                If Not Path.GetExtension(args(index)).ToLower.Equals(defaultExt.ToLower) Then
+                    sameExt = False
+                End If
             Next
+            If fileNames.Count = 0 AndAlso sameExt Then
+                'Might be some other kind of files, ask to concatenate
+                Select Case MessageBox.Show(Me, $"Detected multiple {defaultExt} inputs. Concatenate {args.Count - 1} files temporarily?", "Concatenate Files?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                    Case DialogResult.Yes
+                        Dim argInputs As String = ""
+                        For index As Integer = 1 To args.Count - 1
+                            argInputs += $"-i ""{args(index)}"" "
+                        Next
+                        Dim outPath As String = Path.Combine(Globals.TempPath, $"combined {Now.ToString("yyyy-MM-dd hh-mm-ss")}{Path.GetExtension(args(1))}")
+                        If File.Exists(outPath) Then
+                            File.Delete(outPath)
+                        End If
+
+                        If Not Directory.Exists(Path.GetDirectoryName(outPath)) Then
+                            Directory.CreateDirectory(Path.GetDirectoryName(outPath))
+                        End If
+
+                        Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}"" ""{outPath}""")
+                        Dim manualEntryForm As New ManualEntryForm(startInfo.Arguments)
+                        Select Case manualEntryForm.ShowDialog()
+                            Case DialogResult.Cancel
+                                Return Nothing
+                        End Select
+                        startInfo.Arguments = manualEntryForm.ModifiedText
+
+                        Dim concatProcess As Process = Process.Start(startInfo)
+                        concatProcess.WaitForExit()
+                        Return outPath
+                    Case DialogResult.No
+                        Return Nothing
+                End Select
+            End If
         End If
         If fileNames.Count < 1 Then
             Return Nothing
@@ -1980,6 +1992,32 @@ Public Class MainForm
         If CustomToolStripMenuItem.Checked Then
             cmsPlaybackVolume_ItemClicked(Me, New ToolStripItemClickedEventArgs(CustomToolStripMenuItem))
         End If
+    End Sub
+
+    Private Sub MainForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'Cleanup files we don't need
+        If File.Exists(mobjMetaData.FullPath) AndAlso mobjMetaData.FullPath.StartsWith(TempPath) Then
+            File.Delete(mobjMetaData.FullPath)
+        End If
+        CleanupTempFolder()
+    End Sub
+
+    ''' <summary>
+    ''' Deletes the temp folder for this process as long as this is the only instance of the process
+    ''' </summary>
+    Private Sub CleanupTempFolder()
+        Try
+            Dim sveProcesses As Process() = Process.GetProcessesByName(Process.GetCurrentProcess.ProcessName)
+            If sveProcesses.Count = 1 Then
+                'We are the only process, so we can clean our temp folder
+                If Directory.Exists(TempPath) Then
+                    DeleteDirectory(TempPath)
+                End If
+            End If
+        Catch ex As Exception
+            'Bad news bears
+            'If we ever add logging, this would be nice to log, but otherwise don't bother the user
+        End Try
     End Sub
 #End Region
 

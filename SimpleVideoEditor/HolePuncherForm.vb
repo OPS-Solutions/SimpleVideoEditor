@@ -503,7 +503,7 @@
                 processInfo.Arguments += "concat=n=" & goodPortions.Count & ":v=1:a=1:s=1[v][a]"" -map ""[v]"" -map ""[a]"""
 
                 'OUTPUT TO FILE
-                processInfo.Arguments += " """ & MainForm.FileNameAppend(mlstMetaDatas(videoIndex).FullPath, "-SHINY") & """"
+                processInfo.Arguments += " """ & FileNameAppend(mlstMetaDatas(videoIndex).FullPath, "-SHINY") & """"
                 If blnUserInjection Then
                     'Show a form where the user can modify the arguments manually
                     Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)

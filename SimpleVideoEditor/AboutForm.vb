@@ -114,18 +114,15 @@ Public NotInheritable Class AboutForm
 	Private Sub DownloadUpdate()
 		Dim canWrite As Boolean = False
 		Dim abort As Boolean = False
-		Dim updateExtractPath As String = System.IO.Path.GetTempPath + "SimpleVideoEditorUpdateFiles"
+		Dim updateExtractPath As String = Globals.TempPath
+		Dim legacyUpdateFolder As String = System.IO.Path.GetTempPath + "SimpleVideoEditorUpdateFiles"
 		Try
 			'Download latest release zip
 			Dim remoteUri As String = $"https://github.com/OPS-Solutions/SimpleVideoEditor/releases/download/{mstrLatestVersion}/Simple.Video.Editor.zip"
 			Dim exePath As String = System.Reflection.Assembly.GetExecutingAssembly.Location
 			'Clear anything that was in there before
-			If System.IO.Directory.Exists(updateExtractPath) Then
-				For Each objFile In System.IO.Directory.GetFiles(updateExtractPath)
-					System.IO.File.Delete(objFile)
-				Next
-				System.IO.Directory.Delete(updateExtractPath)
-			End If
+			DeleteDirectory(legacyUpdateFolder)
+			DeleteDirectory(updateExtractPath)
 			System.IO.Directory.CreateDirectory(updateExtractPath)
 			'Check for permissions of current .exe
 			Try
@@ -149,7 +146,7 @@ Public NotInheritable Class AboutForm
 			End If
 
 
-			Dim downloadedZipPath As String = updateExtractPath + "\" + "Simple.Video.Editor.zip"
+			Dim downloadedZipPath As String = Path.Combine(updateExtractPath, "Simple.Video.Editor.zip")
 			Dim downloadBarrier As New Barrier(2)
 			ThreadPool.QueueUserWorkItem(Sub()
 											 Dim dotCount As Integer = 1
@@ -190,10 +187,10 @@ Public NotInheritable Class AboutForm
 			System.IO.File.Delete(downloadedZipPath)
 			'Must rename the current running .exe because otherwise we can't put anything there
 			RefreshUpdateButton("Renaming...")
-			System.IO.File.Move(exePath, System.IO.Path.GetDirectoryName(exePath) + "\DeletableSimpleVideoEditor.exe")
+			System.IO.File.Move(exePath, Path.Combine(System.IO.Path.GetDirectoryName(exePath), "DeletableSimpleVideoEditor.exe"))
 			RefreshUpdateButton("Replacing...")
 			For Each objFile In System.IO.Directory.EnumerateFiles(updateExtractPath)
-				System.IO.File.Copy(objFile, System.IO.Path.GetDirectoryName(exePath) + "\" + System.IO.Path.GetFileName(objFile), True)
+				System.IO.File.Copy(objFile, Path.Combine(System.IO.Path.GetDirectoryName(exePath), System.IO.Path.GetFileName(objFile)), True)
 				System.IO.File.Delete(objFile)
 			Next
 			System.IO.Directory.Delete(updateExtractPath)

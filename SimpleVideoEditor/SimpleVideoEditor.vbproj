@@ -136,6 +136,7 @@
     <Compile Include="AboutForm.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Globals.vb" />
     <Compile Include="HolePuncherForm.Designer.vb">
       <DependentUpon>HolePuncherForm.vb</DependentUpon>
     </Compile>
