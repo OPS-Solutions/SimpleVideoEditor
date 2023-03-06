@@ -1996,7 +1996,7 @@ Public Class MainForm
 
     Private Sub MainForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         'Cleanup files we don't need
-        If File.Exists(mobjMetaData.FullPath) AndAlso mobjMetaData.FullPath.StartsWith(TempPath) Then
+        If File.Exists(mobjMetaData?.FullPath) AndAlso mobjMetaData.FullPath.StartsWith(TempPath) Then
             File.Delete(mobjMetaData.FullPath)
         End If
         CleanupTempFolder()
