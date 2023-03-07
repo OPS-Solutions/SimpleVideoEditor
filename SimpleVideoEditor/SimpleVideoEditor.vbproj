@@ -265,7 +265,22 @@
 "C:\Security\EvSignExeDrag.bat" "$(TargetPath)"
   del /f "..\Simple Video Editor.zip"
 "C:\Program Files\7-Zip\7z.exe" a "..\Simple Video Editor.zip" "$(TargetDir)*" -aoa
-)</PostBuildEvent>
+)
+
+rem Get git branch info
+FOR /F "tokens=* USEBACKQ" %25%25F IN (`git branch`) DO (
+SET branchText=%25%25F
+)
+
+rem Branch based on git branch
+echo %25branchText%25
+if "%25branchText%25" == "* master" (
+echo Master branch detected
+) else (
+echo Non-master branch detected
+)
+
+</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>xcopy "$(SolutionDir)packages\ffmpeg-n5.0-latest-win64-gpl-5.0\bin\ffmpeg.exe" "$(TargetDir)" /y /c /d /i
