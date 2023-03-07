@@ -197,11 +197,15 @@
     End Sub
 
     Public Sub New()
+        InitializeComponent()
+
         Me.DoubleBuffered = True
         InitializePreviewForm()
     End Sub
 
     Public Sub New(metaData As VideoData)
+        InitializeComponent()
+
         Me.MetaData = metaData
         Me.DoubleBuffered = True
         InitializePreviewForm()
