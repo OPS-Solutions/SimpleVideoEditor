@@ -133,13 +133,13 @@ Public Class MainForm
     Public Sub LoadFile(ByVal fullPath As String, Optional inputMash As Boolean = False)
         mstrVideoPath = fullPath
         sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
-        Me.Text = Me.Text.Split("-")(0).Trim + $" - {System.IO.Path.GetFileName(mstrVideoPath)}" + " - Open Source"
         If mobjMetaData IsNot Nothing Then
             mobjMetaData.Dispose()
             mobjMetaData = Nothing
         End If
         ClearControls()
         mobjMetaData = VideoData.FromFile(mstrVideoPath, inputMash)
+        Me.Text = Me.Text.Split("-")(0).Trim + $" - {System.IO.Path.GetFileName(mstrVideoPath)}" + " - Open Source"
         ctlVideoSeeker.Enabled = True
         RefreshStatusToolTips()
 
