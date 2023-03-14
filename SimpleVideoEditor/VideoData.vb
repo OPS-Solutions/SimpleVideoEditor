@@ -160,8 +160,7 @@ Public Class VideoData
     ''' </summary>
     ''' <param name="dataDump"></param>
     Public Sub New(ByVal file As String, ByVal dataDump As String)
-        mobjMetaData.Name = IO.Path.GetFileName(file)
-        mobjMetaData.Location = IO.Path.GetDirectoryName(file)
+        Me.FullPath = file
         dataDump = dataDump.ToLower
         Dim metaDataIndex As Integer = dataDump.ToLower.IndexOf("metadata:")
         dataDump = dataDump.Substring(metaDataIndex)
@@ -888,10 +887,14 @@ Public Class VideoData
     ''' <summary>
     ''' Full path to file, including directory and extension ex: C:\Users\Neil\Videos\chicken.mp4
     ''' </summary>
-    Public ReadOnly Property FullPath As String
+    Public Property FullPath As String
         Get
             Return mobjMetaData.Location + "\" + mobjMetaData.Name
         End Get
+        Set(value As String)
+            mobjMetaData.Name = IO.Path.GetFileName(value)
+            mobjMetaData.Location = IO.Path.GetDirectoryName(value)
+        End Set
     End Property
 
     ''' <summary>
@@ -1166,5 +1169,9 @@ Public Class VideoData
     End Sub
 #End Region
 #End Region
+
+    Public Function ShallowCopy()
+        Return Me.MemberwiseClone
+    End Function
 
 End Class

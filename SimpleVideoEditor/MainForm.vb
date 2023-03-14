@@ -266,13 +266,14 @@ Public Class MainForm
         'If doing an intermediate conversion when making a gif, we don't want to mess up the framerate, so save as an avi first
         Dim isGIF As Boolean = IO.Path.GetExtension(outputPath) = ".gif"
         Dim sourceIsGIF As Boolean = IO.Path.GetExtension(mstrVideoPath) = ".gif"
+        Dim workingMetadata As VideoData = mobjMetaData
         If useIntermediate Then
             intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4 OrElse (Not sourceIsGIF AndAlso isGIF), ".avi", "")
             If isMP4 Then
                 intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
             End If
             'Don't pass in special properties yet, it would be better to decimate after cropping
-            RunFfmpeg(mstrVideoPath, intermediateFilePath, 0, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .PlaybackVolume = If(mobjOutputProperties.PlaybackVolume <= 0, 0, 1), .QScale = 0}, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(0), cropArea)
+            RunFfmpeg(workingMetadata, intermediateFilePath, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .Rotation = RotateFlipType.RotateNoneFlipNone, .PlaybackVolume = If(mobjOutputProperties.PlaybackVolume <= 0, 0, 1), .QScale = 0}, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(0), cropArea)
             If Not ignoreTrim Then
                 ignoreTrim = True
             End If
@@ -285,24 +286,15 @@ Public Class MainForm
             mproFfmpegProcess.BeginOutputReadLine()
             runArgs += mproFfmpegProcess.StartInfo.Arguments
             Await mproFfmpegProcess.WaitForExitAsync()
+            workingMetadata = VideoData.FromFile(intermediateFilePath)
             'Check if user canceled manual entry
             CheckOutput(intermediateFilePath, runArgs, False)
             If Not File.Exists(intermediateFilePath) Then
                 Exit Sub
             End If
         End If
-        Dim cropRect As Rectangle? = Me.CropRect()
-        Dim realwidth As Integer = mobjMetaData.Width
-        Dim realheight As Integer = mobjMetaData.Height
-        If cropRect IsNot Nothing Then
-            realwidth = cropRect?.Width
-            realheight = cropRect?.Height
-        End If
-        If (Not mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone) And (Not mobjOutputProperties.Rotation = RotateFlipType.Rotate180FlipNone) Then
-            SwapValues(realwidth, realheight)
-        End If
         'Now you can apply everything else
-        RunFfmpeg(intermediateFilePath, outputPath, mobjOutputProperties.Rotation, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Rectangle?, cropArea))
+        RunFfmpeg(workingMetadata, outputPath, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Rectangle?, cropArea))
         If mproFfmpegProcess Is Nothing Then
             Exit Sub
         End If
@@ -584,7 +576,7 @@ Public Class MainForm
     ''' <summary>
     ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
     ''' </summary>
-    Private Sub RunFfmpeg(ByVal inputFile As String, ByVal outPutFile As String, ByVal flip As RotateFlipType, ByVal specProperties As SpecialOutputProperties, ByVal trimData As TrimData, ByVal targetDefinition As String, croprect As Rectangle?)
+    Private Sub RunFfmpeg(ByVal inputFile As VideoData, ByVal outPutFile As String, ByVal specProperties As SpecialOutputProperties, ByVal trimData As TrimData, ByVal targetDefinition As String, croprect As Rectangle?)
         mobjErrorLog.Clear()
         mobjOutputLog.Clear()
 
@@ -616,11 +608,11 @@ Public Class MainForm
                 videoFilterParams.Add($"select=between(n\,{trimData.StartFrame}\,{trimData.EndFrame}),setpts=PTS-STARTPTS")
             End If
         End If
-        processInfo.Arguments += $" -i ""{inputFile}"""
+        processInfo.Arguments += $" -i ""{inputFile.FullPath}"""
 
         'CROP VIDEO(Can not be done with a rotate, must run twice)
-        Dim cropWidth As Integer = mobjMetaData.Width
-        Dim cropHeight As Integer = mobjMetaData.Height
+        Dim cropWidth As Integer = inputFile.Width
+        Dim cropHeight As Integer = inputFile.Height
         If croprect IsNot Nothing Then
             cropWidth = croprect.Value.Width
             cropHeight = croprect.Value.Height
@@ -648,7 +640,7 @@ Public Class MainForm
         If scale <> 1 Then
             Dim scaleX As Integer = ForceEven(Math.Floor(cropWidth * scale))
             Dim scaleY As Integer = ForceEven(Math.Floor(cropHeight * scale))
-            If flip = RotateFlipType.Rotate90FlipNone OrElse flip = RotateFlipType.Rotate270FlipNone Then
+            If specProperties.Rotation = RotateFlipType.Rotate90FlipNone OrElse specProperties.Rotation = RotateFlipType.Rotate270FlipNone Then
                 videoFilterParams.Add($"scale={scaleY}:{scaleX}")
                 'processInfo.Arguments += $" -s {scaleY}x{scaleX} -threads 4"
             Else
@@ -658,7 +650,7 @@ Public Class MainForm
         End If
 
         'ROTATE VIDEO
-        Dim rotateString As String = If(flip = RotateFlipType.Rotate90FlipNone, "transpose=1", If(flip = RotateFlipType.Rotate180FlipNone, """transpose=2,transpose=2""", If(flip = RotateFlipType.Rotate270FlipNone, "transpose=2", "")))
+        Dim rotateString As String = If(specProperties.Rotation = RotateFlipType.Rotate90FlipNone, "transpose=1", If(specProperties.Rotation = RotateFlipType.Rotate180FlipNone, """transpose=2,transpose=2""", If(specProperties.Rotation = RotateFlipType.Rotate270FlipNone, "transpose=2", "")))
         If rotateString.Length > 0 Then
             videoFilterParams.Add(rotateString)
         End If
@@ -706,10 +698,10 @@ Public Class MainForm
         End If
 
         'Check if the user wants to do motion interpolation when using a framerate that would cause duplicate frames
-        Dim willHaveDuplicates As Boolean = (specProperties.FPS > mobjMetaData.Framerate * specProperties.PlaybackSpeed) OrElse (specProperties.FPS = 0 AndAlso specProperties.PlaybackSpeed < 1)
+        Dim willHaveDuplicates As Boolean = (specProperties.FPS > inputFile.Framerate * specProperties.PlaybackSpeed) OrElse (specProperties.FPS = 0 AndAlso specProperties.PlaybackSpeed < 1)
         If willHaveDuplicates Then
             If MotionInterpolationToolStripMenuItem.Checked Then
-                videoFilterParams.Add($"minterpolate=fps={If(specProperties.FPS = 0, mobjMetaData.Framerate, specProperties.FPS)}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1")
+                videoFilterParams.Add($"minterpolate=fps={If(specProperties.FPS = 0, inputFile.Framerate, specProperties.FPS)}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1")
             End If
         End If
 
