@@ -243,11 +243,11 @@ Public Class MainForm
             Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(frameAfterEnd) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, frameAfterEnd - 1))
             Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) + lastFrameDuration * 0.99
             trimData = New TrimData With {
-                .StartFrame = ctlVideoSeeker.RangeMinValue,
-                .StartPTS = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue),
-                .EndFrame = ctlVideoSeeker.RangeMaxValue,
-                .EndPTS = lastFramePTS
-            }
+                        .StartFrame = ctlVideoSeeker.RangeMinValue,
+                        .StartPTS = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue),
+                        .EndFrame = ctlVideoSeeker.RangeMaxValue,
+                        .EndPTS = lastFramePTS
+                    }
         End If
 
         'First check if something would conflict with cropping, if it will, just crop it first
@@ -293,20 +293,30 @@ Public Class MainForm
                 Exit Sub
             End If
         End If
-        'Now you can apply everything else
-        RunFfmpeg(workingMetadata, outputPath, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Rectangle?, cropArea))
-        If mproFfmpegProcess Is Nothing Then
-            Exit Sub
-        End If
-        mproFfmpegProcess.BeginErrorReadLine()
-        mproFfmpegProcess.BeginOutputReadLine()
-        runArgs += vbNewLine & mproFfmpegProcess.StartInfo.Arguments
-        Await mproFfmpegProcess.WaitForExitAsync()
+        Try
+            'Now you can apply everything else
+            RunFfmpeg(workingMetadata, outputPath, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Rectangle?, cropArea))
+            If mproFfmpegProcess Is Nothing Then
+                Exit Sub
+            End If
+            mproFfmpegProcess.BeginErrorReadLine()
+            mproFfmpegProcess.BeginOutputReadLine()
+            runArgs += vbNewLine & mproFfmpegProcess.StartInfo.Arguments
+            Await mproFfmpegProcess.WaitForExitAsync()
 
-        If overwriteOriginal Or (useIntermediate) Then
-            My.Computer.FileSystem.DeleteFile(intermediateFilePath)
-        End If
-        CheckOutput(outputPath, runArgs, True)
+            If overwriteOriginal Or (useIntermediate) Then
+                My.Computer.FileSystem.DeleteFile(intermediateFilePath)
+            End If
+            CheckOutput(outputPath, runArgs, True)
+        Catch ex As Exception
+            Throw ex
+        Finally
+            If useIntermediate Then
+                If File.Exists(intermediateFilePath) Then
+                    My.Computer.FileSystem.DeleteFile(intermediateFilePath)
+                End If
+            End If
+        End Try
     End Sub
 
     ''' <summary>
@@ -757,6 +767,7 @@ Public Class MainForm
             Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)
             Select Case manualEntryForm.ShowDialog()
                 Case DialogResult.Cancel
+                    mproFfmpegProcess = Nothing
                     Exit Sub
             End Select
             processInfo.Arguments = manualEntryForm.ModifiedText
