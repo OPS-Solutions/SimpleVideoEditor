@@ -6,6 +6,7 @@ Imports System.Runtime.Remoting.Metadata.W3cXsd2001
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports Microsoft.VisualBasic.Devices
 
 Public Class MainForm
     'FFMPEG Usefull Commands
@@ -1509,24 +1510,38 @@ Public Class MainForm
     ''' Captures key events before everything else, and uses them to modify the video trimming picRangeSlider control.
     ''' </summary>
     Protected Overrides Function ProcessCmdKey(ByRef message As Message, ByVal keys As Keys) As Boolean
+        'Check number key states for frameskip
+        Dim skipValue As Integer = 1
+        For index As Integer = 0 To 9
+            If My.Computer.Keyboard.KeyPressed(Keys.D0 + index) Then
+                If index = 0 Then
+                    skipValue = 10
+                Else
+                    skipValue = index
+                End If
+                Exit For
+            End If
+        Next
+
+        'Check for slider motion
         Select Case keys
             Case Keys.A
-                ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - 1
+                ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue - skipValue
                 ctlVideoSeeker.Invalidate()
             Case Keys.D
-                ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + 1
+                ctlVideoSeeker.RangeMinValue = ctlVideoSeeker.RangeMinValue + skipValue
                 ctlVideoSeeker.Invalidate()
             Case Keys.Left
-                ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - 1
+                ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue - skipValue
                 ctlVideoSeeker.Invalidate()
             Case Keys.Right
-                ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + 1
+                ctlVideoSeeker.RangeMaxValue = ctlVideoSeeker.RangeMaxValue + skipValue
                 ctlVideoSeeker.Invalidate()
             Case Keys.A Or Keys.Shift, Keys.Left Or Keys.Shift
-                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation - 1
+                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation - skipValue
                 ctlVideoSeeker.Invalidate()
             Case Keys.D Or Keys.Shift, Keys.Right Or Keys.Shift
-                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation + 1
+                ctlVideoSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation + skipValue
                 ctlVideoSeeker.Invalidate()
             Case Else
                 Return MyBase.ProcessCmdKey(message, keys)

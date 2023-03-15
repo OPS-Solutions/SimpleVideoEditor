@@ -3,6 +3,7 @@ Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports Microsoft.VisualBasic.Devices
 Imports Shell32
 
 Module Extensions
@@ -960,4 +961,22 @@ Module Extensions
         Return System.IO.Path.Combine(directoryPath, patternedName)
     End Function
 
+    Private Const KEY_TOGGLED As Integer = &H1
+    Private Const KEY_PRESSED As Integer = &H8000
+
+    ''' <summary>
+    ''' Returns whether or not the given key is currently pressed
+    ''' </summary>
+    <Extension()>
+    Public Function KeyPressed(keyboard As Keyboard, keycode As Keys) As Boolean
+        Return GetKeyState(keycode) And KEY_PRESSED
+    End Function
+
+    ''' <summary>
+    ''' Returns whether or not the given key is currently toggled
+    ''' </summary>
+    <Extension()>
+    Public Function KeyToggled(keyboard As Keyboard, keycode As Keys) As Boolean
+        Return GetKeyState(keycode) & KEY_TOGGLED
+    End Function
 End Module

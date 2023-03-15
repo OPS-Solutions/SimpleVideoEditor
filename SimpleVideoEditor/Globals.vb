@@ -1,4 +1,6 @@
-﻿Module Globals
+﻿Imports System.Runtime.InteropServices
+
+Module Globals
     Public TempPath As String = System.IO.Path.Combine(System.IO.Path.GetTempPath, "SimpleVideoEditor")
 
     ''' <summary>
@@ -23,5 +25,9 @@
     ''' </summary>
     Public Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
         Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Unicode)>
+    Public Function GetKeyState(ByVal nVirtKey As Integer) As Short
     End Function
 End Module
