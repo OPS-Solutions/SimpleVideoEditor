@@ -7,17 +7,19 @@ Module Globals
     ''' Recursively deletes directories in as safe a manner as possible.
     ''' </summary>
     Public Sub DeleteDirectory(ByVal directoryPath As String)
-        'Assure each file is not read-only, then delete them
-        For Each file As String In System.IO.Directory.GetFiles(directoryPath)
-            System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal)
-            System.IO.File.Delete(file)
-        Next
-        'Delete each directory inside
-        For Each directory As String In System.IO.Directory.GetDirectories(directoryPath)
-            DeleteDirectory(directory)
-        Next
-        'Delete parent directory
-        System.IO.Directory.Delete(directoryPath, False)
+        If System.IO.Directory.Exists(directoryPath) Then
+            'Assure each file is not read-only, then delete them
+            For Each file As String In System.IO.Directory.GetFiles(directoryPath)
+                System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal)
+                System.IO.File.Delete(file)
+            Next
+            'Delete each directory inside
+            For Each directory As String In System.IO.Directory.GetDirectories(directoryPath)
+                DeleteDirectory(directory)
+            Next
+            'Delete parent directory
+            System.IO.Directory.Delete(directoryPath, False)
+        End If
     End Sub
 
     ''' <summary>
