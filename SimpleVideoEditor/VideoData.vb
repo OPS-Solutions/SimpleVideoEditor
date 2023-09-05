@@ -96,11 +96,12 @@ Public Class VideoData
         Public ReadOnly Property Bitrate As Double 'Like 127 kb/s
         Private Sub New(streamDescription As String)
             _Raw = streamDescription
-            Dim audioMatch As Match = Regex.Match(streamDescription, "stream.*audio.*? (?<Type>.*?) .*?(?<SampleRate>\d*) hz, (?<Channel>.*?),.*?(?<Bitrate>\d*) kb\/s.*")
+            Dim audioMatch As Match = Regex.Match(streamDescription, "stream.*audio.*? (?<Type>.*?) .*?(?<SampleRate>\d*) hz, (?<Channel>.*?),")
             _Type = audioMatch.Groups("Type").Value
-            _SampleRate = Double.Parse(audioMatch.Groups("SampleRate").Value)
+            Double.TryParse(audioMatch.Groups("SampleRate").Value, _SampleRate)
             _Channel = audioMatch.Groups("Channel").Value
-            _Bitrate = Double.Parse(audioMatch.Groups("Bitrate").Value)
+            'Apparently bitrate isn't guaranteed to appear here. Could be fltp instead
+            Double.TryParse(Regex.Match(streamDescription, ".*?(?<Bitrate>\d*) kb\/s.*").Groups("Bitrate").Value, _Bitrate)
         End Sub
 
         Public Shared Function FromDescription(streamDescription As String)
