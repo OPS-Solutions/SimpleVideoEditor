@@ -17,9 +17,13 @@ Public Class VideoData
         Dim ComAndroidVersion As String
         Dim ComAndroidCaptureFps As Double
         Dim Duration As String 'HH:MM:SS.ss
-        Dim Bitrate As Integer 'kb/s
+
         Dim VideoStreams As List(Of VideoStreamData)
         Dim AudioStreams As List(Of AudioStreamData)
+
+        Dim VideoSize As Long 'Size in kB
+        Dim AudioSize As Long 'Size in kB
+
         Dim TotalFrames As Integer
     End Structure
 
@@ -28,6 +32,7 @@ Public Class VideoData
         Public ReadOnly Property Type As String
         Public ReadOnly Property Resolution As System.Drawing.Size
         Public ReadOnly Property Framerate As Double
+        Public ReadOnly Property Bitrate As Integer 'kb/s
         Private Sub New(streamDescription As String)
             _Raw = streamDescription
             Dim resolutionString As String = Regex.Match(streamDescription, "(?<=, )\d*x\d*").Groups(0).Value
@@ -69,6 +74,10 @@ Public Class VideoData
             'Get framerate from "30.00 fps"
             _Framerate = Double.Parse(Regex.Match(streamDescription, "\d*(\.\d*)? fps").Groups(0).Value.Split(" ")(0))
             _Type = Regex.Match(streamDescription, "stream.*video.*? (?<Type>.*?) .*").Groups("Type").Value
+
+            Dim tempRate As Integer = -1
+            Integer.TryParse(Regex.Match(streamDescription, "bitrate: (?<bitrate>\d*).kb\/s").Groups("bitrate").Value, tempRate)
+            _Bitrate = tempRate
         End Sub
         Public Shared Function FromDescription(streamDescription As String)
             If Regex.Match(streamDescription, "stream.*video.*").Groups(0).Value?.Length > 0 Then
@@ -187,6 +196,14 @@ Public Class VideoData
         If mobjMetaData.Duration.Length = 0 Then
             mobjMetaData.Duration = FormatHHMMSSm(mobjMetaData.TotalFrames / newVideoData.Framerate)
         End If
+
+        Dim sizeCheck As Integer = 0
+        Integer.TryParse(Regex.Match(dataDump, "video:(?<video>\d*)kb.*audio:(?<audio>\d*)").Groups("video").Value, sizeCheck)
+        mobjMetaData.VideoSize = sizeCheck
+        sizeCheck = 0
+        Integer.TryParse(Regex.Match(dataDump, "video:(?<video>\d*)kb.*audio:(?<audio>\d*)").Groups("audio").Value, sizeCheck)
+        mobjMetaData.AudioSize = sizeCheck
+
         mobjImageCache = New ImageCache(Me.TotalFrames)
         mobjThumbCache = New ImageCache(Me.TotalFrames)
     End Sub
@@ -266,9 +283,9 @@ Public Class VideoData
         Return Me.mdblSceneFrames
     End Function
 
-    Public Async Function ExtractThumbFrames() As Task(Of ImageCache)
+    Public Async Function ExtractThumbFrames(Optional thumbSize As Integer = 32) As Task(Of ImageCache)
         'TODO merge this with scene changes, also maybe ignore it and just grab all frames at full size if the video is short enough
-        Await GetFfmpegFrameAsync(0, -1, New Size(0, 32), mobjThumbCache)
+        Await GetFfmpegFrameAsync(0, -1, New Size(0, thumbSize), mobjThumbCache)
         Return mobjThumbCache
     End Function
 
@@ -1134,6 +1151,31 @@ Public Class VideoData
         End If
         Return False
     End Function
+
+    ''' <summary>
+    ''' Returns the estimated max file size in bytes, based on bitrate and duration
+    ''' </summary>
+    Public ReadOnly Property EstimatedFileSize() As Long
+        Get
+            Dim totalSize As Long = 0
+            For Each objStream In mobjMetaData.AudioStreams
+                totalSize += objStream.Bitrate * Me.DurationSeconds
+            Next
+            For Each objStream In mobjMetaData.VideoStreams
+                totalSize += objStream.Bitrate * Me.DurationSeconds
+            Next
+            Return totalSize / 8 'bits to Bytes
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Returns the size in kilobytes as reported by ffmpeg
+    ''' </summary>
+    Public ReadOnly Property FileSize As Long
+        Get
+            Return mobjMetaData.VideoSize + mobjMetaData.AudioSize
+        End Get
+    End Property
 
 #Region "IDisposable Support"
     Private disposedValue As Boolean ' To detect redundant calls
