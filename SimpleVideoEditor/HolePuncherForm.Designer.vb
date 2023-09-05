@@ -43,7 +43,7 @@ Partial Class HolePuncherForm
         Me.btnSaveHolePunch.Enabled = False
         Me.btnSaveHolePunch.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnSaveHolePunch.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
-        Me.btnSaveHolePunch.Location = New System.Drawing.Point(260, 215)
+        Me.btnSaveHolePunch.Location = New System.Drawing.Point(260, 214)
         Me.btnSaveHolePunch.Name = "btnSaveHolePunch"
         Me.btnSaveHolePunch.Size = New System.Drawing.Size(72, 35)
         Me.btnSaveHolePunch.TabIndex = 10
@@ -76,7 +76,7 @@ Partial Class HolePuncherForm
         Me.pnlSeekers.AutoScroll = True
         Me.pnlSeekers.Location = New System.Drawing.Point(12, 10)
         Me.pnlSeekers.Name = "pnlSeekers"
-        Me.pnlSeekers.Size = New System.Drawing.Size(239, 240)
+        Me.pnlSeekers.Size = New System.Drawing.Size(239, 239)
         Me.pnlSeekers.TabIndex = 13
         '
         'btnBrowse
@@ -127,7 +127,7 @@ Partial Class HolePuncherForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(344, 262)
+        Me.ClientSize = New System.Drawing.Size(344, 261)
         Me.Controls.Add(Me.pgbProgress)
         Me.Controls.Add(Me.lblMinChain)
         Me.Controls.Add(Me.numMinChain)

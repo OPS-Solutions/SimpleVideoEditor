@@ -36,14 +36,14 @@ Partial Class ManualEntryForm
         Me.txtConsole.Multiline = True
         Me.txtConsole.Name = "txtConsole"
         Me.txtConsole.ScrollBars = System.Windows.Forms.ScrollBars.Vertical
-        Me.txtConsole.Size = New System.Drawing.Size(344, 162)
+        Me.txtConsole.Size = New System.Drawing.Size(344, 161)
         Me.txtConsole.TabIndex = 0
         '
         'ManualEntryForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(344, 162)
+        Me.ClientSize = New System.Drawing.Size(344, 161)
         Me.Controls.Add(Me.txtConsole)
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.Name = "ManualEntryForm"

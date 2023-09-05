@@ -74,7 +74,7 @@ Partial Class AboutForm
         Me.TableLayoutPanel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 13.7931!))
         Me.TableLayoutPanel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 25.0!))
         Me.TableLayoutPanel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel.Size = New System.Drawing.Size(338, 256)
+        Me.TableLayoutPanel.Size = New System.Drawing.Size(338, 255)
         Me.TableLayoutPanel.TabIndex = 0
         '
         'LogoPictureBox
@@ -167,7 +167,7 @@ Partial Class AboutForm
         '
         Me.OKButton.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.OKButton.DialogResult = System.Windows.Forms.DialogResult.Cancel
-        Me.OKButton.Location = New System.Drawing.Point(260, 230)
+        Me.OKButton.Location = New System.Drawing.Point(260, 229)
         Me.OKButton.Name = "OKButton"
         Me.OKButton.Size = New System.Drawing.Size(75, 23)
         Me.OKButton.TabIndex = 0
@@ -204,7 +204,7 @@ Partial Class AboutForm
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.CancelButton = Me.OKButton
-        Me.ClientSize = New System.Drawing.Size(344, 262)
+        Me.ClientSize = New System.Drawing.Size(344, 261)
         Me.Controls.Add(Me.btnUpdate)
         Me.Controls.Add(Me.lblLatestVersion)
         Me.Controls.Add(Me.TableLayoutPanel)
