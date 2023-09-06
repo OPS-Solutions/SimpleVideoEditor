@@ -258,6 +258,7 @@ Partial Class MainForm
         Me.picColorKey.Location = New System.Drawing.Point(17, 95)
         Me.picColorKey.Name = "picColorKey"
         Me.picColorKey.Size = New System.Drawing.Size(18, 18)
+        Me.picColorKey.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
         Me.picColorKey.TabIndex = 23
         Me.picColorKey.TabStop = False
         '
@@ -693,7 +694,7 @@ Partial Class MainForm
         Me.chkQuality.Location = New System.Drawing.Point(52, 95)
         Me.chkQuality.Name = "chkQuality"
         Me.chkQuality.Size = New System.Drawing.Size(18, 18)
-        Me.chkQuality.TabIndex = 25
+        Me.chkQuality.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
         Me.chkQuality.TabStop = False
         Me.chkQuality.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.qscaleOn
         '
@@ -706,6 +707,7 @@ Partial Class MainForm
         Me.chkDeleteDuplicates.Location = New System.Drawing.Point(17, 59)
         Me.chkDeleteDuplicates.Name = "chkDeleteDuplicates"
         Me.chkDeleteDuplicates.Size = New System.Drawing.Size(18, 18)
+        Me.chkDeleteDuplicates.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
         Me.chkDeleteDuplicates.TabIndex = 22
         Me.chkDeleteDuplicates.TabStop = False
         Me.chkDeleteDuplicates.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOff
@@ -720,6 +722,7 @@ Partial Class MainForm
         Me.chkMute.Location = New System.Drawing.Point(52, 23)
         Me.chkMute.Name = "chkMute"
         Me.chkMute.Size = New System.Drawing.Size(18, 18)
+        Me.chkMute.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
         Me.chkMute.TabIndex = 21
         Me.chkMute.TabStop = False
         Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
