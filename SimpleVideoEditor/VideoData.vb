@@ -266,7 +266,7 @@ Public Class VideoData
                         If Double.TryParse(ptsMatch.Groups("pts_time").Value, ptsValue) Then
                             SyncLock ThumbFrames
                                 If ThumbFrames().Item(currentFrame).PTSTime Is Nothing Then
-                                    ThumbFrames().Item(currentFrame).PTSTime = ptsValue
+                                    ThumbFrames().Item(currentFrame).PTSTime = Math.Max(0, ptsValue)
                                 End If
                             End SyncLock
                         End If
@@ -503,7 +503,7 @@ Public Class VideoData
                                 Double.TryParse(infoMatch.Groups(2).Value, matchPTS)
                                 Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
                                 If frames(matchValue) = frames(currentErrorFrame) Then
-                                    targetCache(frames(currentErrorFrame)).PTSTime = matchPTS
+                                    targetCache(frames(currentErrorFrame)).PTSTime = Math.Max(0, matchPTS)
                                     targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
                                     currentErrorFrame += 1
                                 End If
@@ -775,7 +775,7 @@ Public Class VideoData
                                     Double.TryParse(infoMatch.Groups(2).Value, matchPTS)
                                     Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
                                     If (matchValue + startFrame) = currentErrorFrame Then
-                                        targetCache(currentErrorFrame).PTSTime = matchPTS
+                                        targetCache(currentErrorFrame).PTSTime = Math.Max(0, matchPTS)
                                         currentErrorFrame += 1
                                     End If
                                 End If
