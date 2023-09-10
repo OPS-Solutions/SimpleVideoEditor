@@ -1607,7 +1607,7 @@ Public Class MainForm
     ''' <summary>
     ''' Rotates the final video by 90 degrees per click, and updates the graphic
     ''' </summary>
-    Private Sub imgRotate_Click(sender As Object, e As EventArgs) Handles imgRotate.Click
+    Private Sub imgRotate_MouseUp(sender As Object, e As MouseEventArgs) Handles imgRotate.MouseUp
         Select Case mobjOutputProperties.Rotation
             Case RotateFlipType.RotateNoneFlipNone
                 mobjOutputProperties.Rotation = RotateFlipType.Rotate90FlipNone
