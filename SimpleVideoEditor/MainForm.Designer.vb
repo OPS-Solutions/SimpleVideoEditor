@@ -581,6 +581,7 @@ Partial Class MainForm
         Me.lblStatusMousePosition.BorderSides = System.Windows.Forms.ToolStripStatusLabelBorderSides.Right
         Me.lblStatusMousePosition.Image = Global.SimpleVideoEditor.My.Resources.Resources.Cross
         Me.lblStatusMousePosition.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft
+        Me.lblStatusMousePosition.Margin = New System.Windows.Forms.Padding(3, 3, 0, 2)
         Me.lblStatusMousePosition.Name = "lblStatusMousePosition"
         Me.lblStatusMousePosition.Size = New System.Drawing.Size(80, 20)
         '
