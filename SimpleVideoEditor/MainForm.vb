@@ -24,6 +24,7 @@ Public Class MainForm
     Private mintCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
     Private mintDisplayInfo As Integer = 0 'Timer value for how long to render special info to the main image
     Private Const RENDER_DECAY_TIME As Integer = 2000
+    Private Const CROP_COLLISION_RADIUS As Integer = 10
 
     Private WithEvents mobjMetaData As VideoData 'Video metadata, including things like resolution, framerate, bitrate, etc.
     Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
@@ -873,26 +874,23 @@ Public Class MainForm
         Dim yOffset As Integer = ((clientRect.Height / fitScale) - imageRect.Height) / 2
         Dim offsetPoint As New Point(xOffset, yOffset)
 
-        If mobjOutputProperties.RotationAngle = 90 OrElse mobjOutputProperties.RotationAngle = 270 Then
-            Dim swap As Integer = xOffset
-            xOffset = yOffset
-            yOffset = swap
-        End If
+        Dim clientCenter As Point = clientRect.Center
+        Dim fitCenter As Point = fitImage.Center
 
         'Change 0,0 to the relevant corner
         Select Case mobjOutputProperties.RotationAngle
             Case 90
-                resultMatrix.Translate(picVideo.Width, 0)
+                resultMatrix.Translate(fitCenter.Y + clientCenter.X, -fitCenter.X + clientCenter.Y)
             Case 180
-                resultMatrix.Translate(picVideo.Width, picVideo.Height)
+                resultMatrix.Translate(fitCenter.X + clientCenter.X, fitCenter.Y + clientCenter.Y)
             Case 270
-                resultMatrix.Translate(0, picVideo.Height)
+                resultMatrix.Translate(-fitCenter.Y + clientCenter.X, fitCenter.X + clientCenter.Y)
             Case Else
-                'Normal, do nothing
+                resultMatrix.Translate(-fitCenter.X + clientCenter.X, -fitCenter.Y + clientCenter.Y)
         End Select
         resultMatrix.Rotate(Me.mobjOutputProperties.RotationAngle)
         resultMatrix.Scale(fitScale, fitScale)
-        resultMatrix.Translate(xOffset, yOffset)
+        resultMatrix.Rotate(Me.mobjOutputProperties.RotationAngle)
         Return resultMatrix
     End Function
 
@@ -904,11 +902,16 @@ Public Class MainForm
             Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
             Dim startCropClient As Point = mptStartCrop.Transform(videoToClientMatrix)
             Dim endCropClient As Point = mptEndCrop.Transform(videoToClientMatrix)
+            Dim topRight As Point = New Point(mptEndCrop.X, mptStartCrop.Y).Transform(videoToClientMatrix)
+            Dim bottomLeft As Point = New Point(mptStartCrop.X, mptEndCrop.Y).Transform(videoToClientMatrix)
             videoToClientMatrix.Invert()
             Dim actualImagePoint As Point = e.Location.Transform(videoToClientMatrix)
             'Start dragging start or end point
             If e.Button = Windows.Forms.MouseButtons.Left Then
-                If Not startCropClient.DistanceTo(e.Location) < 10 AndAlso Not endCropClient.DistanceTo(e.Location) < 10 Then
+                If Not startCropClient.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
+                    Not endCropClient.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
+                    Not topRight.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
+                    Not bottomLeft.DistanceTo(e.Location) < CROP_COLLISION_RADIUS Then
                     mptStartCrop = actualImagePoint
                     mptEndCrop = actualImagePoint
                 End If
@@ -941,18 +944,42 @@ Public Class MainForm
         'Display mouse position information
         If Me.mobjMetaData IsNot Nothing Then
             Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
+            Dim clientToVideoMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
+            clientToVideoMatrix.Invert()
             Dim startCropClient As Point = mptStartCrop.Transform(videoToClientMatrix)
             Dim endCropClient As Point = mptEndCrop.Transform(videoToClientMatrix)
-            videoToClientMatrix.Invert()
-            Dim actualImagePoint As Point = e.Location.Transform(videoToClientMatrix)
+            Dim actualImagePoint As Point = e.Location.Transform(clientToVideoMatrix)
             lblStatusMousePosition.Text = $"{actualImagePoint.X}, {actualImagePoint.Y}"
             If e.Button = Windows.Forms.MouseButtons.Left Then
                 'Update the closest crop point so we can drag either
-                If endCropClient.DistanceTo(e.Location) < startCropClient.DistanceTo(e.Location) Then
-                    mptEndCrop = actualImagePoint
-                Else
-                    mptStartCrop = actualImagePoint
+                Dim topRight As Point = New Point(mptEndCrop.X, mptStartCrop.Y).Transform(videoToClientMatrix)
+                Dim bottomLeft As Point = New Point(mptStartCrop.X, mptEndCrop.Y).Transform(videoToClientMatrix)
+                Dim target As Integer = 2
+                Dim closestDistance As Single = endCropClient.DistanceTo(e.Location)
+                If startCropClient.DistanceTo(e.Location) < closestDistance Then
+                    target = 0
+                    closestDistance = startCropClient.DistanceTo(e.Location)
                 End If
+                If topRight.DistanceTo(e.Location) < closestDistance Then
+                    target = 1
+                    closestDistance = topRight.DistanceTo(e.Location)
+                End If
+                If bottomLeft.DistanceTo(e.Location) < closestDistance Then
+                    target = 3
+                    closestDistance = bottomLeft.DistanceTo(e.Location)
+                End If
+                Select Case target
+                    Case 0
+                        mptStartCrop = actualImagePoint
+                    Case 1
+                        mptEndCrop = New Point(actualImagePoint.X, mptEndCrop.Y)
+                        mptStartCrop = New Point(mptStartCrop.X, actualImagePoint.Y)
+                    Case 2
+                    mptEndCrop = actualImagePoint
+                    Case 3
+                        mptEndCrop = New Point(mptEndCrop.X, actualImagePoint.Y)
+                        mptStartCrop = New Point(actualImagePoint.X, mptStartCrop.Y)
+                End Select
                 Dim minX As Integer = Math.Max(0, Math.Min(mptStartCrop.X, mptEndCrop.X))
                 Dim minY As Integer = Math.Max(0, Math.Min(mptStartCrop.Y, mptEndCrop.Y))
                 Dim maxX As Integer = Math.Min(mobjMetaData.Width, Math.Max(mptStartCrop.X, mptEndCrop.X))
