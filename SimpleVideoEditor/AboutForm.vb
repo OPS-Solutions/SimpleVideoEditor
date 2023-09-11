@@ -161,8 +161,8 @@ Public NotInheritable Class AboutForm
 				Using client As New WebClient()
 					client.DownloadFile(remoteUri, downloadedZipPath) 'Overwrites whatever is already there
 				End Using
-			Catch ex As Exception
-				Throw ex
+			Catch
+				Throw
 			Finally
 				downloadBarrier.SignalAndWait()
 			End Try

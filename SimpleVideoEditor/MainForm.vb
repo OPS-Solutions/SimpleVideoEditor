@@ -323,8 +323,8 @@ Public Class MainForm
                 My.Computer.FileSystem.DeleteFile(intermediateFilePath)
             End If
             CheckOutput(outputPath, runArgs, True)
-        Catch ex As Exception
-            Throw ex
+        Catch
+            Throw
         Finally
             If useIntermediate Then
                 If File.Exists(intermediateFilePath) Then
@@ -1104,8 +1104,8 @@ Public Class MainForm
                 SetCropPoints(New Point(left, top), New Point(right, bottom))
             End If
             picVideo.Invalidate()
-        Catch ex As Exception
-            Throw ex
+        Catch
+            Throw
         Finally
             pgbOperationProgress.Visible = False
             Me.UseWaitCursor = False
@@ -1191,8 +1191,8 @@ Public Class MainForm
                 SetCropPoints(New Point(left, top), New Point(right, bottom))
             End If
             picVideo.Invalidate()
-        Catch ex As Exception
-            Throw ex
+        Catch
+            Throw
         Finally
             pgbOperationProgress.Visible = False
             Me.UseWaitCursor = False

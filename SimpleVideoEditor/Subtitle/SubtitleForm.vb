@@ -316,8 +316,8 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
             txtEditor.SelectionStart = lastSelection
             txtEditor.SelectionLength = lastSelectionLength
             UpdateSeeker()
-        Catch ex As Exception
-            Throw ex
+        Catch
+            Throw
         Finally
             txtEditor.EventsEnabled = True
             txtEditor.EndUpdate()
