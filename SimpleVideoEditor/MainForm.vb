@@ -1,6 +1,8 @@
-﻿Imports System.Drawing.Imaging
+﻿Imports System.Drawing.Drawing2D
+Imports System.Drawing.Imaging
 Imports System.IO
 Imports System.IO.Pipes
+Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.Remoting.Metadata.W3cXsd2001
 Imports System.Text
@@ -13,7 +15,7 @@ Public Class MainForm
     'https://www.labnol.org/internet/useful-ffmpeg-commands/28490/
 
     Private mstrVideoPath As String = "" 'Fullpath of the video file being edited
-    Private mproFfmpegProcess As Process 'TODO This doesn't really need to be module level
+    Private mproFfmpegProcess As Process 'Keeps track of ffmpeg process that we spawn with RunFfmpeg() so we can wait for completion and hook to outputs
     Private mobjErrorLog As New StringBuilder 'Keeps track of process error data from RunFfmpeg()
     Private mobjOutputLog As New StringBuilder 'Keeps track of process output data from RunFfmpeg()
     Private mobjGenericToolTip As ToolTipPlus = New ToolTipPlus() 'Tooltip object required for setting tootips on controls
@@ -35,9 +37,15 @@ Public Class MainForm
     Private mtskPreview As Task(Of Boolean) = Nothing 'Task for grabbing preview frames
 
     Private runTextbox As ManualEntryForm = New ManualEntryForm("") With {.Text = "FFMPEG Data", .Width = 680, .Height = 400, .Persistent = True} 'For displaying data as it comes in from ffmpeg so the user gets more than just a loading cursor
+    Private WithEvents subForm As New SubtitleForm
 
     Private mthdFrameGrabber As Thread 'Handles grabbing frames when user clicks to view
     Private mobjFramesToGrab As New System.Collections.Concurrent.BlockingCollection(Of Integer) 'Queue of frames to grab, will be emptied until latest relevant item to avoid wasting CPU
+
+    ''' <summary>
+    ''' Stores the last location of the form, used to detect location delta for moving child forms
+    ''' </summary>
+    Private lastLocation As New Point
 
     Private Class SpecialOutputProperties
         Implements ICloneable
@@ -49,6 +57,8 @@ Public Class MainForm
         Public PlaybackVolume As Double = 1
         Public QScale As Double
         Public Rotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
+        Public Subtitles As String = ""
+        Public BakeSubs As Boolean = True
         ''' <summary>
         ''' Angle of rotation in degrees
         ''' </summary>
@@ -145,9 +155,13 @@ Public Class MainForm
         ctlVideoSeeker.Enabled = True
         RefreshStatusToolTips()
 
-        RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+
+        RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_SeekChanged
+        RemoveHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
         ctlVideoSeeker.MetaData = mobjMetaData
-        AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+        subForm.Seeker.MetaData = mobjMetaData
+        AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_SeekChanged
+        AddHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
 
         'Remove irrelevant resolutions
         cmbDefinition.Items.Clear()
@@ -184,7 +198,6 @@ Public Class MainForm
     ''' </summary>
     ''' <param name="files"></param>
     Private Sub LoadFiles(files As String())
-        'TODO Detect if user selected a bunch of images that weren't in proper format, and then ask the user if they want to rename them to a proper format
         Dim dummyArgs As List(Of String) = files.ToList
         dummyArgs.Insert(0, "")
         Dim mash As String = GetInputMash(dummyArgs.ToArray)
@@ -349,7 +362,6 @@ Public Class MainForm
 
     Private Sub NewErrorData(sender As Object, e As System.Diagnostics.DataReceivedEventArgs)
         If e.Data IsNot Nothing AndAlso Not String.IsNullOrEmpty(e.Data) Then
-            'TODO Process information and expose status information to the user
             mobjErrorLog.AppendLine(e.Data)
             If runTextbox IsNot Nothing Then
                 runTextbox.SetText(mobjErrorLog.ToString)
@@ -359,7 +371,6 @@ Public Class MainForm
 
     Private Sub NewOutputData(sender As Object, e As System.Diagnostics.DataReceivedEventArgs)
         If e.Data IsNot Nothing AndAlso Not String.IsNullOrEmpty(e.Data) Then
-            'TODO Process information and expose status information to the user
             mobjOutputLog.AppendLine(e.Data)
         End If
     End Sub
@@ -385,6 +396,7 @@ Public Class MainForm
                 Exit For
             End If
         Next
+        subForm.SaveToTemp()
         'Retarget the location of the last attempted save, as when you save, the full path gets placed into the FileName member
         Dim initialDir As String = Path.GetDirectoryName(sfdVideoOut.FileName)
         If IO.Directory.Exists(initialDir) Then
@@ -465,13 +477,6 @@ Public Class MainForm
             End If
             'mobjMetaData.SaveThumbsToFile()
         End If
-
-        'Grab keyframes in a parallel manner
-        'Spin up a thread for each set of frame grabs so they can be done at the same time
-        'Update the images via invoking the main thread to avoid cross thread UI access
-        'Signal barrer to synchronize completion between all keyframes
-
-        'TODO Replace with a single ffmpeg call
 
         'Dim multiGrabBarrier As New Barrier(2)
         If fullFrameGrab Is Nothing Then
@@ -573,9 +578,12 @@ Public Class MainForm
                                 For index As Integer = previewFrames.Last To previewFrames(4) Step -1
                                     If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                         mobjMetaData.OverrideTotalFrames(index + 1)
-                                        RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+                                        ctlVideoSeeker.EventsEnabled = False
+                                        subForm.ctlSubtitleSeeker.EventsEnabled = False
                                         ctlVideoSeeker.UpdateRange(False)
-                                        AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_RangeChanged
+                                        subForm.ctlSubtitleSeeker.UpdateRange(False)
+                                        subForm.ctlSubtitleSeeker.EventsEnabled = True
+                                        ctlVideoSeeker.EventsEnabled = True
                                         Exit For
                                     End If
                                 Next
@@ -598,6 +606,7 @@ Public Class MainForm
     Private Sub RunFfmpeg(ByVal inputFile As VideoData, ByVal outPutFile As String, ByVal specProperties As SpecialOutputProperties, ByVal trimData As TrimData, ByVal targetDefinition As String, croprect As Rectangle?)
         mobjErrorLog.Clear()
         mobjOutputLog.Clear()
+        Dim softSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso Not mobjOutputProperties.BakeSubs
 
         If specProperties?.PlaybackSpeed <> 0 AndAlso trimData IsNot Nothing Then
             'duration /= specProperties.PlaybackSpeed
@@ -628,16 +637,19 @@ Public Class MainForm
             End If
         End If
         processInfo.Arguments += $" -i ""{inputFile.FullPath}"""
+        If softSubs Then
+            processInfo.Arguments += $" -i ""{mobjOutputProperties.Subtitles}"""
+        End If
 
         'CROP VIDEO(Can not be done with a rotate, must run twice)
         Dim cropWidth As Integer = inputFile.Width
         Dim cropHeight As Integer = inputFile.Height
         If croprect IsNot Nothing Then
             If croprect.Value.Width <> cropWidth AndAlso croprect.Value.Height <> cropHeight Then
-            cropWidth = croprect.Value.Width
-            cropHeight = croprect.Value.Height
-            videoFilterParams.Add(GetCropArgs(croprect))
-        End If
+                cropWidth = croprect.Value.Width
+                cropHeight = croprect.Value.Height
+                videoFilterParams.Add(GetCropArgs(croprect))
+            End If
         End If
 
         'SCALE VIDEO
@@ -674,6 +686,16 @@ Public Class MainForm
         Dim rotateString As String = If(specProperties.Rotation = RotateFlipType.Rotate90FlipNone, "transpose=1", If(specProperties.Rotation = RotateFlipType.Rotate180FlipNone, """transpose=2,transpose=2""", If(specProperties.Rotation = RotateFlipType.Rotate270FlipNone, "transpose=2", "")))
         If rotateString.Length > 0 Then
             videoFilterParams.Add(rotateString)
+        End If
+
+        'HARD SUBTITLES
+        If mobjOutputProperties.Subtitles?.Length > 0 Then
+            If mobjOutputProperties.BakeSubs Then
+                'To use a file path inside complex filter, you need to escape the colon, and reverse all slashes
+                Dim reverseSlashed As String = mobjOutputProperties.Subtitles.Replace("\", "/")
+                reverseSlashed = reverseSlashed.Replace(":", "\:")
+                videoFilterParams.Add($"subtitles='{reverseSlashed}'")
+            End If
         End If
 
         'DELETE DUPLICATE FRAMES
@@ -770,6 +792,10 @@ Public Class MainForm
 
         'LIMIT FRAMERATE
         processInfo.Arguments += If(specProperties?.FPS > 0, $" -r {specProperties.FPS}", "")
+
+        If softSubs Then
+            processInfo.Arguments += " -c:s mov_text -metadata:s:s:0 language=eng"
+        End If
 
         'OUTPUT TO FILE
         processInfo.Arguments += " """ & outPutFile & """"
@@ -869,15 +895,12 @@ Public Class MainForm
             imageRect = New Rectangle(0, 0, imageRect.Height, imageRect.Width)
         End If
         Dim fitScale As Double = imageRect.FitScale(clientRect)
-        Dim fitImage As Rectangle = Me.mobjMetaData.Size.ToRect
-        Dim xOffset As Integer = ((clientRect.Width / fitScale) - imageRect.Width) / 2
-        Dim yOffset As Integer = ((clientRect.Height / fitScale) - imageRect.Height) / 2
-        Dim offsetPoint As New Point(xOffset, yOffset)
+        Dim fitImage As Rectangle = Me.mobjMetaData.Size.ToRect.Scale(fitScale)
 
         Dim clientCenter As Point = clientRect.Center
         Dim fitCenter As Point = fitImage.Center
 
-        'Change 0,0 to the relevant corner
+        'Transformations are set up in reverse order to how they will be applied
         Select Case mobjOutputProperties.RotationAngle
             Case 90
                 resultMatrix.Translate(fitCenter.Y + clientCenter.X, -fitCenter.X + clientCenter.Y)
@@ -888,7 +911,6 @@ Public Class MainForm
             Case Else
                 resultMatrix.Translate(-fitCenter.X + clientCenter.X, -fitCenter.Y + clientCenter.Y)
         End Select
-        resultMatrix.Rotate(Me.mobjOutputProperties.RotationAngle)
         resultMatrix.Scale(fitScale, fitScale)
         resultMatrix.Rotate(Me.mobjOutputProperties.RotationAngle)
         Return resultMatrix
@@ -975,7 +997,7 @@ Public Class MainForm
                         mptEndCrop = New Point(actualImagePoint.X, mptEndCrop.Y)
                         mptStartCrop = New Point(mptStartCrop.X, actualImagePoint.Y)
                     Case 2
-                    mptEndCrop = actualImagePoint
+                        mptEndCrop = actualImagePoint
                     Case 3
                         mptEndCrop = New Point(mptEndCrop.X, actualImagePoint.Y)
                         mptStartCrop = New Point(actualImagePoint.X, mptStartCrop.Y)
@@ -1273,6 +1295,8 @@ Public Class MainForm
         ContractToolStripMenuItem.ToolTipText = $"Attempts to shrink the current selection rectangle as long as the pixels it overlays are of consistent color."
         ExpandToolStripMenuItem.ToolTipText = $"Attempts to expand the current selection rectangle until the pixels it overlays are of consistent color."
         InjectCustomArgumentsToolStripMenuItem.ToolTipText = $"An additional editable form will appear after selecting a save location, containing the command line arguments that will be sent to ffmpeg."
+        BakedInHardToolStripMenuItem.ToolTipText = "Subtitles are baked into the video stream. This ensures any player will render the text."
+        ToggleableSoftToolStripMenuItem.ToolTipText = "Subtitles added as an element that can be turned on or off during playback. Relies on player support to see."
 
         'Change window title to current version
         Me.Text &= $" - {ProductVersion} - Open Source"
@@ -1368,6 +1392,7 @@ Public Class MainForm
         Me.Text = Me.Text.Split("-")(0).Trim + $" - {ProductVersion} - Open Source"
         DefaultToolStripMenuItem.Text = "Default"
         lblStatusResolution.Text = ""
+        subForm.SetSRT(Nothing)
         RefreshStatusToolTips()
     End Sub
 #End Region
@@ -1516,7 +1541,7 @@ Public Class MainForm
             End If
         Next
 
-        'TODO A user may select a working set of filenames, but it could be a subset of all files in the directory, which will end with ffmpeg loading everything instead of just what they selected
+        'A user may select a working set of filenames, but it could be a subset of all files in the directory, which will end with ffmpeg loading everything instead of just what they selected
         If brokenPattern Then
             Select Case MessageBox.Show(Me, $"Detected multiple {Path.GetExtension(args(1))} inputs, but could not detect a consistent filename pattern like 'image_001{Path.GetExtension(args(1))}'.{vbCrLf}Copy and rename {args.Count - 1} files temporarily?", "Copy and Rename Files?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 Case DialogResult.Yes
@@ -1618,9 +1643,33 @@ Public Class MainForm
     ''' <summary>
     ''' Changes the display text when changing quality check control
     ''' </summary>
-    Private Sub chkQuality_CheckedChanged(sender As Object, e As EventArgs) Handles chkQuality.CheckChanged
-        mobjGenericToolTip.SetToolTip(chkQuality, If(chkQuality.Checked, "Automatic quality.", $"Force equivalent quality.{vbNewLine}WARNING: Slow processing and large file size may occur.") & $"{vbNewLine}Currently " & If(chkQuality.Checked, "forced equivalent (slow and large).", "automatic (fast and small)."))
-        mobjOutputProperties.QScale = chkQuality.Checked
+    Private Sub chkSubtitles_CheckedChanged(sender As Object, e As EventArgs) Handles chkSubtitles.CheckChanged
+        If Not chkSubtitles.Checked Then
+            mobjOutputProperties.Subtitles = ""
+        Else
+            mobjOutputProperties.Subtitles = subForm.FilePath
+        End If
+        UpdateSubtitleTooltip()
+        If chkSubtitles.Checked AndAlso subForm.Visible = False Then
+            subForm.Show(Me)
+            subForm.Location = New Point(Me.Location.X - subForm.Width, Me.Location.Y)
+        End If
+        If Not chkSubtitles.Checked AndAlso subForm.Visible = True Then
+            subForm.Hide()
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Checks state of the UI and output properties to set up tooltip for subtitle settings button
+    ''' </summary>
+    Private Sub UpdateSubtitleTooltip()
+        Dim tipBuilder As New StringBuilder
+        tipBuilder.AppendLine(If(chkSubtitles.Checked, "Remove subtitles.", $"Add subtitles."))
+        tipBuilder.AppendLine(If(chkSubtitles.Checked, $"Currently adding subtitles from '{IO.Path.GetFileName(subForm.FilePath)}'.", "Currently no subtitles."))
+        If mobjOutputProperties.Subtitles?.Length > 0 Then
+            tipBuilder.Append(If(mobjOutputProperties.BakeSubs, $"Subtitles will be baked directly into the video, right click to change.", $"Subtitles will be added as the english track, right click to change."))
+        End If
+        mobjGenericToolTip.SetToolTip(chkSubtitles, tipBuilder.ToString)
     End Sub
 
     ''' <summary>
@@ -1902,7 +1951,13 @@ Public Class MainForm
         Return compressedSceneChanges
     End Function
 
-    Private Sub ctlVideoSeeker_RangeChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
+    Private Sub subForm_PreviewChanged(newval As Integer) Handles subForm.PreviewChanged
+        subForm.ctlSubtitleSeeker.EventsEnabled = False
+        ctlVideoSeeker.PreviewLocation = newval
+        subForm.ctlSubtitleSeeker.EventsEnabled = True
+    End Sub
+
+    Private Sub ctlVideoSeeker_SeekChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
         If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
             mintCurrentFrame = newVal
             If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
@@ -1927,6 +1982,7 @@ Public Class MainForm
                 mobjFramesToGrab.Add(mintCurrentFrame)
             End If
             mintDisplayInfo = RENDER_DECAY_TIME
+            subForm.ctlSubtitleSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation
         End If
         CheckSave()
     End Sub
@@ -1983,6 +2039,10 @@ Public Class MainForm
             Dim increments As Integer = mobjMetaData.TotalFrames / ctlVideoSeeker.Width
             'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
             ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+            If mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime Then
+                subForm.SetSRT(mobjMetaData.SubtitleStream?.Text)
+                chkSubtitles.Enabled = True
+            End If
         End If
         If ctlVideoSeeker.RangeMaxValue.InRange(0, newFrame) Then
             CheckSave()
@@ -2006,6 +2066,18 @@ Public Class MainForm
 
     Private Sub picVideo_MouseLeave(sender As Object, e As EventArgs) Handles picVideo.MouseLeave
         lblStatusMousePosition.Text = ""
+    End Sub
+
+    Private Sub SubsChanged() Handles subForm.SubChanged
+        mobjOutputProperties.Subtitles = subForm.FilePath
+        UpdateSubtitleTooltip()
+    End Sub
+
+    Private Sub subForm_VisibleChanged(sender As Object, e As EventArgs) Handles subForm.VisibleChanged
+        'Assume a user doesn't want subtitles anymore if they close the form
+        If Not subForm.Visible Then
+            chkSubtitles.Checked = False
+        End If
     End Sub
 
 #Region "DragDrop"
@@ -2103,6 +2175,33 @@ Public Class MainForm
             'Bad news bears
             'If we ever add logging, this would be nice to log, but otherwise don't bother the user
         End Try
+    End Sub
+
+    Private Sub MainForm_LocationChanged(sender As Object, e As EventArgs) Handles MyBase.LocationChanged
+        Dim locationDelta As New Point(Me.Location.X - lastLocation.X, Me.Location.Y - lastLocation.Y)
+        subForm.Location = New Point(subForm.Location.X + locationDelta.X, subForm.Location.Y + locationDelta.Y)
+        lastLocation = Me.Location
+    End Sub
+
+    Private Sub MainForm_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
+        'Setup for form location tracking
+        lastLocation = Me.Location
+    End Sub
+
+    Private Sub MainForm_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
+        lastLocation = Me.Location
+    End Sub
+
+    Private Sub BakedInHardToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles BakedInHardToolStripMenuItem.Click
+        BakedInHardToolStripMenuItem.Checked = True
+        ToggleableSoftToolStripMenuItem.Checked = False
+        mobjOutputProperties.BakeSubs = True
+    End Sub
+
+    Private Sub ToggleableSoftToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ToggleableSoftToolStripMenuItem.Click
+        BakedInHardToolStripMenuItem.Checked = False
+        ToggleableSoftToolStripMenuItem.Checked = True
+        mobjOutputProperties.BakeSubs = False
     End Sub
 #End Region
 

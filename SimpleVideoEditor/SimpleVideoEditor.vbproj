@@ -129,6 +129,9 @@
     <Compile Include="Controls\PictureBoxPlus.vb">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Controls\RichTextBoxPlus.vb">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Extensions.vb" />
     <Compile Include="AboutForm.Designer.vb">
       <DependentUpon>AboutForm.vb</DependentUpon>
@@ -156,6 +159,14 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="Controls\ToolTipPlus.vb" />
+    <Compile Include="Subtitle\SubEntry.vb" />
+    <Compile Include="Subtitle\SubRip.vb" />
+    <Compile Include="Subtitle\SubtitleForm.Designer.vb">
+      <DependentUpon>SubtitleForm.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Subtitle\SubtitleForm.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="VideoData.vb" />
     <Compile Include="MainForm.vb">
       <SubType>Form</SubType>
@@ -213,6 +224,9 @@
     <EmbeddedResource Include="Controls\VideoSeeker.resx">
       <DependentUpon>VideoSeeker.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Subtitle\SubtitleForm.resx">
+      <DependentUpon>SubtitleForm.vb</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="My Project\app.manifest" />
@@ -229,6 +243,10 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="PlayButtonLogo.ico" />
+    <None Include="Resources\SubtitleRemove.png" />
+    <None Include="Resources\SubtitleAdd.png" />
+    <None Include="Resources\SubtitleOff.png" />
+    <None Include="Resources\Subtitle.png" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">

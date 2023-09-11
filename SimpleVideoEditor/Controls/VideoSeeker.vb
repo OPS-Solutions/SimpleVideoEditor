@@ -6,6 +6,10 @@
     Private mobjPreviewForm As Form
     Private mintHoveredFrameIndex As Integer? = Nothing
     Private mobjMouseOffset As Point? = Nothing 'Keeps track of the distance between collisions and the mouse, then is used to ensure single clicks without motion never move things
+    Public EventsEnabled As Boolean = True
+
+    Public Property BarBackColor As Color = Color.Green
+    Public Property BarSceneColor As Color = Color.DarkSeaGreen
 
     ''' <summary>
     ''' Current value of the leftmost slider on the control
@@ -33,6 +37,9 @@
             Return pRangeMaxValue
         End Get
         Set(value As Integer)
+            If value > 217 Then
+                Dim asdf = "F"
+            End If
             pRangeMaxValue = Math.Max(0, Math.Min(value, mRangeMax))
             If pRangeMaxValue < RangeMinValue Then
                 RangeMinValue = pRangeMaxValue
@@ -89,7 +96,9 @@
             Dim newVal As Integer = Math.Min(Math.Max(value, mRangeMin), mRangeMax)
             If newVal <> mintPreviewLocation Then
                 mintPreviewLocation = newVal
-                RaiseEvent SeekChanged(mintPreviewLocation)
+                If EventsEnabled Then
+                    RaiseEvent SeekChanged(mintPreviewLocation)
+                End If
                 Me.Invalidate()
             End If
         End Set
@@ -225,12 +234,12 @@
         Dim leftPreview As Single = ((PreviewLocation / FullRange) * (Me.Width - 1))
         Dim rightPreview As Single = (((PreviewLocation + 1) / FullRange) * (Me.Width - 1))
         'Draw background
-        Using contentBrush As New SolidBrush(If(Me.Enabled, Color.Green, Color.Gray))
+        Using contentBrush As New SolidBrush(If(Me.Enabled, BarBackColor, Color.Gray))
             e.Graphics.FillRectangle(contentBrush, LeftSeekPixel, 3, RightSeekPixel - LeftSeekPixel, Me.Height - 6)
         End Using
 
         'Draw scene changes
-        Using pen As New Pen(Color.DarkSeaGreen, 1)
+        Using pen As New Pen(BarSceneColor, 1)
             If mdblSceneChanges IsNot Nothing AndAlso FullRange > 1 Then
                 Dim frameIndex As Integer = 0
                 For Each sceneChange As Single In mdblSceneChanges
@@ -384,7 +393,6 @@
         If CollisionRect(SliderID.Preview).Contains(location) Then
             resultList.Add(SliderID.Preview)
         End If
-        'TODO Hover
         Return resultList
     End Function
 #End Region
@@ -498,8 +506,6 @@
                         If Not PreviewLocation = mintHoveredFrameIndex Then
                             PreviewLocation = mintHoveredFrameIndex
                         End If
-                    Case SliderID.Hover
-                        'TODO Maybe have a teeny display for cached images, scene change info, etc.
                     Case Else
                         'Ignore if nothing is selected
                 End Select
@@ -530,10 +536,10 @@
     ''' </summary>
     Protected Overrides Sub OnMouseUp(e As MouseEventArgs)
         MyBase.OnMouseUp(e)
-        If Me.Enabled Then
-			menmSelectedSlider = SliderID.None
-			RaiseEvent SeekChanged(mintPreviewLocation) 'Not actually changed, but we are done manipulating at least
-		End If
+        If Me.Enabled AndAlso EventsEnabled Then
+            menmSelectedSlider = SliderID.None
+            RaiseEvent SeekChanged(mintPreviewLocation) 'Not actually changed, but we are done manipulating at least
+        End If
     End Sub
 #End Region
 

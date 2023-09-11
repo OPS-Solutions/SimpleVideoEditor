@@ -4,6 +4,15 @@ Module Globals
     Public TempPath As String = System.IO.Path.Combine(System.IO.Path.GetTempPath, "SimpleVideoEditor")
 
     ''' <summary>
+    ''' Returns an .srt filepath for use by this process in the temp folder
+    ''' Uniquely ID'ed by ProcessID
+    ''' </summary>
+    Public Function GetTempSrt() As String
+        Return IO.Path.Combine(Globals.TempPath, $"tempSubs{Process.GetCurrentProcess.Id}.srt")
+    End Function
+
+
+    ''' <summary>
     ''' Recursively deletes directories in as safe a manner as possible.
     ''' </summary>
     Public Sub DeleteDirectory(ByVal directoryPath As String)

@@ -1,4 +1,5 @@
 ﻿Imports System.IO
+Imports System.Runtime.CompilerServices
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
@@ -19,6 +20,7 @@ Public Class VideoData
         Dim Duration As String 'HH:MM:SS.ss
 
         Dim VideoStreams As List(Of VideoStreamData)
+        Dim SubtitleStreams As List(Of SubtitleStreamData)
         Dim AudioStreams As List(Of AudioStreamData)
 
         Dim VideoSize As Long 'Size in kB
@@ -113,6 +115,49 @@ Public Class VideoData
         End Function
     End Class
 
+    Public Class SubtitleStreamData
+        Public ReadOnly Property Text As String
+        Public ReadOnly Property Language As String
+        Private Sub New(streamDescription As String)
+            _Text = streamDescription
+            Dim subMatch As Match = Regex.Match(streamDescription, "stream.*\((?<Language>.*)\).*subtitle")
+            _Language = subMatch.Groups("Language").Value
+        End Sub
+
+        ''' <summary>
+        ''' Uses ffmpeg to attempt to extract the first subtitle track from the given file
+        ''' </summary>
+        ''' <param name="filePath"></param>
+        Public Sub ExtractSrt(filePath As String)
+            If Not Directory.Exists(Globals.TempPath) Then
+                Directory.CreateDirectory(Globals.TempPath)
+            End If
+            Dim processInfo As New ProcessStartInfo
+            processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+            Dim srtFile As String = Globals.GetTempSrt()
+            processInfo.Arguments += $" -i ""{filePath}"" -map 0:s:0 -f srt ""{srtFile}"""
+            processInfo.RedirectStandardOutput = True
+            processInfo.RedirectStandardError = True
+            processInfo.UseShellExecute = False
+            processInfo.WindowStyle = ProcessWindowStyle.Hidden
+            processInfo.CreateNoWindow = True
+            Dim srtProcess As Process = Process.Start(processInfo)
+            Dim errOutput As String
+            Using srtErr As StreamReader = srtProcess.StandardError
+                errOutput = srtErr.ReadToEndAsync.Wait(1000)
+            End Using
+            _Text = IO.File.ReadAllText(srtFile)
+        End Sub
+
+        Public Shared Function FromDescription(streamDescription As String)
+            If streamDescription?.Length > 0 Then
+                Return New SubtitleStreamData(streamDescription)
+            Else
+                Return Nothing
+            End If
+        End Function
+    End Class
+
     Private mobjMetaData As New MetaData
     Private mdblSceneFrames As Double()
     Private mblnSceneFramesLoaded As Boolean = False
@@ -189,6 +234,20 @@ Public Class VideoData
         If newAudioData IsNot Nothing Then
             mobjMetaData.AudioStreams = New List(Of AudioStreamData)
             mobjMetaData.AudioStreams.Add(newAudioData)
+        End If
+
+        'Subtitle stream info
+        Dim newSubtitleData As SubtitleStreamData = SubtitleStreamData.FromDescription(Regex.Match(dataDump, "stream.*subtitle.*").Groups(0).Value)
+        If newSubtitleData IsNot Nothing Then
+            Try
+                newSubtitleData.ExtractSrt(file)
+                mobjMetaData.SubtitleStreams = New List(Of SubtitleStreamData)
+                mobjMetaData.SubtitleStreams.Add(newSubtitleData)
+            Catch ex As Exception
+                'Failed to read subtitles
+                'TODO Warning the user could be helpful, but I don't think it warrants a popup
+                'Likely need some new logging capabilities, perhaps toasts
+            End Try
         End If
 
         Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
@@ -285,7 +344,7 @@ Public Class VideoData
     End Function
 
     Public Async Function ExtractThumbFrames(Optional thumbSize As Integer = 32) As Task(Of ImageCache)
-        'TODO merge this with scene changes, also maybe ignore it and just grab all frames at full size if the video is short enough
+        'TODO Merge this with scene changes
         Await GetFfmpegFrameAsync(0, -1, New Size(0, thumbSize), mobjThumbCache)
         Return mobjThumbCache
     End Function
@@ -330,11 +389,68 @@ Public Class VideoData
         Return mobjThumbCache.ImageCacheStatus(imageIndex)
     End Function
 
-    Public Function ThumbImageCachePTS(imageIndex As Integer) As Double
+    Public Function ThumbImageCachePTS(imageIndex As Integer) As Double?
+        Dim resultPTS As Double? = 0
         If mobjThumbCache.Item(imageIndex).PTSTime Is Nothing Then
-            Return mobjImageCache.Item(imageIndex).PTSTime
+            resultPTS = mobjImageCache.Item(imageIndex).PTSTime
+        Else
+            resultPTS = mobjThumbCache.Item(imageIndex).PTSTime
         End If
-        Return mobjThumbCache.Item(imageIndex).PTSTime
+        Return resultPTS
+    End Function
+
+    ''' <summary>
+    ''' Returns the closest frame to the given PTS found in either image cache
+    ''' Only checks 3 decimals of milliseconds
+    ''' </summary>
+    Public Function GetFrameByPTS(totalSeconds As Double) As Integer
+        Dim checkIndex As Integer = Math.Min(((totalSeconds / ThumbImageCachePTS(Me.TotalFrames - 1).Value) * (Me.TotalFrames - 1)), Me.TotalFrames - 1)
+        'Make an educated guess as to where we want to check first
+        Dim resultIndex As Integer = checkIndex
+        'Only search in the direction that could potentially have the value we need
+        Dim backwards As Boolean = False
+        If ThumbImageCachePTS(checkIndex).HasValue Then
+            backwards = ThumbImageCachePTS(checkIndex) > totalSeconds
+        Else
+            checkIndex = 0
+            backwards = False
+        End If
+        For index As Integer = checkIndex To If(backwards, 0, Me.TotalFrames - 1) Step If(backwards, -1, 1)
+            Dim checkPTS As Double? = ThumbImageCachePTS(index)
+            If Not checkPTS.HasValue Then
+                resultIndex = index
+                Continue For
+            End If
+            'checkPTS = Math.Truncate(checkPTS.Value * 1000) / 1000
+            If backwards Then
+                If checkPTS < totalSeconds Then
+                    'Return closest value
+                    If Math.Abs(ThumbImageCachePTS(resultIndex).Value - totalSeconds) < Math.Abs(checkPTS.Value - totalSeconds) Then
+                        Return resultIndex
+                    Else
+                        Return index
+                    End If
+                ElseIf checkPTS = totalSeconds Then
+                    Return resultIndex
+                Else
+                    resultIndex = index
+                End If
+            Else
+                If checkPTS > totalSeconds Then
+                    'Return closest value
+                    If Math.Abs(ThumbImageCachePTS(resultIndex).Value - totalSeconds) < Math.Abs(checkPTS.Value - totalSeconds) Then
+                        Return resultIndex
+                    Else
+                        Return index
+                    End If
+                ElseIf checkPTS = totalSeconds Then
+                    Return resultIndex
+                Else
+                    resultIndex = index
+                End If
+            End If
+        Next
+        Return resultIndex
     End Function
 
     ''' <summary>
@@ -419,7 +535,7 @@ Public Class VideoData
 #End If
             Dim currentFrame As Integer = 0
             Dim currentErrorFrame As Integer = 0
-            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]+|nan)")
+            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:((-|)[\d\.]+|nan)")
             Dim framesRetrieved As New List(Of Integer)
             'Dim frameRegex As New Regex("frame=\s*(\d*)")
             'tempProcess.BeginErrorReadLine()
@@ -427,13 +543,10 @@ Public Class VideoData
             While True
                 Dim imageBuffer(15) As Char
 
-                'TODO Maybe we have to read progressively on error and output at the same time
-
                 Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
                 Dim readOutputChunk As Task(Of Integer) = Nothing
                 Dim readError As Task(Of String) = tempProcess.StandardError.ReadLineAsync
 
-                'TODO This seems to work, maybe we can use this method to increase stability
                 Dim outputText As String = Nothing
                 Dim errorText As String = Nothing
                 Dim bytePosition As Integer = 0
@@ -685,7 +798,7 @@ Public Class VideoData
 #End If
             Dim currentFrame As Integer = startFrame
             Dim currentErrorFrame As Integer = startFrame
-            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:([\d\.]+|nan)")
+            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:((-|)[\d\.]+|nan)")
             Dim framesRetrieved As New List(Of Integer)
             'Dim frameRegex As New Regex("frame=\s*(\d*)")
             'tempProcess.BeginErrorReadLine()
@@ -693,13 +806,10 @@ Public Class VideoData
             While True
                 Dim imageBuffer(15) As Char
 
-                'TODO Maybe we have to read progressively on error and output at the same time
-
                 Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
                 Dim readOutputChunk As Task(Of Integer) = Nothing
                 Dim readError As Task(Of String) = tempProcess.StandardError.ReadLineAsync
 
-                'TODO This seems to work, maybe we can use this method to increase stability
                 Dim outputText As String = Nothing
                 Dim errorText As String = Nothing
                 Dim bytePosition As Integer = 0
@@ -1049,6 +1159,15 @@ Public Class VideoData
     End Property
 
     ''' <summary>
+    ''' The stream data given by ffmpeg for subtitle stream 0
+    ''' </summary>
+    Public ReadOnly Property SubtitleStream As SubtitleStreamData
+        Get
+            Return mobjMetaData.SubtitleStreams?(0)
+        End Get
+    End Property
+
+    ''' <summary>
     ''' Array of scene change values(difference between consecutive frames)
     ''' </summary>
     Public ReadOnly Property SceneFrames As Double()
@@ -1185,30 +1304,16 @@ Public Class VideoData
     Protected Overridable Sub Dispose(disposing As Boolean)
         If Not disposedValue Then
             If disposing Then
-                ' TODO: dispose managed state (managed objects).
                 mobjImageCache.ClearImageCache()
                 mobjThumbCache.ClearImageCache()
             End If
-
-            ' TODO: free unmanaged resources (unmanaged objects) and override Finalize() below.
-            ' TODO: set large fields to null.
         End If
         disposedValue = True
     End Sub
 
-    ' TODO: override Finalize() only if Dispose(disposing As Boolean) above has code to free unmanaged resources.
-    'Protected Overrides Sub Finalize()
-    '    ' Do not change this code.  Put cleanup code in Dispose(disposing As Boolean) above.
-    '    Dispose(False)
-    '    MyBase.Finalize()
-    'End Sub
-
     ' This code added by Visual Basic to correctly implement the disposable pattern.
     Public Sub Dispose() Implements IDisposable.Dispose
-        ' Do not change this code.  Put cleanup code in Dispose(disposing As Boolean) above.
         Dispose(True)
-        ' TODO: uncomment the following line if Finalize() is overridden above.
-        ' GC.SuppressFinalize(Me)
     End Sub
 #End Region
 #End Region
