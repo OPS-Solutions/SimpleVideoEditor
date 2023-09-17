@@ -22,7 +22,7 @@ Public Class SubEntry
             .StartTime = startTime,
             .EndTime = endTime,
             .Text = If(sectionLines.Count > 2, sectionLines(2).Trim, ""),
-            .SeedString = sectionText
+            .SeedString = sectionText.Replace(vbCrLf, vbLf)
             }
         Catch ex As Exception
             Return Nothing
