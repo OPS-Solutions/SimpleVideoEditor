@@ -38,9 +38,9 @@ Public NotInheritable Class AboutForm
 		If System.IO.File.Exists(badExePath) Then
 			RefreshUpdateButton("Restart.", True)
 		Else
-			ThreadPool.QueueUserWorkItem(Sub()
-											 RetrieveCurrentVersion()
-										 End Sub)
+			Task.Run(Sub()
+						 RetrieveCurrentVersion()
+					 End Sub)
 		End If
 	End Sub
 
@@ -105,9 +105,9 @@ Public NotInheritable Class AboutForm
 			Process.Start("SimpleVideoEditor.exe")
 			End
 		Else
-			ThreadPool.QueueUserWorkItem(Sub()
-											 DownloadUpdate()
-										 End Sub)
+			Task.Run(Sub()
+						 DownloadUpdate()
+					 End Sub)
 		End If
 	End Sub
 
@@ -148,15 +148,15 @@ Public NotInheritable Class AboutForm
 
 			Dim downloadedZipPath As String = Path.Combine(updateExtractPath, "Simple.Video.Editor.zip")
 			Dim downloadBarrier As New Barrier(2)
-			ThreadPool.QueueUserWorkItem(Sub()
-											 Dim dotCount As Integer = 1
-											 While downloadBarrier.ParticipantsRemaining > 1
-												 RefreshUpdateButton($"Downloading{String.Join("", Enumerable.Repeat(Of String)(".", dotCount))}")
-												 Threading.Thread.Sleep(300)
-												 dotCount = (dotCount Mod 3) + 1
-											 End While
-											 downloadBarrier.SignalAndWait()
-										 End Sub)
+			Task.Run(Sub()
+						 Dim dotCount As Integer = 1
+						 While downloadBarrier.ParticipantsRemaining > 1
+							 RefreshUpdateButton($"Downloading{String.Join("", Enumerable.Repeat(Of String)(".", dotCount))}")
+							 Threading.Thread.Sleep(300)
+							 dotCount = (dotCount Mod 3) + 1
+						 End While
+						 downloadBarrier.SignalAndWait()
+					 End Sub)
 			Try
 				Using client As New WebClient()
 					client.DownloadFile(remoteUri, downloadedZipPath) 'Overwrites whatever is already there

@@ -471,9 +471,9 @@ Public Class MainForm
                 If mobjMetaData.FileSize <= 20000 AndAlso mobjMetaData.DurationSeconds <= 60 Then
                     thumbSize = 64
                 End If
-                ThreadPool.QueueUserWorkItem(Async Sub()
-                                                 Await mobjMetaData.ExtractThumbFrames(thumbSize)
-                                             End Sub)
+                Task.Run(Async Function()
+                             Await mobjMetaData.ExtractThumbFrames(thumbSize)
+                         End Function)
             End If
             'mobjMetaData.SaveThumbsToFile()
         End If
@@ -1326,16 +1326,16 @@ Public Class MainForm
         End If
 
         'Start render decay timer
-        ThreadPool.QueueUserWorkItem(Sub()
-                                         While (True)
-                                             Dim oldValue As Integer = mintDisplayInfo
-                                             mintDisplayInfo = Math.Max(mintDisplayInfo - 10, 0)
-                                             Threading.Thread.Sleep(10)
-                                             If oldValue <> 0 AndAlso mintDisplayInfo = 0 Then
-                                                 picVideo.Invalidate()
-                                             End If
-                                         End While
-                                     End Sub)
+        Task.Run(Sub()
+                     While (True)
+                         Dim oldValue As Integer = mintDisplayInfo
+                         mintDisplayInfo = Math.Max(mintDisplayInfo - 10, 0)
+                         Threading.Thread.Sleep(10)
+                         If oldValue <> 0 AndAlso mintDisplayInfo = 0 Then
+                             picVideo.Invalidate()
+                         End If
+                     End While
+                 End Sub)
     End Sub
 
     ''' <summary>
