@@ -41,6 +41,7 @@ Public Class MainForm
 
     Private mthdFrameGrabber As Thread 'Handles grabbing frames when user clicks to view
     Private mobjFramesToGrab As New System.Collections.Concurrent.BlockingCollection(Of Integer) 'Queue of frames to grab, will be emptied until latest relevant item to avoid wasting CPU
+    Private mthdRenderDecay As Thread 'Loops and reduces display time for frame display on image preview
 
     ''' <summary>
     ''' Stores the last location of the form, used to detect location delta for moving child forms
@@ -451,46 +452,47 @@ Public Class MainForm
         'Make sure the user is notified that the application is working
         Me.UseWaitCursor = True
         mintCurrentFrame = 0
+        Task.Run(Sub()
+                     'Try to read from file, otherwise go ahead and extract them
+                     If Not mobjMetaData.ReadScenesFromFile Then
+                         mobjMetaData.ExtractSceneChanges(mobjMetaData.TotalFrames / ctlVideoSeeker.Width)
+                         'mobjMetaData.SaveScenesToFile()
+                     End If
+                     Dim fullFrameGrab As Task(Of Bitmap) = Nothing
+                     'Grab compressed frames
+                     If Not mobjMetaData.ReadThumbsFromFile Then
+                         If mobjMetaData.FileSize < 20000 AndAlso mobjMetaData.DurationSeconds < 15 Then
+                             'If the video is pretty small, just cache the whole thing
+                             fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
+                         ElseIf mobjMetaData.DurationSeconds < 6 Then
+                             'If the video is pretty short, just cache the whole thing
+                             fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
+                         Else
+                             Dim thumbSize As Integer = 32
+                             If mobjMetaData.FileSize <= 20000 AndAlso mobjMetaData.DurationSeconds <= 60 Then
+                                 thumbSize = 64
+                             End If
+                             Task.Run(Async Function()
+                                          Await mobjMetaData.ExtractThumbFrames(thumbSize)
+                                      End Function)
+                         End If
+                         'mobjMetaData.SaveThumbsToFile()
+                     End If
 
-        'Try to read from file, otherwise go ahead and extract them
-        If Not mobjMetaData.ReadScenesFromFile Then
-            mobjMetaData.ExtractSceneChanges(mobjMetaData.TotalFrames / ctlVideoSeeker.Width)
-            'mobjMetaData.SaveScenesToFile()
-        End If
-        Dim fullFrameGrab As Task(Of Bitmap) = Nothing
-        'Grab compressed frames
-        If Not mobjMetaData.ReadThumbsFromFile Then
-            If mobjMetaData.FileSize < 20000 AndAlso mobjMetaData.DurationSeconds < 15 Then
-                'If the video is pretty small, just cache the whole thing
-                fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
-            ElseIf mobjMetaData.DurationSeconds < 6 Then
-                'If the video is pretty short, just cache the whole thing
-                fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
-            Else
-                Dim thumbSize As Integer = 32
-                If mobjMetaData.FileSize <= 20000 AndAlso mobjMetaData.DurationSeconds <= 60 Then
-                    thumbSize = 64
-                End If
-                Task.Run(Async Function()
-                             Await mobjMetaData.ExtractThumbFrames(thumbSize)
-                         End Function)
-            End If
-            'mobjMetaData.SaveThumbsToFile()
-        End If
-
-        'Dim multiGrabBarrier As New Barrier(2)
-        If fullFrameGrab Is Nothing Then
-            mtskPreview = mobjMetaData.GetFfmpegFrameRangesAsync(Me.CreatePreviewFrameDefaults())
-            Task.Run(Sub()
-                         mtskPreview.Wait()
-                         PreviewFinished()
-                     End Sub)
-        Else
-            Task.Run(Sub()
-                         fullFrameGrab.Wait()
-                         PreviewFinished()
-                     End Sub)
-        End If
+                     'Dim multiGrabBarrier As New Barrier(2)
+                     If fullFrameGrab Is Nothing Then
+                         mtskPreview = mobjMetaData.GetFfmpegFrameRangesAsync(Me.CreatePreviewFrameDefaults())
+                         Task.Run(Sub()
+                                      mtskPreview.Wait()
+                                      PreviewFinished()
+                                  End Sub)
+                     Else
+                         Task.Run(Sub()
+                                      fullFrameGrab.Wait()
+                                      PreviewFinished()
+                                  End Sub)
+                     End If
+                 End Sub)
     End Sub
 
 
@@ -1326,16 +1328,18 @@ Public Class MainForm
         End If
 
         'Start render decay timer
-        Task.Run(Sub()
-                     While (True)
-                         Dim oldValue As Integer = mintDisplayInfo
-                         mintDisplayInfo = Math.Max(mintDisplayInfo - 10, 0)
-                         Threading.Thread.Sleep(10)
-                         If oldValue <> 0 AndAlso mintDisplayInfo = 0 Then
-                             picVideo.Invalidate()
-                         End If
-                     End While
-                 End Sub)
+        mthdRenderDecay = New Thread(Sub()
+                                         While (True)
+                                             Dim oldValue As Integer = mintDisplayInfo
+                                             mintDisplayInfo = Math.Max(mintDisplayInfo - 10, 0)
+                                             Threading.Thread.Sleep(10)
+                                             If oldValue <> 0 AndAlso mintDisplayInfo = 0 Then
+                                                 picVideo.Invalidate()
+                                             End If
+                                         End While
+                                     End Sub)
+        mthdRenderDecay.IsBackground = True
+        mthdRenderDecay.Start()
     End Sub
 
     ''' <summary>
@@ -2035,17 +2039,23 @@ Public Class MainForm
     End Sub
 
     Private Sub NewSceneCached(sender As Object, newFrame As Integer) Handles mobjMetaData.ProcessedScene
-        If mobjMetaData.SceneFrames IsNot Nothing Then
-            Dim increments As Integer = mobjMetaData.TotalFrames / ctlVideoSeeker.Width
-            'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
-            ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
-            If mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime Then
-                subForm.SetSRT(mobjMetaData.SubtitleStream?.Text)
-                chkSubtitles.Enabled = True
+        If Me.InvokeRequired Then
+            Me.BeginInvoke(Sub()
+                               NewSceneCached(sender, newFrame)
+                           End Sub)
+        Else
+            If mobjMetaData.SceneFrames IsNot Nothing Then
+                Dim increments As Integer = mobjMetaData.TotalFrames / ctlVideoSeeker.Width
+                'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
+                ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
+                If mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime Then
+                    subForm.SetSRT(mobjMetaData.SubtitleStream?.Text)
+                    chkSubtitles.Enabled = True
+                End If
             End If
-        End If
-        If ctlVideoSeeker.RangeMaxValue.InRange(0, newFrame) Then
-            CheckSave()
+            If ctlVideoSeeker.RangeMaxValue.InRange(0, newFrame) Then
+                CheckSave()
+            End If
         End If
     End Sub
 
