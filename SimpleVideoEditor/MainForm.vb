@@ -1531,7 +1531,7 @@ Public Class MainForm
         Dim padLength As Integer = -1
         Dim brokenPattern As Boolean = False
         For Each objFilename In imageFiles
-            Dim currentMatch As Match = numberRegex.Match(objFilename)
+            Dim currentMatch As Match = numberRegex.Match(IO.Path.GetFileName(objFilename))
             If currentMatch.Success Then
                 Dim imageNumber As Integer = Integer.Parse(currentMatch.Groups("number").Value)
                 Dim padNumber As Integer = Integer.Parse(currentMatch.Groups("zeros").Value.Length)
