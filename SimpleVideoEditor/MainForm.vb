@@ -799,6 +799,11 @@ Public Class MainForm
             processInfo.Arguments += " -c:s mov_text -metadata:s:s:0 language=eng"
         End If
 
+        'ANIMATED PNG FORMAT
+        If outPutFile.EndsWith(".png") Then
+            processInfo.Arguments += " -f apng"
+        End If
+
         'OUTPUT TO FILE
         processInfo.Arguments += " """ & outPutFile & """"
         If mblnUserInjection Then
