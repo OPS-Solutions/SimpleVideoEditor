@@ -2,7 +2,7 @@
 Imports System.Text.RegularExpressions
 
 Public Class SubRip
-    Public Shared SubRipMatcher As Regex = New Regex("(?<id>\d*)\s*\n\s*(?<time>\d+:\d+:\d+,\d+ --> \d+:\d+:\d+,\d+)\s*\n\s*(?<text>.*)\s*")
+    Public Shared SubRipMatcher As Regex = New Regex("(?<id>\d*)\s*\n\s*(?<time>\d+:\d+:\d+,\d+ --> \d+:\d+:\d+,\d+)\s?\n(?<text>.*)\s*")
     Public Entries As New List(Of SubEntry)
 
     Public Sub New()
@@ -97,6 +97,9 @@ Public Class SubRip
     ''' Finds a specific entry based on a character within the .srt formatted text
     ''' </summary>
     Public Function FindByChar(selectionStart As String) As SubEntry
+        'Dim startSubstring As String = Me.ToString.Substring(0, selectionStart + 1)
+        'Dim lostChars As Integer = startSubstring.Length - startSubstring.Replace(vbCrLf, vbLf).Length
+        'selectionStart -= lostChars
         Dim srtText As String = Me.ToString.Replace(vbCrLf, vbLf)
         If Me.Entries Is Nothing Then
             Return Nothing
