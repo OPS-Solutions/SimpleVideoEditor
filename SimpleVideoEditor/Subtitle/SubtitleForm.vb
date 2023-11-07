@@ -8,7 +8,11 @@ Public Class SubtitleForm
     Private lastText As String = ""
     Public CurrentSubrip As SubRip
     Public _currentEntryIndex As Integer = -1
-    Private Const DEFAULT_TEXT As String = "1
+    ''' <summary>
+    ''' For keeping track of when a selection change happens due to typing, but we don't want to handle it until the textchanged event occurs
+    ''' </summary>
+    Private _selectionChangeFlag As Boolean = False
+    Const DEFAULT_TEXT As String = "1
 00:00:00,000 --> 00:00:01,500
 This is an example subtitle
 
@@ -179,6 +183,9 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
         RaiseEvent SubChanged()
         'Reset last known working text
         lastText = txtEditor.Text
+        If _selectionChangeFlag Then
+            txtEditor_SelectionChanged(Me, Nothing)
+        End If
     End Sub
 
     Private Sub txtEditor_SelectionChanged(sender As Object, e As EventArgs) Handles txtEditor.SelectionChanged
@@ -188,6 +195,7 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
         End If
         If Not lastText.Equals(txtEditor.Text) Then
             'Selection must have been a result of typing
+            _selectionChangeFlag = True
             Exit Sub
         End If
         CurrentEntry = CurrentSubrip.FindByChar(txtEditor.SelectionStart)
