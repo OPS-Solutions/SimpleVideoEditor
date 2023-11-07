@@ -174,6 +174,10 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
             'Don't update while user is selecting large portions of text
             Exit Sub
         End If
+        If Not lastText.Equals(txtEditor.Text) Then
+            'Selection must have been a result of typing
+            Exit Sub
+        End If
         CurrentEntry = CurrentSubrip.FindByChar(txtEditor.SelectionStart)
     End Sub
 
