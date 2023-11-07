@@ -431,7 +431,7 @@ Public Class VideoData
                         Return index
                     End If
                 ElseIf checkPTS = totalSeconds Then
-                    Return resultIndex
+                    Return index
                 Else
                     resultIndex = index
                 End If
@@ -444,7 +444,7 @@ Public Class VideoData
                         Return index
                     End If
                 ElseIf checkPTS = totalSeconds Then
-                    Return resultIndex
+                    Return index
                 Else
                     resultIndex = index
                 End If
