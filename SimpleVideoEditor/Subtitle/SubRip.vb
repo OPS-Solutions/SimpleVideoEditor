@@ -78,7 +78,7 @@ Public Class SubRip
         Dim srtText As String = Me.ToString.Replace(vbCrLf, vbLf)
         Dim timeMatches As MatchCollection = Regex.Matches(srtText, "(?<=\n)\s*(\d*):(\d*):(\d*),(\d\d\d) --> (\d*):(\d*):(\d*),(\d\d\d)")
         For Each timeMatch As Match In timeMatches
-            If timeMatch.Index <= charIndex AndAlso timeMatch.Index + timeMatch.Length > charIndex Then
+            If timeMatch.Index <= charIndex AndAlso timeMatch.Index + timeMatch.Length >= charIndex Then
                 Return True
             End If
         Next
