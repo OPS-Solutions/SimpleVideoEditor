@@ -132,7 +132,9 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
         SetSRT()
         CurrentEntry = CurrentSubrip.Entries(newIndex)
         txtEditor.SelectionStart = CurrentSubrip.CharIndexOf(CurrentEntry)
+        txtEditor.SelectionLength = CurrentEntry.Text.Length
         SetSRT()
+        txtEditor.Focus()
     End Sub
 
     Private Sub btnDelete_Click(sender As Object, e As EventArgs) Handles btnDelete.Click
