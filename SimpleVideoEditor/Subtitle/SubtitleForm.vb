@@ -354,9 +354,11 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
         If metaObject Is Nothing Then
             Exit Sub
         End If
-        Dim startFrame As Integer = metaObject.GetFrameByPTS(CurrentEntry.StartTime.TotalSeconds)
-        Dim endFrame As Integer = metaObject.GetFrameByPTS(CurrentEntry.EndTime.TotalSeconds)
-
+        Dim startFrame As Integer? = metaObject.GetFrameByPTS(CurrentEntry.StartTime.TotalSeconds)
+        Dim endFrame As Integer? = metaObject.GetFrameByPTS(CurrentEntry.EndTime.TotalSeconds)
+        If startFrame Is Nothing OrElse endFrame Is Nothing Then
+            Exit Sub
+        End If
         Dim newVal As Integer = -1
         ctlSubtitleSeeker.EventsEnabled = False
         If ctlSubtitleSeeker.RangeMinValue <> startFrame Then

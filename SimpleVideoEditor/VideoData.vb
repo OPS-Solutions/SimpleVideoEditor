@@ -403,8 +403,12 @@ Public Class VideoData
     ''' Returns the closest frame to the given PTS found in either image cache
     ''' Only checks 3 decimals of milliseconds
     ''' </summary>
-    Public Function GetFrameByPTS(totalSeconds As Double) As Integer
-        Dim checkIndex As Integer = Math.Min(((totalSeconds / ThumbImageCachePTS(Me.TotalFrames - 1).Value) * (Me.TotalFrames - 1)), Me.TotalFrames - 1)
+    Public Function GetFrameByPTS(totalSeconds As Double) As Integer?
+        Dim cacheItem As Double? = ThumbImageCachePTS(Me.TotalFrames - 1)
+        If cacheItem Is Nothing Then
+            Return Nothing
+        End If
+        Dim checkIndex As Integer = Math.Min(((totalSeconds / cacheItem.Value) * (Me.TotalFrames - 1)), Me.TotalFrames - 1)
         'Make an educated guess as to where we want to check first
         Dim resultIndex As Integer = checkIndex
         'Only search in the direction that could potentially have the value we need
