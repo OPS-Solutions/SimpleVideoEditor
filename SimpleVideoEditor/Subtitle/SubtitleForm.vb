@@ -162,11 +162,14 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
     End Sub
 
     Private Sub SubtitleForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        If Me.Visible Then
-            'Don't actually close, as we use this form to store the file data for future use
-            e.Cancel = True
-            Me.Hide()
-        End If
+        Select Case e.CloseReason
+            Case CloseReason.UserClosing
+                If Me.Visible Then
+                    'Don't actually close, as we use this form to store the file data for future use
+                    e.Cancel = True
+                    Me.Hide()
+                End If
+        End Select
     End Sub
 
     Private Sub txtEditor_TextChanged(sender As Object, e As EventArgs) Handles txtEditor.TextChanged
