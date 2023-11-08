@@ -295,47 +295,50 @@ Public Class VideoData
         Dim sceneValues(mobjMetaData.TotalFrames - 1) As Double
         Me.mdblSceneFrames = sceneValues
         Dim currentFrame As Integer = 0
-        Using recievedStream As New System.IO.MemoryStream
-            Dim sceneMatcher As New Regex("(?<=.scene_score=)\d+\.\d+")
-            Dim ptsMatcher As New Regex("pts_time:(?<pts_time>[\d\.]+|nan)")
-            While True
-                Dim currentLine As String = Await tempProcess.StandardError.ReadLineAsync()
-                'Check end of stream
-                If currentLine Is Nothing Then
-                    Exit While
-                End If
-                Dim matchAttempt As Match = sceneMatcher.Match(currentLine)
-                If matchAttempt.Success Then
-                    If currentFrame >= sceneValues.Count Then
-                        'Problem
-                        Debug.Print($"Scene score parse issue. Number of scene scores {currentFrame} exceeds number of frames {sceneValues.Count}.")
-                    Else
-                        sceneValues(currentFrame) = Double.Parse(matchAttempt.Value)
-                        currentFrame += 1
-                        If eventFrequency > 0 Then
-                            If currentFrame Mod eventFrequency = 0 Then
-                                RaiseEvent ProcessedScene(Me, currentFrame)
-                            End If
-                        End If
-                    End If
-                Else
-                    Dim ptsMatch As Match = ptsMatcher.Match(currentLine)
-                    If ptsMatch.Success Then
-                        Dim ptsValue As Double = Double.NaN
-                        If Double.TryParse(ptsMatch.Groups("pts_time").Value, ptsValue) Then
-                            SyncLock ThumbFrames
-                                If ThumbFrames().Item(currentFrame).PTSTime Is Nothing Then
-                                    ThumbFrames().Item(currentFrame).PTSTime = Math.Max(0, ptsValue)
-                                End If
-                            End SyncLock
-                        End If
-                    End If
-                End If
+        Dim readTask As Task = Task.Run(Sub()
+                                            Dim dispatchedCount As Integer = 0
+                                            Dim sceneMatcher As New Regex("(?<=.scene_score=)\d+\.\d+")
+                                            Dim ptsMatcher As New Regex("pts_time:(?<pts_time>[\d\.]+|nan)")
+                                            While True
+                                                Dim currentLine As String = tempProcess.StandardError.ReadLine
+                                                dispatchedCount += 1
+                                                'Check end of stream
+                                                If currentLine Is Nothing Then
+                                                    Exit While
+                                                End If
+                                                Dim matchAttempt As Match = sceneMatcher.Match(currentLine)
+                                                If matchAttempt.Success Then
+                                                    If currentFrame >= sceneValues.Count Then
+                                                        'Problem
+                                                        Debug.Print($"Scene score parse issue. Number of scene scores {currentFrame} exceeds number of frames {sceneValues.Count}.")
+                                                    Else
+                                                        sceneValues(currentFrame) = Double.Parse(matchAttempt.Value)
+                                                        currentFrame += 1
+                                                        If eventFrequency > 0 Then
+                                                            If currentFrame Mod eventFrequency = 0 Then
+                                                                RaiseEvent ProcessedScene(Me, currentFrame)
+                                                            End If
+                                                        End If
+                                                    End If
+                                                Else
+                                                    Dim ptsMatch As Match = ptsMatcher.Match(currentLine)
+                                                    If ptsMatch.Success Then
+                                                        Dim ptsValue As Double = Double.NaN
+                                                        If Double.TryParse(ptsMatch.Groups("pts_time").Value, ptsValue) Then
+                                                            SyncLock ThumbFrames
+                                                                If ThumbFrames().Item(currentFrame).PTSTime Is Nothing Then
+                                                                    ThumbFrames().Item(currentFrame).PTSTime = Math.Max(0, ptsValue)
+                                                                End If
+                                                            End SyncLock
+                                                        End If
+                                                    End If
+                                                End If
 #If DEBUG Then
-                fullDataRead.Append(currentLine & vbCrLf)
+                                                fullDataRead.Append(currentLine & vbCrLf)
 #End If
-            End While
-        End Using
+                                            End While
+                                        End Sub)
+        Await readTask
         mblnSceneFramesLoaded = True
         tempWatch.Stop()
         Debug.Print($"Extracted {currentFrame} scene frames in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
