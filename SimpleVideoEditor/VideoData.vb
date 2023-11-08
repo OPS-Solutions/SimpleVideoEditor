@@ -545,7 +545,7 @@ Public Class VideoData
             'tempProcess.BeginErrorReadLine()
 
             While True
-                Dim imageBuffer(15) As Char
+                Dim imageBuffer(65535) As Char
 
                 Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
                 Dim readOutputChunk As Task(Of Integer) = Nothing
@@ -563,7 +563,7 @@ Public Class VideoData
                             outEnd = True
                             readOutputHeader = Nothing
                         Else
-                            ReDim Preserve imageBuffer(15)
+                            'ReDim Preserve imageBuffer(15)
                             If imageBuffer(1) = "P" AndAlso imageBuffer(2) = "N" AndAlso imageBuffer(3) = "G" Then
                                 bytePosition = 8
                                 readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, 8)
@@ -577,20 +577,27 @@ Public Class VideoData
                             'IEND
                             gotAll = True
                             bytePosition += 8
-                            ReDim Preserve imageBuffer(imageBuffer.Count + 4 - 1)
+                            Dim newSize As Integer = bytePosition + 4 - 1
+                            If imageBuffer.Count <= newSize Then
+                                ReDim Preserve imageBuffer(newSize)
+                            End If
                             readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, 4)
                         Else
                             Dim chunkHeaderBytes() As Byte = System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition, 4)
                             Dim chunkSize As Integer = BitConverter.ToUInt32({chunkHeaderBytes(3), chunkHeaderBytes(2), chunkHeaderBytes(1), chunkHeaderBytes(0)}, 0)
                             bytePosition += 8
-                            ReDim Preserve imageBuffer(imageBuffer.Count + chunkSize + 12 - 1)
+                            Dim newSize As Integer = bytePosition + chunkSize + 12 - 1
+                            If imageBuffer.Count <= newSize Then
+                                'Double the size to avoid rediming too much and wasting resources
+                                ReDim Preserve imageBuffer(Math.Max(newSize, imageBuffer.Count * 2))
+                            End If
                             readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, chunkSize + 12)
                             bytePosition += chunkSize + 4
                         End If
                     End If
                     If gotAll AndAlso readOutputChunk?.IsCompleted Then
-                        Dim imageBytes(imageBuffer.Count - 1) As Byte
-                        imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+                        Dim imageBytes(bytePosition - 3) As Byte
+                        imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer, 0, imageBytes.Count)
 
                         targetCache(frames(currentFrame)).ImageData = imageBytes
                         targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
@@ -602,7 +609,7 @@ Public Class VideoData
                             framesRetrieved.Clear()
                         End If
                         currentFrame += 1
-                        ReDim imageBuffer(15)
+                        'ReDim imageBuffer(65535)
                         readOutputChunk = Nothing
                         readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
                         gotAll = False
@@ -808,7 +815,7 @@ Public Class VideoData
             'tempProcess.BeginErrorReadLine()
 
             While True
-                Dim imageBuffer(15) As Char
+                Dim imageBuffer(65535) As Char
 
                 Dim readOutputHeader As Task(Of Integer) = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
                 Dim readOutputChunk As Task(Of Integer) = Nothing
@@ -826,7 +833,7 @@ Public Class VideoData
                             outEnd = True
                             readOutputHeader = Nothing
                         Else
-                            ReDim Preserve imageBuffer(15)
+                            'ReDim Preserve imageBuffer(15)
                             If imageBuffer(1) = "P" AndAlso imageBuffer(2) = "N" AndAlso imageBuffer(3) = "G" Then
                                 bytePosition = 8
                                 readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, 8)
@@ -840,21 +847,28 @@ Public Class VideoData
                             'IEND
                             gotAll = True
                             bytePosition += 8
-                            ReDim Preserve imageBuffer(imageBuffer.Count + 4 - 1)
+                            Dim newSize As Integer = bytePosition + 4 - 1
+                            If imageBuffer.Count <= newSize Then
+                                ReDim Preserve imageBuffer(newSize)
+                            End If
                             readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, 4)
                         Else
                             Dim chunkHeaderBytes() As Byte = System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition, 4)
                             Dim chunkSize As Integer = BitConverter.ToUInt32({chunkHeaderBytes(3), chunkHeaderBytes(2), chunkHeaderBytes(1), chunkHeaderBytes(0)}, 0)
                             bytePosition += 8
-                            ReDim Preserve imageBuffer(imageBuffer.Count + chunkSize + 12 - 1)
+                            Dim newSize As Integer = bytePosition + chunkSize + 12 - 1
+                            If imageBuffer.Count <= newSize Then
+                                'Double the size to avoid rediming too much and wasting resources
+                                ReDim Preserve imageBuffer(Math.Max(newSize, imageBuffer.Count * 2))
+                            End If
                             readOutputChunk = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, bytePosition, chunkSize + 12)
                             bytePosition += chunkSize + 4
                         End If
                     End If
                     SyncLock targetCache
                         If gotAll AndAlso readOutputChunk?.IsCompleted Then
-                            Dim imageBytes(imageBuffer.Count - 1) As Byte
-                            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer)
+                            Dim imageBytes(bytePosition - 3) As Byte
+                            imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer, 0, imageBytes.Count)
 
                             If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
                                 'Don't cache stuff we already have cached
@@ -871,7 +885,7 @@ Public Class VideoData
                                 framesRetrieved.Clear()
                             End If
                             currentFrame += 1
-                            ReDim imageBuffer(15)
+                            'ReDim imageBuffer(65535)
                             readOutputChunk = Nothing
                             readOutputHeader = tempProcess.StandardOutput.ReadBlockAsync(imageBuffer, 0, 8)
                             gotAll = False
