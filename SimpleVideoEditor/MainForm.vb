@@ -853,6 +853,12 @@ Public Class MainForm
             Dim penSize As Single = 1
             If picVideo.Image IsNot Nothing Then
                 Dim currentScale As Single = FitScale(picVideo.Image.Size, picVideo.Size)
+                If currentScale > 1 Then
+                    'Image is being increased in size, use nearest neightbor to do clean rendering
+                    picVideo.InterpolationMode = InterpolationMode.NearestNeighbor
+                Else
+                    picVideo.InterpolationMode = InterpolationMode.Default
+                End If
                 e.Graphics.DrawImage(picVideo.Image, 0, 0, mobjMetaData.Width, mobjMetaData.Height)
                 penSize = Math.Min(1 / currentScale, 1)
             End If
