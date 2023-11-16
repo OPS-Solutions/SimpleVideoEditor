@@ -112,7 +112,7 @@ Public Class MainForm
             If mptStartCrop.X = mptEndCrop.X OrElse mptStartCrop.Y = mptEndCrop.Y Then
                 Return Nothing
             Else
-                Return New Rectangle(mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X + 1, mptEndCrop.Y - mptStartCrop.Y + 1)
+                Return New Rectangle(mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X, mptEndCrop.Y - mptStartCrop.Y)
             End If
         End Get
     End Property
@@ -852,19 +852,20 @@ Public Class MainForm
             e.Graphics.Transform = GetVideoToClientMatrix()
             Dim penSize As Single = 1
             If picVideo.Image IsNot Nothing Then
+                Dim currentScale As Single = FitScale(picVideo.Image.Size, picVideo.Size)
                 e.Graphics.DrawImage(picVideo.Image, 0, 0, mobjMetaData.Width, mobjMetaData.Height)
-                penSize = Math.Min(1 / FitScale(picVideo.Image.Size, picVideo.Size), 1)
+                penSize = Math.Min(1 / currentScale, 1)
             End If
 
             Using pen As New Pen(Color.White, penSize)
                 If Not Me.CropRect Is Nothing Then
                     e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, mobjMetaData.Height))
                     e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(mobjMetaData.Width, mptStartCrop.Y))
-                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X - 1, 0), New Point(mptEndCrop.X - 1, mobjMetaData.Height))
-                    e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y - 1), New Point(mobjMetaData.Width, mptEndCrop.Y - 1))
+                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, 0), New Point(mptEndCrop.X, mobjMetaData.Height))
+                    e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y), New Point(mobjMetaData.Width, mptEndCrop.Y))
                 End If
             End Using
-            e.Graphics.DrawRectangle(New Pen(Color.Green, penSize), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X - 1, mptEndCrop.Y - mptStartCrop.Y - 1)
+            e.Graphics.DrawRectangle(New Pen(Color.Green, penSize), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X, mptEndCrop.Y - mptStartCrop.Y)
             e.Graphics.Transform = lastTransform
 
             'Draw frame info
