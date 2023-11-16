@@ -263,7 +263,7 @@ Public Class VideoData
 
         Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
         If frameRateGroups.Count > 0 Then
-            mobjMetaData.TotalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
+            mobjMetaData.TotalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim()) + 1
         Else
             'Can fail to find frame groups in ffmpeg 6.1
             mobjMetaData.TotalFrames = (HHMMSSssToSeconds(mobjMetaData.Duration) * newVideoData.Framerate) + 1
