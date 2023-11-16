@@ -539,9 +539,7 @@ Public Class MainForm
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.25))
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.5))
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.75))
-        For index As Integer = 10 To 1 Step -1
-            previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - index))
-        Next
+        previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 1))
         Return previewFrames
     End Function
 
@@ -560,43 +558,29 @@ Public Class MainForm
         Else
             Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults()
 
-            For Each objRange In ranges
-                For previewIndex As Integer = 0 To previewFrames.Count - 1
-                    Dim gotImage As Bitmap = Nothing
-                    If previewFrames(previewIndex) >= objRange(0) AndAlso previewFrames(previewIndex) <= objRange(1) Then
-                        gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
-                        Dim targetPreview As PictureBoxPlus = Nothing
-                        Select Case previewIndex
-                            Case 0
-                                targetPreview = picFrame1
-                            Case 1
-                                targetPreview = picFrame2
-                            Case 2
-                                targetPreview = picFrame3
-                            Case 3
-                                targetPreview = picFrame4
-                            Case Else
-                                targetPreview = picFrame5
-                                For index As Integer = previewFrames.Last To previewFrames(4) Step -1
-                                    If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                                        mobjMetaData.OverrideTotalFrames(index + 1)
-                                        ctlVideoSeeker.EventsEnabled = False
-                                        subForm.ctlSubtitleSeeker.EventsEnabled = False
-                                        ctlVideoSeeker.UpdateRange(False)
-                                        subForm.ctlSubtitleSeeker.UpdateRange(False)
-                                        subForm.ctlSubtitleSeeker.EventsEnabled = True
-                                        ctlVideoSeeker.EventsEnabled = True
-                                        Exit For
-                                    End If
-                                Next
-                        End Select
-                        If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
-                            targetPreview.SetImage(gotImage)
-                        Else
-                            gotImage.Dispose()
-                        End If
+            For previewIndex As Integer = 0 To previewFrames.Count - 1
+                Dim gotImage As Bitmap = Nothing
+                If objCache.ImageCacheStatus(previewIndex) = ImageCache.CacheStatus.Cached Then
+                    gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
+                    Dim targetPreview As PictureBoxPlus = Nothing
+                    Select Case previewIndex
+                        Case 0
+                            targetPreview = picFrame1
+                        Case 1
+                            targetPreview = picFrame2
+                        Case 2
+                            targetPreview = picFrame3
+                        Case 3
+                            targetPreview = picFrame4
+                        Case Else
+                            targetPreview = picFrame5
+                    End Select
+                    If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
+                        targetPreview.SetImage(gotImage)
+                    Else
+                        gotImage.Dispose()
                     End If
-                Next
+                End If
             Next
         End If
     End Sub
@@ -2060,6 +2044,22 @@ Public Class MainForm
             End If
             If ctlVideoSeeker.RangeMaxValue.InRange(0, newFrame) Then
                 CheckSave()
+            End If
+            If newFrame = -1 Then
+                'Scenes finished grabbing
+                'Clear previews to allow them to be rebuilt, ensuring frame accuracy
+                picFrame1.SetImage(Nothing)
+                picFrame2.SetImage(Nothing)
+                picFrame3.SetImage(Nothing)
+                picFrame4.SetImage(Nothing)
+                picFrame5.SetImage(Nothing)
+                PreviewsLoaded(Me, mobjMetaData.ImageFrames, New List(Of List(Of Integer)) From {New List(Of Integer) From {0, mobjMetaData.TotalFrames - 1}})
+                ctlVideoSeeker.EventsEnabled = False
+                subForm.ctlSubtitleSeeker.EventsEnabled = False
+                ctlVideoSeeker.UpdateRange(False)
+                subForm.ctlSubtitleSeeker.UpdateRange(False)
+                subForm.ctlSubtitleSeeker.EventsEnabled = True
+                ctlVideoSeeker.EventsEnabled = True
             End If
         End If
     End Sub

@@ -263,7 +263,7 @@ Public Class VideoData
 
         Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
         If frameRateGroups.Count > 0 Then
-        mobjMetaData.TotalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
+            mobjMetaData.TotalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
         Else
             'Can fail to find frame groups in ffmpeg 6.1
             mobjMetaData.TotalFrames = (HHMMSSssToSeconds(mobjMetaData.Duration) * newVideoData.Framerate) + 1
@@ -330,12 +330,12 @@ Public Class VideoData
                                                         Debug.Print($"Scene score parse issue. Number of scene scores {currentFrame} exceeds number of frames {sceneValues.Count}.")
                                                     Else
                                                         sceneValues(currentFrame) = Double.Parse(matchAttempt.Value)
-                                                        currentFrame += 1
                                                         If eventFrequency > 0 Then
                                                             If currentFrame Mod eventFrequency = 0 Then
                                                                 RaiseEvent ProcessedScene(Me, currentFrame)
                                                             End If
                                                         End If
+                                                        currentFrame += 1
                                                     End If
                                                 Else
                                                     Dim ptsMatch As Match = ptsMatcher.Match(currentLine)
@@ -356,6 +356,8 @@ Public Class VideoData
                                             End While
                                         End Sub)
         Await readTask
+        OverrideTotalFrames(currentFrame) 'Currentframe is normally the index, but since it adds one in the last loop as well, it is the full size, so no need to add 1
+        ReDim Preserve mdblSceneFrames(currentFrame - 1)
         mblnSceneFramesLoaded = True
         tempWatch.Stop()
         Debug.Print($"Extracted {currentFrame} scene frames in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
@@ -1271,7 +1273,16 @@ Public Class VideoData
     End Function
 
     ''' <summary>
-    ''' Array of scene change values(difference between consecutive frames)
+    ''' Collection of cached images for slightly higher res images
+    ''' </summary>
+    Public ReadOnly Property ImageFrames As ImageCache
+        Get
+            Return mobjImageCache
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Collection of cached images for thumbnails
     ''' </summary>
     Public ReadOnly Property ThumbFrames As ImageCache
         Get
