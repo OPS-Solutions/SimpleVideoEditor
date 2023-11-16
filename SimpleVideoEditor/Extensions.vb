@@ -117,12 +117,17 @@ Module Extensions
     ''' <param name="duration"></param>
     ''' <returns></returns>
     Public Function HHMMSSssToSeconds(ByVal duration As String) As Double
+        Dim sign As Integer = 1
+        If duration.StartsWith("-") Then
+            duration = duration.Substring(1)
+            sign = -1
+        End If
         Dim totalSeconds As Double = 0
         totalSeconds += Integer.Parse(duration.Substring(0, 2)) * 60 * 60 'Hours
         totalSeconds += Integer.Parse(duration.Substring(3, 2)) * 60 'Minutes
         totalSeconds += Integer.Parse(duration.Substring(6, 2)) 'Seconds
         totalSeconds += Integer.Parse(duration.Substring(9, 2)) / 100.0 'Milliseconds
-        Return totalSeconds
+        Return totalSeconds * sign
     End Function
 
     ''' <summary>

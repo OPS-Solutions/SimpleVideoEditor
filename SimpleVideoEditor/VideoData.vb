@@ -221,6 +221,17 @@ Public Class VideoData
         dataDump = dataDump.Substring(metaDataIndex)
         'Get duration
         mobjMetaData.Duration = Regex.Match(dataDump, "(?<=duration: )\d\d:\d\d:\d\d\.\d\d").Groups(0).Value
+        If mobjMetaData.Duration.Length = 0 Then
+            'Ffmpeg 6.1 seems to tell the time of a frame
+            Dim sizeGroups As MatchCollection = Regex.Matches(dataDump, "(?<=size).*(?<time>-?\d\d:\d\d:\d\d\.\d\d)")
+            If sizeGroups.Count > 1 Then
+                Dim startTime As Double = HHMMSSssToSeconds(sizeGroups(0).Groups("time").Value)
+                Dim endTime As Double = HHMMSSssToSeconds(sizeGroups(sizeGroups.Count - 1).Groups("time").Value)
+                mobjMetaData.Duration = FormatHHMMSSm(endTime - startTime)
+            ElseIf sizeGroups.Count > 0 Then
+                mobjMetaData.Duration = sizeGroups.Item(sizeGroups.Count - 1).Value
+            End If
+        End If
 
         'Video Stream Info
         Dim newVideoData As VideoStreamData = VideoStreamData.FromDescription(dataDump)
@@ -251,7 +262,13 @@ Public Class VideoData
         End If
 
         Dim frameRateGroups As MatchCollection = Regex.Matches(dataDump, "(?<=frame=)( )*\d*")
+        If frameRateGroups.Count > 0 Then
         mobjMetaData.TotalFrames = Integer.Parse(frameRateGroups(frameRateGroups.Count - 1).Value.Trim())
+        Else
+            'Can fail to find frame groups in ffmpeg 6.1
+            mobjMetaData.TotalFrames = (HHMMSSssToSeconds(mobjMetaData.Duration) * newVideoData.Framerate) + 1
+        End If
+
         'Failed to get duration, try getting it based on framerate and total frames
         If mobjMetaData.Duration.Length = 0 Then
             mobjMetaData.Duration = FormatHHMMSSm(mobjMetaData.TotalFrames / newVideoData.Framerate)
