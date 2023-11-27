@@ -109,6 +109,9 @@ Partial Class MainForm
         Me.picFrame2 = New SimpleVideoEditor.PictureBoxPlus()
         Me.picFrame1 = New SimpleVideoEditor.PictureBoxPlus()
         Me.picVideo = New SimpleVideoEditor.PictureBoxPlus()
+        Me.cmsResolution = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.ShowStreamInfoToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.Show11ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.chkSubtitles, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -134,6 +137,7 @@ Partial Class MainForm
         CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.cmsResolution.SuspendLayout()
         Me.SuspendLayout()
         '
         'ofdVideoIn
@@ -665,6 +669,7 @@ Partial Class MainForm
         'lblStatusResolution
         '
         Me.lblStatusResolution.AutoSize = False
+        Me.lblStatusResolution.DoubleClickEnabled = True
         Me.lblStatusResolution.Image = Global.SimpleVideoEditor.My.Resources.Resources.Resolution
         Me.lblStatusResolution.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.lblStatusResolution.Name = "lblStatusResolution"
@@ -824,6 +829,24 @@ Partial Class MainForm
         Me.picVideo.TabIndex = 10
         Me.picVideo.TabStop = False
         '
+        'cmsResolution
+        '
+        Me.cmsResolution.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ShowStreamInfoToolStripMenuItem, Me.Show11ToolStripMenuItem})
+        Me.cmsResolution.Name = "cmsCrop"
+        Me.cmsResolution.Size = New System.Drawing.Size(181, 70)
+        '
+        'ShowStreamInfoToolStripMenuItem
+        '
+        Me.ShowStreamInfoToolStripMenuItem.Name = "ShowStreamInfoToolStripMenuItem"
+        Me.ShowStreamInfoToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ShowStreamInfoToolStripMenuItem.Text = "Show stream info"
+        '
+        'Show11ToolStripMenuItem
+        '
+        Me.Show11ToolStripMenuItem.Name = "Show11ToolStripMenuItem"
+        Me.Show11ToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.Show11ToolStripMenuItem.Text = "Show 1:1"
+        '
         'MainForm
         '
         Me.AllowDrop = True
@@ -879,6 +902,7 @@ Partial Class MainForm
         CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.cmsResolution.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -968,4 +992,7 @@ Partial Class MainForm
     Friend WithEvents cmsSubtitle As ContextMenuStrip
     Friend WithEvents BakedInHardToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ToggleableSoftToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents cmsResolution As ContextMenuStrip
+    Friend WithEvents ShowStreamInfoToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents Show11ToolStripMenuItem As ToolStripMenuItem
 End Class

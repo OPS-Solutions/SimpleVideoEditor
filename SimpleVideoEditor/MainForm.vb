@@ -38,7 +38,8 @@ Public Class MainForm
     Private mtskPreview As Task(Of Boolean) = Nothing 'Task for grabbing preview frames
 
     Private runTextbox As ManualEntryForm = New ManualEntryForm("") With {.Text = "FFMPEG Data", .Width = 680, .Height = 400, .Persistent = True} 'For displaying data as it comes in from ffmpeg so the user gets more than just a loading cursor
-    Private WithEvents subForm As New SubtitleForm
+    Private WithEvents subForm As New SubtitleForm 'Form for editing subtitles srt files for videos
+    Private streamInfoForm As ManualEntryForm 'Simple form for displaying text data from ffmpeg stream info dump
 
     Private mthdFrameGrabber As Thread 'Handles grabbing frames when user clicks to view
     Private mobjFramesToGrab As New System.Collections.Concurrent.BlockingCollection(Of Integer) 'Queue of frames to grab, will be emptied until latest relevant item to avoid wasting CPU
@@ -1247,7 +1248,7 @@ Public Class MainForm
         picVideo.Invalidate()
     End Sub
 
-    Private Sub lblStatusCropRect_MouseUp(sender As Object, e As MouseEventArgs) Handles lblStatusCropRect.MouseUp
+    Private Sub lblStatusCropRect_MouseUp(sender As Object, e As MouseEventArgs) Handles lblStatusCropRect.MouseUp, lblStatusResolution.MouseUp
         If e.Button = MouseButtons.Right Then
             Dim stripLabelOffset As Integer = 0
             For index As Integer = 0 To StatusStrip1.Items.Count - 1
@@ -1256,7 +1257,11 @@ Public Class MainForm
                 End If
                 stripLabelOffset += StatusStrip1.Items(index).Width
             Next
+            If sender Is lblStatusCropRect Then
             cmsCrop.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
+            ElseIf sender Is lblStatusResolution Then
+                cmsResolution.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
+            End If
         End If
     End Sub
 
@@ -1267,6 +1272,14 @@ Public Class MainForm
         Dim clipboardData As String = Clipboard.GetText()
         LoadFromClipboardToolStripMenuItem.Enabled = clipboardData.Length > 0 AndAlso ReadCropData(clipboardData) IsNot Nothing
         CopyToolStripMenuItem.Enabled = Me.CropRect IsNot Nothing
+    End Sub
+
+    ''' <summary>
+    ''' Disable resolution items that are not available like no file being loaded
+    ''' </summary>
+    Private Sub cmsResolution_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsResolution.Opening
+        ShowStreamInfoToolStripMenuItem.Enabled = mobjMetaData?.VideoStream?.Raw IsNot Nothing
+        Show11ToolStripMenuItem.Enabled = mobjMetaData IsNot Nothing
     End Sub
 #End Region
 
@@ -1359,11 +1372,11 @@ Public Class MainForm
         'Status  tooltips
         lblStatusMousePosition.ToolTipText = "X,Y position of the mouse in video coordinates"
         UpdateCropStatus()
-        Dim startText As String = $"Original resolution Width x Height of the loaded content.{vbNewLine}Double click to fit window to original resolution."
-        If mobjMetaData IsNot Nothing Then
-            lblStatusResolution.ToolTipText = startText & vbNewLine & vbNewLine & mobjMetaData.VideoStream.Raw
+        Dim startText As String = $"Original resolution Width x Height of the loaded content.{vbNewLine}Double click to fit window to original resolution.{vbNewLine}Right click for raw stream info from ffmpeg."
+        If mobjMetaData IsNot Nothing AndAlso picVideo.Image IsNot Nothing Then
+            lblStatusResolution.ToolTipText = startText & vbNewLine & vbNewLine & $"Image cached at {picVideo.Image.Width}x{picVideo.Image.Height}."
         Else
-            lblStatusResolution.ToolTipText = startText & $"{vbNewLine}{vbNewLine}Shows more detailed stream information on hover."
+            lblStatusResolution.ToolTipText = startText
         End If
     End Sub
 
@@ -1997,6 +2010,7 @@ Public Class MainForm
             End If
             mintDisplayInfo = RENDER_DECAY_TIME
             subForm.ctlSubtitleSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation
+            RefreshStatusToolTips()
         End If
         CheckSave()
     End Sub
@@ -2036,6 +2050,7 @@ Public Class MainForm
                     Dim gotImage As Bitmap = mobjMetaData.GetImageFromCache(mintCurrentFrame, objCache)
                     If picVideo.Image Is Nothing OrElse picVideo.Image.Width < gotImage.Width Then
                         picVideo.SetImage(gotImage)
+                        RefreshStatusToolTips()
                     Else
                         gotImage.Dispose()
                     End If
@@ -2241,6 +2256,31 @@ Public Class MainForm
     End Sub
 
     Private Sub lblStatusResolution_DoubleClick(sender As Object, e As EventArgs) Handles lblStatusResolution.DoubleClick
+        Show1To1()
+    End Sub
+
+    Private Sub ShowStreamInfoToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ShowStreamInfoToolStripMenuItem.Click
+        If streamInfoForm Is Nothing Then
+            streamInfoForm = New ManualEntryForm("") With {
+                .Text = "Stream Info",
+                .Width = Me.Width,
+                .Height = Me.Height,
+                .Persistent = True
+            }
+        End If
+        streamInfoForm.SetText(mobjMetaData.VideoStream.Raw)
+        streamInfoForm.Show()
+        streamInfoForm.Location = Me.Location
+    End Sub
+
+    Private Sub Show11ToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles Show11ToolStripMenuItem.Click
+        Show1To1()
+    End Sub
+
+    ''' <summary>
+    ''' Resizes the window so the picVideo control matches resolution with the metadata source resolution
+    ''' </summary>
+    Private Sub Show1To1()
         If mobjMetaData IsNot Nothing Then
             'Resize form so preview is as big as the original resolution
             Dim widthDelta As Integer = mobjMetaData.Width - picVideo.Width
