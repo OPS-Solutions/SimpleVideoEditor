@@ -956,7 +956,7 @@ Public Class MainForm
         Else
             'lblStatusCropRect.Text = $"{cropActual.X},{cropActual.Y},{cropActual.Width},{cropActual.Height}"
             lblStatusCropRect.Text = $"{cropActual?.Width} x {cropActual?.Height}"
-            lblStatusCropRect.ToolTipText = lblStatusCropRect.ToolTipText.Split(vbNewLine)(0).Trim() & vbNewLine & $"crop={cropActual?.Width}:{cropActual?.Height}:{cropActual?.X}:{cropActual?.Y}"
+            lblStatusCropRect.ToolTipText = lblStatusCropRect.ToolTipText.Split(vbNewLine)(0).Trim() & vbNewLine & $"crop={cropActual?.Width}:{cropActual?.Height}:{cropActual?.X}:{cropActual?.Y} (w:h:x:y)"
         End If
     End Sub
 
