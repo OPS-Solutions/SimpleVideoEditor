@@ -1262,7 +1262,13 @@ Public Class VideoData
             Using streamReader As New System.IO.StreamReader(Me.SceneFramesPath)
                 ReDim mdblSceneFrames(Me.TotalFrames - 1)
                 For index As Integer = 0 To Me.mdblSceneFrames.Count - 1
-                    Me.mdblSceneFrames(index) = Double.Parse(streamReader.ReadLine())
+                    Dim result As Double = 0
+                    If Double.TryParse(streamReader.ReadLine(), result) Then
+                        Me.mdblSceneFrames(index) = result
+                    Else
+                        streamReader.Close()
+                        Return False
+                    End If
                 Next
                 mblnSceneFramesLoaded = True
                 streamReader.Close()
