@@ -2134,12 +2134,12 @@ Public Class MainForm
         cmsPicVideo.Close()
         Using sfdExportAudio As New SaveFileDialog
             sfdExportAudio.Title = "Select Audio Save Location"
-            sfdExportAudio.Filter = "MP3|*.mp3|aac|*.aac|All files (*.*)|*.*"
+            sfdExportAudio.Filter = "MP3|*.mp3|MP4|*.mp4|AAC|*.aac|FLAC|*.flac|WAV|*.wav|OGG|*.ogg|WMA|*.wma|M4A|*.m4a|All files (*.*)|*.*"
             Dim detectedStreamExtension As String = "." & mobjMetaData.AudioStream.Type
             Dim filterIndex As Integer = 0
             For Each objFilter In sfdExportAudio.Filter.Split("|")
                 If objFilter.ToLower.Equals(mobjMetaData.AudioStream.Type) Then
-                    sfdExportAudio.FilterIndex = filterIndex
+                    sfdExportAudio.FilterIndex = (filterIndex / 2) + 1
                     Exit For
                 End If
                 filterIndex += 1
