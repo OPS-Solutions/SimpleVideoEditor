@@ -817,6 +817,7 @@ Public Class MainForm
     ''' Updates the main image with one of the pre-selected images from the picture box clicked.
     ''' </summary>
     Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
+        If mobjMetaData IsNot Nothing Then
         Dim newPreview As Integer = 0
         Select Case True
             Case sender Is picFrame1
@@ -840,6 +841,7 @@ Public Class MainForm
             Next
         End If
         ctlVideoSeeker.PreviewLocation = newPreview
+        End If
     End Sub
 
     ''' <summary>
