@@ -22,6 +22,7 @@ Public Class MainForm
 
     Private mptStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle, in video coordinates
     Private mptEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle, in video coordinates
+    Private mblnCropping As Boolean = False 'Flag for if the user has clicked to crop, useful to avoid potential mousemove events that were not initiated by the user clicking on the panel
 
     Private mintCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
     Private mintDisplayInfo As Integer = 0 'Timer value for how long to render special info to the main image
@@ -931,6 +932,7 @@ Public Class MainForm
             Dim actualImagePoint As Point = e.Location.Transform(videoToClientMatrix)
             'Start dragging start or end point
             If e.Button = Windows.Forms.MouseButtons.Left Then
+                mblnCropping = True
                 If Not startCropClient.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
                     Not endCropClient.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
                     Not topRight.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
@@ -942,6 +944,13 @@ Public Class MainForm
             End If
             picVideo.Invalidate()
         End If
+    End Sub
+
+    ''' <summary>
+    ''' Disables flag for cropping so mousemove crop isn't miss-triggered
+    ''' </summary>
+    Private Sub picVideo_MouseUp(sender As Object, e As MouseEventArgs) Handles picVideo.MouseUp
+        mblnCropping = False
     End Sub
 
     ''' <summary>
@@ -973,7 +982,7 @@ Public Class MainForm
             Dim endCropClient As Point = mptEndCrop.Transform(videoToClientMatrix)
             Dim actualImagePoint As Point = e.Location.Transform(clientToVideoMatrix)
             lblStatusMousePosition.Text = $"{actualImagePoint.X}, {actualImagePoint.Y}"
-            If e.Button = Windows.Forms.MouseButtons.Left Then
+            If e.Button = Windows.Forms.MouseButtons.Left AndAlso mblnCropping Then
                 'Update the closest crop point so we can drag either
                 Dim topRight As Point = New Point(mptEndCrop.X, mptStartCrop.Y).Transform(videoToClientMatrix)
                 Dim bottomLeft As Point = New Point(mptStartCrop.X, mptEndCrop.Y).Transform(videoToClientMatrix)
