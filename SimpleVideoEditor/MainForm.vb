@@ -1357,11 +1357,11 @@ Public Class MainForm
         'Status  tooltips
         lblStatusMousePosition.ToolTipText = "X,Y position of the mouse in video coordinates"
         UpdateCropStatus()
-
+        Dim startText As String = $"Original resolution Width x Height of the loaded content.{vbNewLine}Double click to fit window to original resolution."
         If mobjMetaData IsNot Nothing Then
-            lblStatusResolution.ToolTipText = lblStatusResolution.ToolTipText.Split(vbNewLine)(0).Trim & vbNewLine & mobjMetaData.VideoStream.Raw
+            lblStatusResolution.ToolTipText = startText & vbNewLine & vbNewLine & mobjMetaData.VideoStream.Raw
         Else
-            lblStatusResolution.ToolTipText = $"Original resolution Width x Height of the loaded content.{vbNewLine}Shows more detailed stream information on hover."
+            lblStatusResolution.ToolTipText = startText & $"{vbNewLine}{vbNewLine}Shows more detailed stream information on hover."
         End If
     End Sub
 
@@ -2236,6 +2236,16 @@ Public Class MainForm
         BakedInHardToolStripMenuItem.Checked = False
         ToggleableSoftToolStripMenuItem.Checked = True
         mobjOutputProperties.BakeSubs = False
+    End Sub
+
+    Private Sub lblStatusResolution_DoubleClick(sender As Object, e As EventArgs) Handles lblStatusResolution.DoubleClick
+        If mobjMetaData IsNot Nothing Then
+            'Resize form so preview is as big as the original resolution
+            Dim widthDelta As Integer = mobjMetaData.Width - picVideo.Width
+            Dim heightDelta As Integer = mobjMetaData.Height - picVideo.Height
+            Me.Width += widthDelta
+            Me.Height += heightDelta
+        End If
     End Sub
 #End Region
 
