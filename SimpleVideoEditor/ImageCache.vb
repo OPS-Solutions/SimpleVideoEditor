@@ -10,6 +10,10 @@ Public Class ImageCache
 
     <Serializable()>
     Public Class CacheItem
+        Public Sub New(temporary As Boolean)
+            mblnTemporary = temporary
+        End Sub
+
         ''' <summary>
         ''' Immediately converts stored image data into a 32bppArgb bitmap and returns the new instance
         ''' Remember to dispose afterwards
@@ -18,6 +22,9 @@ Public Class ImageCache
             Get
                 'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
                 'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
+                If (CacheFullBitmaps And Not mblnTemporary) AndAlso ImageStore IsNot Nothing Then
+                    Return ImageStore
+                End If
                 If ImageData IsNot Nothing Then
                     Using tempStream As New MemoryStream(ImageData)
                         Dim incomingBitmap As Bitmap = New Bitmap(tempStream)
@@ -30,6 +37,9 @@ Public Class ImageCache
                             incomingBitmap = newBitmap
                         End If
                         ImageStore = incomingBitmap
+                        If (CacheFullBitmaps And Not mblnTemporary) Then
+                            ImageData = {0} 'Release memory so the next garbage collect can clean up
+                        End If
                         Return ImageStore
                     End Using
                 Else
@@ -37,6 +47,8 @@ Public Class ImageCache
                 End If
             End Get
         End Property
+
+        Private mblnTemporary As Boolean = False 'Overrides full bitmap caching to ensure the contents of the cache can be cleared without worry of external usage
 
         Private mobjImgSize As Size?
 
@@ -55,9 +67,13 @@ Public Class ImageCache
         Public ReadOnly Property Size As Size
             Get
                 If mobjImgSize Is Nothing Then
-                    Using tempMap As Image = Me.GetImage()
-                        mobjImgSize = tempMap.Size
-                    End Using
+                    If CacheFullBitmaps Then
+                        mobjImgSize = Me.GetImage().Size
+                    Else
+                        Using tempMap As Image = Me.GetImage()
+                            mobjImgSize = tempMap.Size
+                        End Using
+                    End If
                 End If
                 Return mobjImgSize
             End Get
@@ -244,10 +260,10 @@ Public Class ImageCache
     Public Sub New()
     End Sub
 
-    Public Sub New(totalFrames As Integer)
+    Public Sub New(totalFrames As Integer, Optional temporary As Boolean = False)
         mobjCollection = New CacheItem(totalFrames - 1) {}
         For index As Integer = 0 To totalFrames - 1
-            mobjCollection(index) = New CacheItem()
+            mobjCollection(index) = New CacheItem(temporary)
         Next
     End Sub
 

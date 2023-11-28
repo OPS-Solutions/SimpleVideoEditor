@@ -5,6 +5,7 @@ Imports System.IO.Pipes
 Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.Remoting.Metadata.W3cXsd2001
+Imports System.Runtime.Serialization
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
@@ -471,12 +472,14 @@ Public Class MainForm
                          For index As Integer = 100 To 1 Step -1
                              'Grab higher resolution cached images for shorter videos so users have higher quality images for tiny clips, enabling very accurate cropping
                              If mobjMetaData.FileSize < (sizeLimit / index) AndAlso mobjMetaData.DurationSeconds <= (lengthLimit / index) Then
+                                 CacheFullBitmaps = True
                                  fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1, New Drawing.Size(Math.Min(288 * Math.Sqrt(Math.Sqrt(index)), mobjMetaData.Width), 0))
                                  Exit For
                              End If
                          Next
 
                          If fullFrameGrab Is Nothing Then
+                             CacheFullBitmaps = False
                              If mobjMetaData.DurationSeconds < 7 Then
                              'If the video is pretty short, just cache the whole thing
                              fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
@@ -591,10 +594,14 @@ Public Class MainForm
                     If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
                         targetPreview.SetImage(gotImage)
                     Else
+                        If Not CacheFullBitmaps Then
                         gotImage.Dispose()
                     End If
                 End If
+                End If
             Next
+
+            RefreshStatusToolTips()
         End If
     End Sub
 #End Region
@@ -1096,8 +1103,14 @@ Public Class MainForm
                                For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                    If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                        'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
+                                       Dim boundRect As Rectangle
+                                       If CacheFullBitmaps Then
+                                           boundRect = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 127)
+                                       Else
                                        Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
-                                           Dim boundRect As Rectangle = checkImage.BoundContents(cropRect,, 127)
+                                               boundRect = checkImage.BoundContents(cropRect,, 127)
+                                           End Using
+                                       End If
                                            Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
                                            left = Math.Min(boundRect.Left, left)
                                            top = Math.Min(boundRect.Top, top)
@@ -1108,7 +1121,6 @@ Public Class MainForm
                                            If potentialRect.Area > currentRect.Area Then
                                                largestFrame = index
                                            End If
-                                       End Using
                                    End If
                                    Dim currentFrame As Integer = index
                                    Me.Invoke(Sub()
@@ -1180,8 +1192,14 @@ Public Class MainForm
                                    For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                        If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                            'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
+                                           Dim boundRect As Rectangle
+                                           If CacheFullBitmaps Then
+                                               boundRect = Me.mobjMetaData.GetImageFromCache(index).ExpandContents(cropRect, 4)
+                                           Else
                                            Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
-                                               Dim boundRect As Rectangle = checkImage.ExpandContents(cropRect, 4)
+                                                   boundRect = checkImage.ExpandContents(cropRect, 4)
+                                               End Using
+                                           End If
                                                Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
                                                left = Math.Min(boundRect.Left, left)
                                                top = Math.Min(boundRect.Top, top)
@@ -1194,7 +1212,6 @@ Public Class MainForm
                                                    stillExpanding = True
                                                    cropRect = potentialRect
                                                End If
-                                           End Using
                                        End If
                                        Dim currentFrame As Integer = index
                                        Me.Invoke(Sub()
@@ -2063,8 +2080,10 @@ Public Class MainForm
                         picVideo.SetImage(gotImage)
                         RefreshStatusToolTips()
                     Else
+                        If Not CacheFullBitmaps Then
                         gotImage.Dispose()
                     End If
+                End If
                 End If
                 Exit For
             End If
@@ -2299,6 +2318,7 @@ Public Class MainForm
             Me.Width += widthDelta
             Me.Height += heightDelta
         End If
+        mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame, 0, mobjMetaData.Size)
     End Sub
 #End Region
 

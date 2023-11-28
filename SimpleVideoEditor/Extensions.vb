@@ -775,7 +775,7 @@ Module Extensions
     ''' </summary>
     <Extension>
     Public Sub SetImage(pictureBox As PictureBoxPlus, newImage As Image)
-        If pictureBox.Image IsNot Nothing Then
+        If Not CacheFullBitmaps AndAlso pictureBox.Image IsNot Nothing Then
             pictureBox.Image.Dispose()
         End If
         If newImage IsNot Nothing Then

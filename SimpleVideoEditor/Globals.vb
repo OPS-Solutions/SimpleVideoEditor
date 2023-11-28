@@ -2,6 +2,7 @@
 
 Module Globals
     Public TempPath As String = System.IO.Path.Combine(System.IO.Path.GetTempPath, "SimpleVideoEditor")
+    Public CacheFullBitmaps As Boolean = True
 
     ''' <summary>
     ''' Returns an .srt filepath for use by this process in the temp folder

@@ -165,6 +165,7 @@ Public Class VideoData
 
 
     Private mobjImageCache As ImageCache
+    Private mobjTempCache As ImageCache 'Used for temporary storage when attempting to grab frames of a different size than image or thumbcache, contents get cleared away
     Private mobjThumbCache As ImageCache
     Private mblnInputMash As Boolean 'Data we set manaully saying the type of input we are using is actually a way to specify multiple files
     Private mobjSizeOverride As Size? 'For holding resolution data, such as when the resolution fails to be read, but we can still get an image from the stream and figure it out
@@ -282,6 +283,7 @@ Public Class VideoData
         mobjMetaData.AudioSize = sizeCheck
 
         mobjImageCache = New ImageCache(Me.TotalFrames)
+        mobjTempCache = New ImageCache(Me.TotalFrames, True)
         mobjThumbCache = New ImageCache(Me.TotalFrames)
     End Sub
 
@@ -706,7 +708,8 @@ Public Class VideoData
         If targetCache Is Nothing Then
             targetCache = mobjImageCache
         End If
-        If targetCache(frame).ImageData IsNot Nothing AndAlso cacheSize >= 0 Then
+        Dim upgradeImage As Boolean = False
+        If targetCache(frame).ImageData IsNot Nothing AndAlso cacheSize >= 0 AndAlso targetCache(frame).Size.Width >= frameSize.Width Then
             If cacheSize > 5 Then
                 'If we are at the edge of the cached items, try to expand it a little in advance
                 If targetCache(Math.Min(frame + 4, Math.Max(0, mobjMetaData.TotalFrames - 4))).Status = ImageCache.CacheStatus.None Then
@@ -776,7 +779,11 @@ Public Class VideoData
             End While
 
             If startFrame = endFrame AndAlso targetCache(frame).Status = ImageCache.CacheStatus.Cached Then
-                Return targetCache(frame).GetImage
+                If targetCache(frame).Size.Width >= frameSize.Width Then
+                    Return targetCache(frame).GetImage
+                Else
+                    upgradeImage = True
+                End If
             End If
             alreadyQueued = (startFrame = endFrame AndAlso targetCache(frame).Status = ImageCache.CacheStatus.Queued)
             Debug.Print($"Working for frames:{startFrame}-{endFrame} (Size:{frameSize.ToString})")
@@ -785,6 +792,10 @@ Public Class VideoData
                 targetCache.TryQueue(startFrame, endFrame)
             End If
         End SyncLock
+        If upgradeImage Then
+            mobjTempCache.ClearImageCache()
+            targetCache = mobjTempCache
+        End If
         'If you are looking for only one frame, and it is queued, dont waste time trying to grab it again...
         If alreadyQueued Then
             Debug.Print($"Waiting on predicesor call for frame:{frame}")
@@ -899,7 +910,7 @@ Public Class VideoData
                                                                Dim imageBytes(bytePosition - 3) As Byte
                                                                imageBytes = System.Text.Encoding.Default.GetBytes(imageBuffer, 0, imageBytes.Count)
 
-                                                               If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
+                                                               If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached And Not upgradeImage Then
                                                                    'Don't cache stuff we already have cached
                                                                Else
                                                                    targetCache(currentFrame).ImageData = imageBytes
@@ -1339,12 +1350,25 @@ Public Class VideoData
     Public ReadOnly Property EstimatedFileSize() As Long
         Get
             Dim totalSize As Long = 0
-            For Each objStream In mobjMetaData.AudioStreams
-                totalSize += objStream.Bitrate * Me.DurationSeconds
-            Next
-            For Each objStream In mobjMetaData.VideoStreams
-                totalSize += objStream.Bitrate * Me.DurationSeconds
-            Next
+            If mobjMetaData.AudioStreams IsNot Nothing Then
+                For Each objStream In mobjMetaData.AudioStreams
+                    totalSize += objStream.Bitrate * Me.DurationSeconds
+                Next
+            End If
+            If mobjMetaData.VideoStreams IsNot Nothing Then
+                For Each objStream In mobjMetaData.VideoStreams
+                    If objStream.Bitrate > 0 Then
+                        totalSize += objStream.Bitrate * Me.DurationSeconds
+                    End If
+                Next
+                'Bitmap estimation when all else fails
+                If totalSize = 0 Then
+                    For Each objStream In mobjMetaData.VideoStreams
+                        'Assume 3bytes(24bits) per pixel RGB, aka uncompressed bitmaps
+                        totalSize += objStream.Resolution.Width * (objStream.Resolution.Height * 24) / 1024
+                    Next
+                End If
+            End If
             Return totalSize / 8 'bits to Bytes
         End Get
     End Property
