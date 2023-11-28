@@ -463,11 +463,21 @@ Public Class MainForm
                      Dim fullFrameGrab As Task(Of Bitmap) = Nothing
                      'Grab compressed frames
                      If Not mobjMetaData.ReadThumbsFromFile Then
-                         If mobjMetaData.FileSize < 50000 AndAlso mobjMetaData.DurationSeconds <= 300 Then
+                         Dim sizeLimit As Integer = 50000
+                         Dim lengthLimit As Integer = 300
+
                              'If the video is pretty small, just cache the whole thing
                              'Tests showed 7.5s load for a 3.5 minute 50MB video, vs 9s for full cache
-                             fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
-                         ElseIf mobjMetaData.DurationSeconds < 7 Then
+                         For index As Integer = 100 To 1 Step -1
+                             'Grab higher resolution cached images for shorter videos so users have higher quality images for tiny clips, enabling very accurate cropping
+                             If mobjMetaData.FileSize < (sizeLimit / index) AndAlso mobjMetaData.DurationSeconds <= (lengthLimit / index) Then
+                                 fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1, New Drawing.Size(Math.Min(288 * Math.Sqrt(Math.Sqrt(index)), mobjMetaData.Width), 0))
+                                 Exit For
+                             End If
+                         Next
+
+                         If fullFrameGrab Is Nothing Then
+                             If mobjMetaData.DurationSeconds < 7 Then
                              'If the video is pretty short, just cache the whole thing
                              fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
                          Else
@@ -478,6 +488,7 @@ Public Class MainForm
                              Task.Run(Async Function()
                                           Await mobjMetaData.ExtractThumbFrames(thumbSize)
                                       End Function)
+                         End If
                          End If
                          'mobjMetaData.SaveThumbsToFile()
                      End If
