@@ -1739,19 +1739,21 @@ Public Class MainForm
     ''' Rotates the final video by 90 degrees per click, and updates the graphic
     ''' </summary>
     Private Sub imgRotate_MouseUp(sender As Object, e As MouseEventArgs) Handles imgRotate.MouseUp
-        Select Case mobjOutputProperties.Rotation
-            Case RotateFlipType.RotateNoneFlipNone
-                mobjOutputProperties.Rotation = RotateFlipType.Rotate90FlipNone
-            Case RotateFlipType.Rotate90FlipNone
-                mobjOutputProperties.Rotation = RotateFlipType.Rotate180FlipNone
-            Case RotateFlipType.Rotate180FlipNone
-                mobjOutputProperties.Rotation = RotateFlipType.Rotate270FlipNone
-            Case RotateFlipType.Rotate270FlipNone
-                mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone
-            Case Else
-                mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone
-        End Select
-        UpdateRotationButton()
+        If e.Button = MouseButtons.Left Then
+            Select Case mobjOutputProperties.Rotation
+                Case RotateFlipType.RotateNoneFlipNone
+                    mobjOutputProperties.Rotation = RotateFlipType.Rotate90FlipNone
+                Case RotateFlipType.Rotate90FlipNone
+                    mobjOutputProperties.Rotation = RotateFlipType.Rotate180FlipNone
+                Case RotateFlipType.Rotate180FlipNone
+                    mobjOutputProperties.Rotation = RotateFlipType.Rotate270FlipNone
+                Case RotateFlipType.Rotate270FlipNone
+                    mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone
+                Case Else
+                    mobjOutputProperties.Rotation = RotateFlipType.RotateNoneFlipNone
+            End Select
+            UpdateRotationButton()
+        End If
     End Sub
 
     ''' <summary>
