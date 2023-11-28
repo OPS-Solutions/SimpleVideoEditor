@@ -100,8 +100,16 @@ Partial Class MainForm
         Me.cmsCrop = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.LoadFromClipboardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.CopyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator4 = New System.Windows.Forms.ToolStripSeparator()
+        Me.ToolStripCropX = New System.Windows.Forms.ToolStripTextBox()
+        Me.ToolStripCropY = New System.Windows.Forms.ToolStripTextBox()
+        Me.ToolStripCropWidth = New System.Windows.Forms.ToolStripTextBox()
+        Me.ToolStripCropHeight = New System.Windows.Forms.ToolStripTextBox()
         Me.btnSave = New System.Windows.Forms.Button()
         Me.btnBrowse = New System.Windows.Forms.Button()
+        Me.cmsResolution = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.ShowMetadataToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.Show11ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
         Me.picFrame5 = New SimpleVideoEditor.PictureBoxPlus()
         Me.picFrame4 = New SimpleVideoEditor.PictureBoxPlus()
@@ -109,9 +117,6 @@ Partial Class MainForm
         Me.picFrame2 = New SimpleVideoEditor.PictureBoxPlus()
         Me.picFrame1 = New SimpleVideoEditor.PictureBoxPlus()
         Me.picVideo = New SimpleVideoEditor.PictureBoxPlus()
-        Me.cmsResolution = New System.Windows.Forms.ContextMenuStrip(Me.components)
-        Me.ShowStreamInfoToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.Show11ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
         CType(Me.chkSubtitles, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -131,13 +136,13 @@ Partial Class MainForm
         Me.cmsSaveOptions.SuspendLayout()
         Me.StatusStrip1.SuspendLayout()
         Me.cmsCrop.SuspendLayout()
+        Me.cmsResolution.SuspendLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).BeginInit()
-        Me.cmsResolution.SuspendLayout()
         Me.SuspendLayout()
         '
         'ofdVideoIn
@@ -684,9 +689,9 @@ Partial Class MainForm
         '
         'cmsCrop
         '
-        Me.cmsCrop.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LoadFromClipboardToolStripMenuItem, Me.CopyToolStripMenuItem})
+        Me.cmsCrop.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LoadFromClipboardToolStripMenuItem, Me.CopyToolStripMenuItem, Me.ToolStripSeparator4, Me.ToolStripCropWidth, Me.ToolStripCropHeight, Me.ToolStripCropX, Me.ToolStripCropY})
         Me.cmsCrop.Name = "cmsCrop"
-        Me.cmsCrop.Size = New System.Drawing.Size(187, 48)
+        Me.cmsCrop.Size = New System.Drawing.Size(187, 154)
         '
         'LoadFromClipboardToolStripMenuItem
         '
@@ -699,6 +704,39 @@ Partial Class MainForm
         Me.CopyToolStripMenuItem.Name = "CopyToolStripMenuItem"
         Me.CopyToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
         Me.CopyToolStripMenuItem.Text = "Copy"
+        '
+        'ToolStripSeparator4
+        '
+        Me.ToolStripSeparator4.Name = "ToolStripSeparator4"
+        Me.ToolStripSeparator4.Size = New System.Drawing.Size(183, 6)
+        '
+        'ToolStripCropX
+        '
+        Me.ToolStripCropX.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+        Me.ToolStripCropX.Name = "ToolStripCropX"
+        Me.ToolStripCropX.Size = New System.Drawing.Size(100, 23)
+        Me.ToolStripCropX.ToolTipText = "X coordinate of crop rectangle"
+        '
+        'ToolStripCropY
+        '
+        Me.ToolStripCropY.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+        Me.ToolStripCropY.Name = "ToolStripCropY"
+        Me.ToolStripCropY.Size = New System.Drawing.Size(100, 23)
+        Me.ToolStripCropY.ToolTipText = "Y coordinate of crop rectangle"
+        '
+        'ToolStripCropWidth
+        '
+        Me.ToolStripCropWidth.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+        Me.ToolStripCropWidth.Name = "ToolStripCropWidth"
+        Me.ToolStripCropWidth.Size = New System.Drawing.Size(100, 23)
+        Me.ToolStripCropWidth.ToolTipText = "Width of crop rectangle"
+        '
+        'ToolStripCropHeight
+        '
+        Me.ToolStripCropHeight.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+        Me.ToolStripCropHeight.Name = "ToolStripCropHeight"
+        Me.ToolStripCropHeight.Size = New System.Drawing.Size(100, 23)
+        Me.ToolStripCropHeight.ToolTipText = "Height of crop rectangle"
         '
         'btnSave
         '
@@ -725,6 +763,24 @@ Partial Class MainForm
         Me.btnBrowse.Size = New System.Drawing.Size(88, 24)
         Me.btnBrowse.TabIndex = 7
         Me.btnBrowse.UseVisualStyleBackColor = True
+        '
+        'cmsResolution
+        '
+        Me.cmsResolution.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ShowMetadataToolStripMenuItem, Me.Show11ToolStripMenuItem})
+        Me.cmsResolution.Name = "cmsCrop"
+        Me.cmsResolution.Size = New System.Drawing.Size(157, 48)
+        '
+        'ShowMetadataToolStripMenuItem
+        '
+        Me.ShowMetadataToolStripMenuItem.Name = "ShowMetadataToolStripMenuItem"
+        Me.ShowMetadataToolStripMenuItem.Size = New System.Drawing.Size(156, 22)
+        Me.ShowMetadataToolStripMenuItem.Text = "Show Metadata"
+        '
+        'Show11ToolStripMenuItem
+        '
+        Me.Show11ToolStripMenuItem.Name = "Show11ToolStripMenuItem"
+        Me.Show11ToolStripMenuItem.Size = New System.Drawing.Size(156, 22)
+        Me.Show11ToolStripMenuItem.Text = "Show 1:1"
         '
         'ctlVideoSeeker
         '
@@ -829,24 +885,6 @@ Partial Class MainForm
         Me.picVideo.TabIndex = 10
         Me.picVideo.TabStop = False
         '
-        'cmsResolution
-        '
-        Me.cmsResolution.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ShowStreamInfoToolStripMenuItem, Me.Show11ToolStripMenuItem})
-        Me.cmsResolution.Name = "cmsCrop"
-        Me.cmsResolution.Size = New System.Drawing.Size(181, 70)
-        '
-        'ShowStreamInfoToolStripMenuItem
-        '
-        Me.ShowStreamInfoToolStripMenuItem.Name = "ShowStreamInfoToolStripMenuItem"
-        Me.ShowStreamInfoToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.ShowStreamInfoToolStripMenuItem.Text = "Show stream info"
-        '
-        'Show11ToolStripMenuItem
-        '
-        Me.Show11ToolStripMenuItem.Name = "Show11ToolStripMenuItem"
-        Me.Show11ToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.Show11ToolStripMenuItem.Text = "Show 1:1"
-        '
         'MainForm
         '
         Me.AllowDrop = True
@@ -896,13 +934,14 @@ Partial Class MainForm
         Me.StatusStrip1.ResumeLayout(False)
         Me.StatusStrip1.PerformLayout()
         Me.cmsCrop.ResumeLayout(False)
+        Me.cmsCrop.PerformLayout()
+        Me.cmsResolution.ResumeLayout(False)
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame1, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picVideo, System.ComponentModel.ISupportInitialize).EndInit()
-        Me.cmsResolution.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -993,6 +1032,11 @@ Partial Class MainForm
     Friend WithEvents BakedInHardToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ToggleableSoftToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents cmsResolution As ContextMenuStrip
-    Friend WithEvents ShowStreamInfoToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ShowMetadataToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents Show11ToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ToolStripSeparator4 As ToolStripSeparator
+    Friend WithEvents ToolStripCropX As ToolStripTextBox
+    Friend WithEvents ToolStripCropY As ToolStripTextBox
+    Friend WithEvents ToolStripCropWidth As ToolStripTextBox
+    Friend WithEvents ToolStripCropHeight As ToolStripTextBox
 End Class

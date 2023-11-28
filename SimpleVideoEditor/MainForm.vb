@@ -24,6 +24,7 @@ Public Class MainForm
     Private mptStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle, in video coordinates
     Private mptEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle, in video coordinates
     Private mblnCropping As Boolean = False 'Flag for if the user has clicked to crop, useful to avoid potential mousemove events that were not initiated by the user clicking on the panel
+    Private mblnCropSignal As Boolean = False 'Flag for crop text being set programatically to avoid triggering
 
     Private mintCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
     Private mintDisplayInfo As Integer = 0 'Timer value for how long to render special info to the main image
@@ -1004,6 +1005,12 @@ Public Class MainForm
             'lblStatusCropRect.Text = $"{cropActual.X},{cropActual.Y},{cropActual.Width},{cropActual.Height}"
             lblStatusCropRect.Text = $"{cropActual?.Width} x {cropActual?.Height}"
             lblStatusCropRect.ToolTipText = lblStatusCropRect.ToolTipText.Split(vbNewLine)(0).Trim() & vbNewLine & $"crop={cropActual?.Width}:{cropActual?.Height}:{cropActual?.X}:{cropActual?.Y} (w:h:x:y)"
+            mblnCropSignal = True
+            ToolStripCropX.Text = cropActual.Value.X
+            ToolStripCropY.Text = cropActual.Value.Y
+            ToolStripCropWidth.Text = cropActual.Value.Width
+            ToolStripCropHeight.Text = cropActual.Value.Height
+            mblnCropSignal = False
         End If
     End Sub
 
@@ -1270,29 +1277,6 @@ Public Class MainForm
         End If
     End Function
 
-    ''' <summary>
-    ''' Copy data that can be used quickly in batch files or transfered to another SVE
-    ''' </summary>
-    Private Sub CopyToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CopyToolStripMenuItem.Click
-        Dim cropRect As Rectangle? = Me.CropRect()
-        Clipboard.SetText(GetCropArgs(cropRect))
-    End Sub
-
-    ''' <summary>
-    ''' Load data from clipboard in the format we copy out to from other SVE instances
-    ''' </summary>
-    Private Sub LoadFromClipboardToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles LoadFromClipboardToolStripMenuItem.Click
-        Dim clipboardData As String = Clipboard.GetText()
-        Dim cropRect As Rectangle = ReadCropData(clipboardData)
-        'Update crop locations if needed
-        Dim displaySize As Size = Me.mobjMetaData.GetImageDataFromCache(0).Size
-        Dim scale As Single = New Point(displaySize.Width, displaySize.Height).Magnitude / New Point(mobjMetaData.Width, mobjMetaData.Height).Magnitude
-        mptStartCrop = cropRect.TopLeft
-        mptEndCrop = mptStartCrop.Add(New Point(cropRect.Width - 1, cropRect.Height - 1))
-        UpdateCropStatus()
-        picVideo.Invalidate()
-    End Sub
-
     Private Sub lblStatusCropRect_MouseUp(sender As Object, e As MouseEventArgs) Handles lblStatusCropRect.MouseUp, lblStatusResolution.MouseUp
         If e.Button = MouseButtons.Right Then
             Dim stripLabelOffset As Integer = 0
@@ -1323,7 +1307,7 @@ Public Class MainForm
     ''' Disable resolution items that are not available like no file being loaded
     ''' </summary>
     Private Sub cmsResolution_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsResolution.Opening
-        ShowStreamInfoToolStripMenuItem.Enabled = mobjMetaData?.VideoStream?.Raw IsNot Nothing
+        ShowMetadataToolStripMenuItem.Enabled = mobjMetaData?.VideoStream?.Raw IsNot Nothing
         Show11ToolStripMenuItem.Enabled = mobjMetaData IsNot Nothing
     End Sub
 #End Region
@@ -2211,6 +2195,8 @@ Public Class MainForm
         End If
     End Sub
 
+#End Region
+
     Private Sub ExportAudioToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExportAudioToolStripMenuItem.Click
         'Ensure context menu goes away when clicking on items that normally may not close it
         cmsPicVideo.Close()
@@ -2315,17 +2301,27 @@ Public Class MainForm
         Show1To1()
     End Sub
 
-    Private Sub ShowStreamInfoToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ShowStreamInfoToolStripMenuItem.Click
+    ''' <summary>
+    ''' Displays a popup window containing video metadata in an editable textbox for easy copying
+    ''' </summary>
+    Private Sub ShowMetadataToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ShowMetadataToolStripMenuItem.Click
         If streamInfoForm Is Nothing Then
             streamInfoForm = New ManualEntryForm("") With {
-                .Text = "Stream Info",
+                .Text = "Video Metadata",
                 .Width = Me.Width,
                 .Height = Me.Height,
                 .Persistent = True
             }
         End If
         streamInfoForm.SetText(mobjMetaData.VideoStream.Raw)
-        streamInfoForm.Show()
+        If streamInfoForm.Visible Then
+            If streamInfoForm.WindowState = FormWindowState.Minimized Then
+                streamInfoForm.WindowState = FormWindowState.Normal
+            End If
+            streamInfoForm.Focus()
+        Else
+            streamInfoForm.Show()
+        End If
         streamInfoForm.Location = Me.Location
     End Sub
 
@@ -2345,6 +2341,54 @@ Public Class MainForm
             Me.Height += heightDelta
         End If
         mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame, 0, mobjMetaData.Size)
+    End Sub
+
+#Region "Cropping Menu"
+    ''' <summary>
+    ''' Copy data that can be used quickly in batch files or transfered to another SVE
+    ''' </summary>
+    Private Sub CopyToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CopyToolStripMenuItem.Click
+        Dim cropRect As Rectangle? = Me.CropRect()
+        Clipboard.SetText(GetCropArgs(cropRect))
+    End Sub
+
+    ''' <summary>
+    ''' Load data from clipboard in the format we copy out to from other SVE instances
+    ''' </summary>
+    Private Sub LoadFromClipboardToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles LoadFromClipboardToolStripMenuItem.Click
+        Dim clipboardData As String = Clipboard.GetText()
+        Dim cropRect As Rectangle = ReadCropData(clipboardData)
+        SetCropData(cropRect)
+    End Sub
+
+    Private Sub SetCropData(cropRect As Rectangle)
+        'Update crop locations if needed
+        mptStartCrop = cropRect.TopLeft
+        mptEndCrop = mptStartCrop.Add(New Point(cropRect.Width, cropRect.Height))
+        UpdateCropStatus()
+        picVideo.Invalidate()
+    End Sub
+
+    Private Sub SetCropFromMenu()
+        Dim x As Integer = Integer.Parse(ToolStripCropX.Text)
+        Dim y As Integer = Integer.Parse(ToolStripCropY.Text)
+        Dim width As Integer = Integer.Parse(ToolStripCropWidth.Text)
+        Dim height As Integer = Integer.Parse(ToolStripCropHeight.Text)
+        Dim cropRect As New Rectangle(x, y, width, height)
+        SetCropData(cropRect)
+    End Sub
+
+    ''' <summary>
+    ''' Ensure value in custom crop dimensions are numeric
+    ''' </summary>
+    Private Sub ToolStripCropX_TextChanged(sender As Object, e As EventArgs) Handles ToolStripCropX.TextChanged, ToolStripCropY.TextChanged, ToolStripCropWidth.TextChanged, ToolStripCropHeight.TextChanged
+        Dim senderStrip As ToolStripTextBox = sender
+        If mblnCropSignal Then
+            Exit Sub
+        End If
+        'Sanitize to ensure numeric value
+        senderStrip.Text = Regex.Match(senderStrip.Text, "\d*").Value
+        SetCropFromMenu()
     End Sub
 #End Region
 
