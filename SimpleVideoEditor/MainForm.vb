@@ -467,8 +467,8 @@ Public Class MainForm
                          Dim sizeLimit As Integer = 50000
                          Dim lengthLimit As Integer = 300
 
-                             'If the video is pretty small, just cache the whole thing
-                             'Tests showed 7.5s load for a 3.5 minute 50MB video, vs 9s for full cache
+                         'If the video is pretty small, just cache the whole thing
+                         'Tests showed 7.5s load for a 3.5 minute 50MB video, vs 9s for full cache
                          For index As Integer = 100 To 1 Step -1
                              'Grab higher resolution cached images for shorter videos so users have higher quality images for tiny clips, enabling very accurate cropping
                              If mobjMetaData.FileSize < (sizeLimit / index) AndAlso mobjMetaData.DurationSeconds <= (lengthLimit / index) Then
@@ -481,17 +481,17 @@ Public Class MainForm
                          If fullFrameGrab Is Nothing Then
                              CacheFullBitmaps = False
                              If mobjMetaData.DurationSeconds < 7 Then
-                             'If the video is pretty short, just cache the whole thing
-                             fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
-                         Else
-                             Dim thumbSize As Integer = 32
-                             If mobjMetaData.FileSize <= 50000 AndAlso mobjMetaData.DurationSeconds <= 600 Then
-                                 thumbSize = 64
+                                 'If the video is pretty short, just cache the whole thing
+                                 fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
+                             Else
+                                 Dim thumbSize As Integer = 32
+                                 If mobjMetaData.FileSize <= 50000 AndAlso mobjMetaData.DurationSeconds <= 600 Then
+                                     thumbSize = 64
+                                 End If
+                                 Task.Run(Async Function()
+                                              Await mobjMetaData.ExtractThumbFrames(thumbSize)
+                                          End Function)
                              End If
-                             Task.Run(Async Function()
-                                          Await mobjMetaData.ExtractThumbFrames(thumbSize)
-                                      End Function)
-                         End If
                          End If
                          'mobjMetaData.SaveThumbsToFile()
                      End If
@@ -595,9 +595,9 @@ Public Class MainForm
                         targetPreview.SetImage(gotImage)
                     Else
                         If Not CacheFullBitmaps Then
-                        gotImage.Dispose()
+                            gotImage.Dispose()
+                        End If
                     End If
-                End If
                 End If
             Next
 
@@ -837,29 +837,29 @@ Public Class MainForm
     ''' </summary>
     Private Sub picFrame_Click(sender As Object, e As EventArgs) Handles picFrame1.Click, picFrame2.Click, picFrame3.Click, picFrame4.Click, picFrame5.Click
         If mobjMetaData IsNot Nothing Then
-        Dim newPreview As Integer = 0
-        Select Case True
-            Case sender Is picFrame1
-                newPreview = 0
-            Case sender Is picFrame2
-                newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.25)
-            Case sender Is picFrame3
-                newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.5)
-            Case sender Is picFrame4
-                newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.75)
-            Case sender Is picFrame5
-                newPreview = Math.Floor(mobjMetaData.TotalFrames - 1)
-        End Select
-        'Find a nearby available frame because the totalframes may have been modified slightly
-        If Not mobjMetaData.ImageCacheStatus(newPreview) = ImageCache.CacheStatus.Cached Then
-            For index As Integer = Math.Max(0, newPreview - 2) To newPreview + 2
-                If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                    ctlVideoSeeker.PreviewLocation = index
-                    Exit Sub
-                End If
-            Next
-        End If
-        ctlVideoSeeker.PreviewLocation = newPreview
+            Dim newPreview As Integer = 0
+            Select Case True
+                Case sender Is picFrame1
+                    newPreview = 0
+                Case sender Is picFrame2
+                    newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.25)
+                Case sender Is picFrame3
+                    newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.5)
+                Case sender Is picFrame4
+                    newPreview = Math.Floor(mobjMetaData.TotalFrames * 0.75)
+                Case sender Is picFrame5
+                    newPreview = Math.Floor(mobjMetaData.TotalFrames - 1)
+            End Select
+            'Find a nearby available frame because the totalframes may have been modified slightly
+            If Not mobjMetaData.ImageCacheStatus(newPreview) = ImageCache.CacheStatus.Cached Then
+                For index As Integer = Math.Max(0, newPreview - 2) To newPreview + 2
+                    If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                        ctlVideoSeeker.PreviewLocation = index
+                        Exit Sub
+                    End If
+                Next
+            End If
+            ctlVideoSeeker.PreviewLocation = newPreview
         End If
     End Sub
 
@@ -1107,20 +1107,20 @@ Public Class MainForm
                                        If CacheFullBitmaps Then
                                            boundRect = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 127)
                                        Else
-                                       Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
+                                           Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
                                                boundRect = checkImage.BoundContents(cropRect,, 127)
                                            End Using
                                        End If
-                                           Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
-                                           left = Math.Min(boundRect.Left, left)
-                                           top = Math.Min(boundRect.Top, top)
-                                           right = Math.Max(boundRect.Right, right)
-                                           bottom = Math.Max(boundRect.Bottom, bottom)
-                                           Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
+                                       Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
+                                       left = Math.Min(boundRect.Left, left)
+                                       top = Math.Min(boundRect.Top, top)
+                                       right = Math.Max(boundRect.Right, right)
+                                       bottom = Math.Max(boundRect.Bottom, bottom)
+                                       Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
 
-                                           If potentialRect.Area > currentRect.Area Then
-                                               largestFrame = index
-                                           End If
+                                       If potentialRect.Area > currentRect.Area Then
+                                           largestFrame = index
+                                       End If
                                    End If
                                    Dim currentFrame As Integer = index
                                    Me.Invoke(Sub()
@@ -1196,22 +1196,22 @@ Public Class MainForm
                                            If CacheFullBitmaps Then
                                                boundRect = Me.mobjMetaData.GetImageFromCache(index).ExpandContents(cropRect, 4)
                                            Else
-                                           Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
+                                               Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
                                                    boundRect = checkImage.ExpandContents(cropRect, 4)
                                                End Using
                                            End If
-                                               Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
-                                               left = Math.Min(boundRect.Left, left)
-                                               top = Math.Min(boundRect.Top, top)
-                                               right = Math.Max(boundRect.Right, right)
-                                               bottom = Math.Max(boundRect.Bottom, bottom)
-                                               Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
+                                           Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
+                                           left = Math.Min(boundRect.Left, left)
+                                           top = Math.Min(boundRect.Top, top)
+                                           right = Math.Max(boundRect.Right, right)
+                                           bottom = Math.Max(boundRect.Bottom, bottom)
+                                           Dim potentialRect As New Rectangle(left, top, right - left, bottom - top)
 
-                                               If potentialRect.Area > currentRect.Area Then
-                                                   largestFrame = index
-                                                   stillExpanding = True
-                                                   cropRect = potentialRect
-                                               End If
+                                           If potentialRect.Area > currentRect.Area Then
+                                               largestFrame = index
+                                               stillExpanding = True
+                                               cropRect = potentialRect
+                                           End If
                                        End If
                                        Dim currentFrame As Integer = index
                                        Me.Invoke(Sub()
@@ -1286,7 +1286,7 @@ Public Class MainForm
                 stripLabelOffset += StatusStrip1.Items(index).Width
             Next
             If sender Is lblStatusCropRect Then
-            cmsCrop.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
+                cmsCrop.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
             ElseIf sender Is lblStatusResolution Then
                 cmsResolution.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
             End If
@@ -2081,9 +2081,9 @@ Public Class MainForm
                         RefreshStatusToolTips()
                     Else
                         If Not CacheFullBitmaps Then
-                        gotImage.Dispose()
+                            gotImage.Dispose()
+                        End If
                     End If
-                End If
                 End If
                 Exit For
             End If
@@ -2133,6 +2133,13 @@ Public Class MainForm
     Private Async Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click
         Me.UseWaitCursor = True
         Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
+        If CacheFullBitmaps Then
+            For index As Integer = 0 To mobjMetaData.TotalFrames - 1
+                Dim temp As Image = mobjMetaData.GetImageFromCache(index)
+            Next
+            'Ensures memory is freed for the many byte arrays in the image cache
+            GC.Collect()
+        End If
         Me.UseWaitCursor = False
     End Sub
 
