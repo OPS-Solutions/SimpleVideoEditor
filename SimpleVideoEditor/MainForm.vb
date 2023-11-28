@@ -873,8 +873,9 @@ Public Class MainForm
             Dim lastTransform As Drawing2D.Matrix = e.Graphics.Transform
             e.Graphics.Transform = GetVideoToClientMatrix()
             Dim penSize As Single = 1
+            Dim currentScale As Single = 1
             If picVideo.Image IsNot Nothing Then
-                Dim currentScale As Single = FitScale(picVideo.Image.Size, picVideo.Size)
+                currentScale = FitScale(picVideo.Image.Size, picVideo.Size)
                 If currentScale > 1 Then
                     'Image is being increased in size, use nearest neightbor to do clean rendering
                     picVideo.InterpolationMode = InterpolationMode.NearestNeighbor
@@ -883,18 +884,34 @@ Public Class MainForm
                 End If
                 e.Graphics.DrawImage(picVideo.Image, 0, 0, mobjMetaData.Width, mobjMetaData.Height)
                 penSize = Math.Min(1 / currentScale, 1)
+                currentScale = FitScale(mobjMetaData.Size, picVideo.Size)
             End If
 
             Using pen As New Pen(Color.White, penSize)
+                pen.DashPattern = {3 / currentScale, 2 / currentScale}
                 If Not Me.CropRect Is Nothing Then
-                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, mobjMetaData.Height))
-                    e.Graphics.DrawLine(pen, New Point(0, mptStartCrop.Y), New Point(mobjMetaData.Width, mptStartCrop.Y))
-                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, 0), New Point(mptEndCrop.X, mobjMetaData.Height))
-                    e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y), New Point(mobjMetaData.Width, mptEndCrop.Y))
+                    'Top Left
+                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, mptStartCrop.Y))
+                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, mptStartCrop.Y), New Point(0, mptStartCrop.Y))
+
+                    'Top Right
+                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, 0), New Point(mptEndCrop.X, mptStartCrop.Y))
+                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, mptStartCrop.Y), New Point(mobjMetaData.Width, mptStartCrop.Y))
+
+                    'Bottom Left
+                    e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y), New Point(mptStartCrop.X, mptEndCrop.Y))
+                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, mptEndCrop.Y), New Point(mptStartCrop.X, mobjMetaData.Height))
+
+                    'Bottom Right
+                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, mptEndCrop.Y), New Point(mptEndCrop.X, mobjMetaData.Height))
+                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, mptEndCrop.Y), New Point(mobjMetaData.Width, mptEndCrop.Y))
                 End If
             End Using
-            e.Graphics.DrawRectangle(New Pen(Color.Green, penSize), mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X, mptEndCrop.Y - mptStartCrop.Y)
-            e.Graphics.Transform = lastTransform
+            Using rectPen As New Pen(Color.Green, penSize)
+                rectPen.DashPattern = {3 / currentScale, 2 / currentScale}
+                e.Graphics.DrawRectangle(rectPen, mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X, mptEndCrop.Y - mptStartCrop.Y)
+                e.Graphics.Transform = lastTransform
+            End Using
 
             'Draw frame info
             Using pen As New Pen(Color.White, 1)
