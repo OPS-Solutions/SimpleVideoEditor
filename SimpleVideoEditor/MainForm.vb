@@ -567,6 +567,9 @@ Public Class MainForm
                 CheckSave()
             End If
             Exit Sub
+        ElseIf Not objCache Is mobjMetaData.ImageFrames Then
+            'Skip upgrade frames for 1:1 display
+            Exit Sub
         End If
         If Me.InvokeRequired Then
             Me.BeginInvoke(Sub()
