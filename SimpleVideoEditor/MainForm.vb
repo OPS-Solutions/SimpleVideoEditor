@@ -1004,6 +1004,12 @@ Public Class MainForm
             'Don't show crop info if we aren't cropping
             lblStatusCropRect.Text = ""
             lblStatusCropRect.ToolTipText = "Width x Height crop rectangle in video coordinates"
+            mblnCropSignal = True
+            ToolStripCropX.Text = ""
+            ToolStripCropY.Text = ""
+            ToolStripCropWidth.Text = ""
+            ToolStripCropHeight.Text = ""
+            mblnCropSignal = False
         Else
             'lblStatusCropRect.Text = $"{cropActual.X},{cropActual.Y},{cropActual.Width},{cropActual.Height}"
             lblStatusCropRect.Text = $"{cropActual?.Width} x {cropActual?.Height}"
@@ -1304,6 +1310,10 @@ Public Class MainForm
         Dim clipboardData As String = Clipboard.GetText()
         LoadFromClipboardToolStripMenuItem.Enabled = clipboardData.Length > 0 AndAlso ReadCropData(clipboardData) IsNot Nothing
         CopyToolStripMenuItem.Enabled = Me.CropRect IsNot Nothing
+        ToolStripCropX.Enabled = Me.CropRect IsNot Nothing
+        ToolStripCropY.Enabled = Me.CropRect IsNot Nothing
+        ToolStripCropWidth.Enabled = Me.CropRect IsNot Nothing
+        ToolStripCropHeight.Enabled = Me.CropRect IsNot Nothing
     End Sub
 
     ''' <summary>
@@ -2384,7 +2394,7 @@ Public Class MainForm
     ''' <summary>
     ''' Ensure value in custom crop dimensions are numeric
     ''' </summary>
-    Private Sub ToolStripCropX_TextChanged(sender As Object, e As EventArgs) Handles ToolStripCropX.TextChanged, ToolStripCropY.TextChanged, ToolStripCropWidth.TextChanged, ToolStripCropHeight.TextChanged
+    Private Sub ToolStripCrop_TextChanged(sender As Object, e As EventArgs) Handles ToolStripCropX.TextChanged, ToolStripCropY.TextChanged, ToolStripCropWidth.TextChanged, ToolStripCropHeight.TextChanged
         Dim senderStrip As ToolStripTextBox = sender
         If mblnCropSignal Then
             Exit Sub
