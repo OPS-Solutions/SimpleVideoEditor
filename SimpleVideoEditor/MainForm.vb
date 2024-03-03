@@ -646,7 +646,7 @@ Public Class MainForm
                 videoFilterParams.Add($"select=between(n\,{trimData.StartFrame}\,{trimData.EndFrame}),setpts=PTS-STARTPTS")
             End If
         End If
-        processInfo.Arguments += $" -i ""{inputFile.FullPath}"""
+        processInfo.Arguments += inputFile.InputArgs
         If softSubs Then
             processInfo.Arguments += $" -i ""{mobjOutputProperties.Subtitles}"""
         End If

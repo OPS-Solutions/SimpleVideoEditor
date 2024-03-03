@@ -299,7 +299,7 @@ Public Class VideoData
         'ffmpeg -i GEVideo.wmv -vf select='gte(scene,0)',metadata=print -an -f null -
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments += " -i """ & Me.FullPath & """"
+        processInfo.Arguments += Me.InputArgs
         processInfo.Arguments += " -vf select='gte(scene,0)',metadata=print -an -f null -"
         processInfo.UseShellExecute = False 'Must be false to redirect standard output
         processInfo.CreateNoWindow = True
@@ -817,7 +817,7 @@ Public Class VideoData
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'processInfo.Arguments += $" -ss {FormatHHMMSSm((startFrame) / Me.Framerate)}"
-        processInfo.Arguments += " -i """ & Me.FullPath & """"
+        processInfo.Arguments += Me.InputArgs
         If frameSize.Width = 0 AndAlso frameSize.Height = 0 Then
             frameSize.Width = Math.Min(Me.Width, 288)
         End If
@@ -1001,7 +1001,7 @@ Public Class VideoData
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
-        processInfo.Arguments += " -i """ & Me.FullPath & """"
+        processInfo.Arguments += Me.InputArgs
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
         processInfo.Arguments += $" -vf ""select='between(n,{frameStart},{frameEnd})'"
         If cropRect?.Width > 0 AndAlso cropRect?.Height > 0 AndAlso cropRect?.Center <> New Point(0, 0) Then
@@ -1043,7 +1043,7 @@ Public Class VideoData
         'ffmpeg -i input-video.avi -vn -acodec copy output-audio.aac
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-        processInfo.Arguments += " -i """ & Me.FullPath & """"
+        processInfo.Arguments += Me.InputArgs
         If IO.Path.GetExtension(targetFilePath).Equals(detectedStreamExtension) Then
             processInfo.Arguments += " -vn -acodec copy"
         Else
@@ -1083,12 +1083,11 @@ Public Class VideoData
     End Property
 
     ''' <summary>
-    ''' Argument formatted for input to ffmpeg. Normally just -i "FullPath", but when inputMash is in use, prepend with -framerate 20 to ensure all frames are used
+    ''' Crafted data for how ffmpeg should read the file in, with specific codec if needed
     ''' </summary>
-    ''' <returns></returns>
-    Public ReadOnly Property InputArg As String
+    Public ReadOnly Property InputArgs()
         Get
-            Return " -framerate 20 -i """ & Me.FullPath & """"
+            Return $"{If(Me.FullPath.ToLower.EndsWith(".webm"), " -c:v libvpx-vp9 ", "")} -i """ & Me.FullPath & """"
         End Get
     End Property
 
