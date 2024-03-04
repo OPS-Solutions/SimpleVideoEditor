@@ -392,7 +392,7 @@ Public Class MainForm
     ''' Opens a "save as" dialog for the user to define a target file location
     ''' </summary>
     Private Sub SaveAs()
-        sfdVideoOut.Filter = "MP4|*.mp4|GIF|*.gif|MKV|*.mkv|WMV|*.wmv|AVI|*.avi|MOV|*.mov|All files (*.*)|*.*"
+        sfdVideoOut.Filter = "MP4|*.mp4|GIF|*.gif|MKV|*.mkv|WMV|*.wmv|AVI|*.avi|MOV|*.mov|APNG|*.png|All files (*.*)|*.*"
         Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
         Dim targetName As String = System.IO.Path.GetFileName(sfdVideoOut.FileName)
         For index As Integer = 1 To validExtensions.Count - 1 Step 2
@@ -646,9 +646,14 @@ Public Class MainForm
                 videoFilterParams.Add($"select=between(n\,{trimData.StartFrame}\,{trimData.EndFrame}),setpts=PTS-STARTPTS")
             End If
         End If
+
         processInfo.Arguments += inputFile.InputArgs
         If softSubs Then
             processInfo.Arguments += $" -i ""{mobjOutputProperties.Subtitles}"""
+        End If
+
+        If outPutFile.ToLower.EndsWith("png") Then
+            processInfo.Arguments += $" -plays 0"
         End If
 
         'CROP VIDEO(Can not be done with a rotate, must run twice)
