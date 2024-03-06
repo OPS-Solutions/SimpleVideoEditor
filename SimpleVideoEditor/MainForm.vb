@@ -137,6 +137,9 @@ Public Class MainForm
     ''' </summary>
     Private Sub ofdVideoIn_FileOk(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles ofdVideoIn.FileOk
         Try
+            'Initial directory should have been set in registry by the dialog, so we no longer need or want to override it
+            ofdVideoIn.InitialDirectory = ""
+            sfdVideoOut.InitialDirectory = ""
             LoadFiles(ofdVideoIn.FileNames)
         Catch ex As Exception
             ClearControls()
@@ -403,10 +406,6 @@ Public Class MainForm
         Next
         subForm.SaveToTemp()
         'Retarget the location of the last attempted save, as when you save, the full path gets placed into the FileName member
-        Dim initialDir As String = Path.GetDirectoryName(sfdVideoOut.FileName)
-        If IO.Directory.Exists(initialDir) Then
-            sfdVideoOut.InitialDirectory = initialDir
-        End If
         sfdVideoOut.FileName = targetName
         sfdVideoOut.OverwritePrompt = True
         sfdVideoOut.ShowDialog()
@@ -438,6 +437,9 @@ Public Class MainForm
     ''' Save file when the save file dialog is finished with an "ok" click
     ''' </summary>
     Private Sub sfdVideoOut_FileOk(sender As System.Windows.Forms.SaveFileDialog, e As EventArgs) Handles sfdVideoOut.FileOk
+        'Initial directory should have been set in registry by the dialog, so we no longer need or want to override it
+        ofdVideoIn.InitialDirectory = ""
+        sfdVideoOut.InitialDirectory = ""
         If IO.Path.GetExtension(sfdVideoOut.FileName).Length = 0 Then
             'If the user failed to have a file extension, default to the one it already was
             sfdVideoOut.FileName += IO.Path.GetExtension(mstrVideoPath)
@@ -1385,6 +1387,10 @@ Public Class MainForm
                     Else
                         LoadFile(args(index))
                     End If
+                    'The initial path would normally be set up when using open file dialog using a common path from the registry
+                    'Since command line args doesn't do that, we can simulate it with this setting, as long as we clear it later
+                    ofdVideoIn.InitialDirectory = IO.Path.GetDirectoryName(mstrVideoPath)
+                    sfdVideoOut.InitialDirectory = IO.Path.GetDirectoryName(mstrVideoPath)
                     Exit For
                 ElseIf System.IO.Directory.Exists(args(index)) Then
                     Dim mash As String = GetInputMash(args)
