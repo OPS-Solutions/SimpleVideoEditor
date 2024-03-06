@@ -752,7 +752,7 @@ Public Class MainForm
         'Maintain transparency when making a gif from images or other transparent content
         Dim isGif As Boolean = IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif")
         If isGif Then
-            videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none")
+            videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none:alpha_threshold=64")
         End If
 
         'Check if the user wants to do motion interpolation when using a framerate that would cause duplicate frames
