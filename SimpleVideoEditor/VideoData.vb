@@ -1085,9 +1085,9 @@ Public Class VideoData
     ''' <summary>
     ''' Crafted data for how ffmpeg should read the file in, with specific codec if needed
     ''' </summary>
-    Public ReadOnly Property InputArgs()
+    Public ReadOnly Property InputArgs(Optional path As String = "")
         Get
-            Return $"{If(Me.FullPath.ToLower.EndsWith(".webm"), " -c:v libvpx-vp9 ", "")} -i """ & Me.FullPath & """"
+            Return $"{If(Me.FullPath.ToLower.EndsWith(".webm"), " -c:v libvpx-vp9 ", "")} -i """ & If(path.Length > 0, path, Me.FullPath) & """"
         End Get
     End Property
 

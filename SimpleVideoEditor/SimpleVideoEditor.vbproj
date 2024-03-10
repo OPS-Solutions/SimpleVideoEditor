@@ -243,6 +243,8 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="PlayButtonLogo.ico" />
+    <None Include="Resources\BatchGenerate.png" />
+    <None Include="Resources\BatchTemplate.bat" />
     <None Include="Resources\SubtitleRemove.png" />
     <None Include="Resources\SubtitleAdd.png" />
     <None Include="Resources\SubtitleOff.png" />

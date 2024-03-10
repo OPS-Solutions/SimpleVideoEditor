@@ -33,6 +33,7 @@ Public Class MainForm
 
     Private WithEvents mobjMetaData As VideoData 'Video metadata, including things like resolution, framerate, bitrate, etc.
     Private mblnUserInjection As Boolean = False 'Keeps track of if the user wants to manually modify the resulting commands
+    Private mblnBatchOutput As Boolean = False 'Set true if the user wants to save the custom injection to a batch script for re-use
     Private mblnInputMash As Boolean = False 'Whether or not the loaded file is a mash of multiple inputs like image%d.png
 
     Private mobjOutputProperties As New SpecialOutputProperties 'Keeps track of settings to apply to the final output video
@@ -388,6 +389,7 @@ Public Class MainForm
     ''' </summary>
     Private Sub btnSave_Click(sender As Object, e As EventArgs) Handles btnSave.Click
         mblnUserInjection = My.Computer.Keyboard.CtrlKeyDown
+        mblnBatchOutput = False
         SaveAs()
     End Sub
 
@@ -405,8 +407,14 @@ Public Class MainForm
             End If
         Next
         subForm.SaveToTemp()
+
         'Retarget the location of the last attempted save, as when you save, the full path gets placed into the FileName member
         sfdVideoOut.FileName = targetName
+        If mblnBatchOutput Then
+            'Remove -SHINY from file name as the batch script should dump into a SHINY folder by default instead
+            sfdVideoOut.FileName = "optionalPrefix(" & System.IO.Path.GetFileNameWithoutExtension(mstrVideoPath) & ")optionalSuffix"
+        End If
+
         sfdVideoOut.OverwritePrompt = True
         sfdVideoOut.ShowDialog()
     End Sub
@@ -653,7 +661,7 @@ Public Class MainForm
             End If
         End If
 
-        processInfo.Arguments += inputFile.InputArgs
+        processInfo.Arguments += inputFile.InputArgs(If(mblnBatchOutput, "<?<SVEInputPath>?>", ""))
         If softSubs Then
             processInfo.Arguments += $" -i ""{mobjOutputProperties.Subtitles}"""
         End If
@@ -824,7 +832,7 @@ Public Class MainForm
         End If
 
         'OUTPUT TO FILE
-        processInfo.Arguments += " """ & outPutFile & """"
+        processInfo.Arguments += " """ & If(mblnBatchOutput, "<?<SVEOutputPath>?>", outPutFile) & """"
         If mblnUserInjection Then
             'Show a form where the user can modify the arguments manually
             Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)
@@ -834,6 +842,55 @@ Public Class MainForm
                     Exit Sub
             End Select
             processInfo.Arguments = manualEntryForm.ModifiedText
+        End If
+        If mblnBatchOutput Then
+            Using sfdGenerateBatch As New SaveFileDialog
+                sfdGenerateBatch.Title = "Select Batch Script Save Location"
+                sfdGenerateBatch.Filter = "Batch Script|*.bat|All files (*.*)|*.*"
+                Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
+                sfdGenerateBatch.FileName = "PolishVideo.bat"
+                sfdGenerateBatch.OverwritePrompt = True
+                Select Case sfdGenerateBatch.ShowDialog()
+                    Case DialogResult.OK
+                        Dim batchOutput As String = My.Resources.BatchTemplate
+                        Dim ffmpegPath As String = System.Reflection.Assembly.GetExecutingAssembly.Location
+
+                        'Check if the user defined a special output name
+                        Dim outPrefix As String = ""
+                        Dim outSuffix As String = ""
+                        Dim inputName As String = Path.GetFileNameWithoutExtension(inputFile.FullPath)
+                        Dim outputName As String = Path.GetFileNameWithoutExtension(outPutFile)
+                        If outputName.Contains(inputName) Then
+                            Dim fixes As String() = Regex.Split(Path.GetFileNameWithoutExtension(outPutFile), Path.GetFileNameWithoutExtension(inputFile.FullPath))
+                            outPrefix = fixes(0)
+                            outSuffix = fixes(1)
+                            If outPrefix = "optionalPrefix(" Then
+                                outPrefix = ""
+                            End If
+                            If outSuffix = ")optionalSuffix" Then
+                                outSuffix = ""
+                            End If
+                        End If
+
+                        Dim directoryScript As String = processInfo.Arguments
+                        directoryScript = directoryScript.Replace("<?<SVEInputPath>?>", "%~1\%%~F")
+                        directoryScript = directoryScript.Replace("<?<SVEOutputPath>?>", $"%~1\SHINY\{outPrefix}%%~nF{outSuffix}{Path.GetExtension(outPutFile)}")
+
+
+                        Dim fileScript As String = processInfo.Arguments
+                        fileScript = fileScript.Replace("<?<SVEInputPath>?>", "%~1")
+                        fileScript = fileScript.Replace("<?<SVEOutputPath>?>", $"%~dp1\SHINY\%~n1{Path.GetExtension(outPutFile)}")
+
+                        batchOutput = batchOutput.Replace("<?<ffmpegPath>?>", Application.StartupPath & "\ffmpeg.exe")
+                        batchOutput = batchOutput.Replace("<?<SVESourceExt>?>", Path.GetExtension(inputFile.FullPath))
+                        batchOutput = batchOutput.Replace("<?<SVE%%FContents>?>", directoryScript)
+                        batchOutput = batchOutput.Replace("<?<SVEContents>?>", fileScript)
+                        File.WriteAllText(sfdGenerateBatch.FileName, batchOutput)
+                        OpenOrFocusFile(sfdGenerateBatch.FileName)
+                End Select
+            End Using
+            mproFfmpegProcess = Nothing
+            Exit Sub
         End If
         processInfo.RedirectStandardError = True
         processInfo.RedirectStandardOutput = True
@@ -1373,6 +1430,7 @@ Public Class MainForm
         ContractToolStripMenuItem.ToolTipText = $"Attempts to shrink the current selection rectangle as long as the pixels it overlays are of consistent color."
         ExpandToolStripMenuItem.ToolTipText = $"Attempts to expand the current selection rectangle until the pixels it overlays are of consistent color."
         InjectCustomArgumentsToolStripMenuItem.ToolTipText = $"An additional editable form will appear after selecting a save location, containing the command line arguments that will be sent to ffmpeg."
+        GenerateBatchScriptToolStripMenuItem.ToolTipText = $"Allows creation of a batch script that supports dragging and dropping videos or directories to apply the current settings and generate outputs to a SHINY directory."
         BakedInHardToolStripMenuItem.ToolTipText = "Subtitles are baked into the video stream. This ensures any player will render the text."
         ToggleableSoftToolStripMenuItem.ToolTipText = "Subtitles added as an element that can be turned on or off during playback. Relies on player support to see."
 
@@ -2180,6 +2238,13 @@ Public Class MainForm
 
     Private Sub InjectCustomArgumentsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles InjectCustomArgumentsToolStripMenuItem.Click
         mblnUserInjection = True
+        mblnBatchOutput = False
+        SaveAs()
+    End Sub
+
+    Private Sub GenerateBatchSciptToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GenerateBatchScriptToolStripMenuItem.Click
+        mblnUserInjection = True
+        mblnBatchOutput = True
         SaveAs()
     End Sub
 
