@@ -984,4 +984,20 @@ Module Extensions
     Public Function KeyToggled(keyboard As Keyboard, keycode As Keys) As Boolean
         Return GetKeyState(keycode) & KEY_TOGGLED
     End Function
+
+    ''' <summary>
+    ''' Allows a process to finish running, and push all of its stderror and stdoutput messages through relevant events as normally WaitForExitAsync may occur before messages are sent
+    ''' https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.waitforexit?view=net-8.0&redirectedfrom=MSDN#System_Diagnostics_Process_WaitForExit_System_Int32_
+    ''' </summary>
+    <Extension()>
+    Public Function WaitForFinishAsync(objProcess As Process) As Task(Of Boolean)
+        Return Task.Run(Function()
+                            If objProcess.WaitForExit(Integer.MaxValue) Then
+                                objProcess.WaitForExit()
+                                Return True
+                            Else
+                                Return False
+                            End If
+                        End Function)
+    End Function
 End Module

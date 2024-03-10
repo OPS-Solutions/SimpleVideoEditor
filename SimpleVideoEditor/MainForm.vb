@@ -308,7 +308,7 @@ Public Class MainForm
             mproFfmpegProcess.BeginErrorReadLine()
             mproFfmpegProcess.BeginOutputReadLine()
             runArgs += mproFfmpegProcess.StartInfo.Arguments
-            Await mproFfmpegProcess.WaitForExitAsync()
+            Await mproFfmpegProcess.WaitForFinishAsync()
             workingMetadata = VideoData.FromFile(intermediateFilePath)
             'Check if user canceled manual entry
             CheckOutput(intermediateFilePath, runArgs, False)
@@ -325,7 +325,7 @@ Public Class MainForm
             mproFfmpegProcess.BeginErrorReadLine()
             mproFfmpegProcess.BeginOutputReadLine()
             runArgs += vbNewLine & mproFfmpegProcess.StartInfo.Arguments
-            Await mproFfmpegProcess.WaitForExitAsync()
+            Await mproFfmpegProcess.WaitForFinishAsync()
 
             If overwriteOriginal Or (useIntermediate) Then
                 My.Computer.FileSystem.DeleteFile(intermediateFilePath)
@@ -353,7 +353,7 @@ Public Class MainForm
                 OpenOrFocusFile(outputPath)
             End If
         Else
-            MessageBox.Show(Me, $"Failed to generate output '{outputPath}' using ffmpeg{vbNewLine}{vbNewLine}Arguments:{runargs}{vbNewLine}{vbNewLine}Stdout: {mobjOutputLog}{vbNewLine}{vbNewLine}Stderr: {mobjErrorLog}",
+            MessageBox.Show(Me, $"Failed to generate output '{outputPath}' using ffmpeg.{vbNewLine}{vbNewLine}Arguments:{runargs}{vbNewLine}{vbNewLine}Stdout:{vbNewLine}{mobjOutputLog}{vbNewLine}{vbNewLine}Stderr:{vbNewLine}{mobjErrorLog}",
                             "Save failed", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
     End Sub
@@ -628,6 +628,10 @@ Public Class MainForm
 
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+
+        'Remove fluff at the beginning of the output for instances where the output fails, and we want to print information to the message box
+        'I would like to have the first part for version and copyright, but the build options take up to much space are not helpful to end users
+        processInfo.Arguments += " -hide_banner"
 
         'CREATE LIST OF PARAMETERS FOR EACH FILTER
         Dim videoFilterParams As New List(Of String)
