@@ -1099,20 +1099,16 @@ Public Class MainForm
             lblStatusCropRect.Text = ""
             lblStatusCropRect.ToolTipText = "Width x Height crop rectangle in video coordinates"
             mblnCropSignal = True
-            ToolStripCropX.Text = ""
-            ToolStripCropY.Text = ""
-            ToolStripCropWidth.Text = ""
-            ToolStripCropHeight.Text = ""
+            ToolStripCropArg.Text = ""
             mblnCropSignal = False
         Else
             'lblStatusCropRect.Text = $"{cropActual.X},{cropActual.Y},{cropActual.Width},{cropActual.Height}"
             lblStatusCropRect.Text = $"{cropActual?.Width} x {cropActual?.Height}"
             lblStatusCropRect.ToolTipText = lblStatusCropRect.ToolTipText.Split(vbNewLine)(0).Trim() & vbNewLine & $"crop={cropActual?.Width}:{cropActual?.Height}:{cropActual?.X}:{cropActual?.Y} (w:h:x:y)"
             mblnCropSignal = True
-            ToolStripCropX.Text = cropActual.Value.X
-            ToolStripCropY.Text = cropActual.Value.Y
-            ToolStripCropWidth.Text = cropActual.Value.Width
-            ToolStripCropHeight.Text = cropActual.Value.Height
+            Dim lastSelection As Integer = ToolStripCropArg.SelectionStart
+            ToolStripCropArg.Text = $"crop={cropActual.Value.Width}:{cropActual.Value.Height}:{cropActual.Value.X}:{cropActual.Value.Y}"
+            ToolStripCropArg.SelectionStart = Math.Min(lastSelection, ToolStripCropArg.Text.Length)
             mblnCropSignal = False
         End If
     End Sub
@@ -1374,12 +1370,16 @@ Public Class MainForm
     End Function
 
     Private Function ReadCropData(cropData As String) As Rectangle?
-        Dim matchInfo As Match = Regex.Match(cropData, "crop=(?<width>\d*):(?<height>\d*):(?<x>\d*):(?<y>\d*)")
-        If matchInfo.Success Then
-            Return New Rectangle(matchInfo.Groups("x").Value, matchInfo.Groups("y").Value, matchInfo.Groups("width").Value, matchInfo.Groups("height").Value)
-        Else
+        Dim cropMatch As Match = Regex.Match(cropData, "crop=(?<width>\d*):(?<height>\d*):(?<x>\d*):(?<y>\d*)")
+        If Not cropMatch.Success Then
             Return Nothing
         End If
+        Dim width As Integer = Integer.Parse(0 & cropMatch.Groups("width").Value)
+        Dim height As Integer = Integer.Parse(0 & cropMatch.Groups("height").Value)
+        'Pad with 0 to ensure deleting the entire number via backspace isn't an issue
+        Dim x As Integer = Integer.Parse(0 & cropMatch.Groups("x").Value)
+        Dim y As Integer = Integer.Parse(0 & cropMatch.Groups("y").Value)
+        Return New Rectangle(x, y, width, height)
     End Function
 
     Private Sub lblStatusCropRect_MouseUp(sender As Object, e As MouseEventArgs) Handles lblStatusCropRect.MouseUp, lblStatusResolution.MouseUp
@@ -1406,10 +1406,7 @@ Public Class MainForm
         Dim clipboardData As String = Clipboard.GetText()
         LoadFromClipboardToolStripMenuItem.Enabled = clipboardData.Length > 0 AndAlso ReadCropData(clipboardData) IsNot Nothing
         CopyToolStripMenuItem.Enabled = Me.CropRect IsNot Nothing
-        ToolStripCropX.Enabled = Me.CropRect IsNot Nothing
-        ToolStripCropY.Enabled = Me.CropRect IsNot Nothing
-        ToolStripCropWidth.Enabled = Me.CropRect IsNot Nothing
-        ToolStripCropHeight.Enabled = Me.CropRect IsNot Nothing
+        ToolStripCropArg.Enabled = mobjMetaData IsNot Nothing
     End Sub
 
     ''' <summary>
@@ -1457,8 +1454,8 @@ Public Class MainForm
         CacheAllFramesToolStripMenuItem.ToolTipText = $"Caches every frame of the video into memory (high RAM requirement).{vbNewLine}Afterwards, frame scrubbing will be borderline instant."
         ContractToolStripMenuItem.ToolTipText = $"Attempts to shrink the current selection rectangle as long as the pixels it overlays are of consistent color."
         ExpandToolStripMenuItem.ToolTipText = $"Attempts to expand the current selection rectangle until the pixels it overlays are of consistent color."
-        InjectCustomArgumentsToolStripMenuItem.ToolTipText = $"An additional editable form will appear after selecting a save location, containing the command line arguments that will be sent to ffmpeg."
-        GenerateBatchScriptToolStripMenuItem.ToolTipText = $"Allows creation of a batch script that supports dragging and dropping videos or directories to apply the current settings and generate outputs to a SHINY directory."
+        InjectCustomArgumentsToolStripMenuItem.ToolTipText = $"An additional editable form will appear after selecting a save location, containing the command line arguments to be sent to ffmpeg."
+        GenerateBatchScriptToolStripMenuItem.ToolTipText = $"Generates a batch script with drag/dropping support for videos or directories to apply the current settings.{vbNewLine}Batch script outputs are placed in a SHINY directory.{vbNewLine}Prefix/Suffix will be ignored unless manually modified."
         BakedInHardToolStripMenuItem.ToolTipText = "Subtitles are baked into the video stream. This ensures any player will render the text."
         ToggleableSoftToolStripMenuItem.ToolTipText = "Subtitles added as an element that can be turned on or off during playback. Relies on player support to see."
 
@@ -2470,6 +2467,10 @@ Public Class MainForm
     ''' </summary>
     Private Sub CopyToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CopyToolStripMenuItem.Click
         Dim cropRect As Rectangle? = Me.CropRect()
+        If cropRect Is Nothing Then
+            'Can happen if the crop gets cleared while menu is still opened and then user tries to copy
+            Exit Sub
+        End If
         Clipboard.SetText(GetCropArgs(cropRect))
     End Sub
 
@@ -2490,26 +2491,25 @@ Public Class MainForm
         picVideo.Invalidate()
     End Sub
 
-    Private Sub SetCropFromMenu()
-        Dim x As Integer = Integer.Parse(ToolStripCropX.Text)
-        Dim y As Integer = Integer.Parse(ToolStripCropY.Text)
-        Dim width As Integer = Integer.Parse(ToolStripCropWidth.Text)
-        Dim height As Integer = Integer.Parse(ToolStripCropHeight.Text)
-        Dim cropRect As New Rectangle(x, y, width, height)
-        SetCropData(cropRect)
-    End Sub
-
     ''' <summary>
     ''' Ensure value in custom crop dimensions are numeric
     ''' </summary>
-    Private Sub ToolStripCrop_TextChanged(sender As Object, e As EventArgs) Handles ToolStripCropX.TextChanged, ToolStripCropY.TextChanged, ToolStripCropWidth.TextChanged, ToolStripCropHeight.TextChanged
+    Private Sub ToolStripCropArg_TextChanged(sender As Object, e As EventArgs) Handles ToolStripCropArg.TextChanged
         Dim senderStrip As ToolStripTextBox = sender
         If mblnCropSignal Then
             Exit Sub
         End If
-        'Sanitize to ensure numeric value
-        senderStrip.Text = Regex.Match(senderStrip.Text, "\d*").Value
-        SetCropFromMenu()
+        'Sanitize to ensure numeric values
+        Dim cropMatch As Match = Regex.Match(senderStrip.Text, "crop=(?<w>\d*):(?<h>\d*):(?<x>\d*):(?<y>\d*)")
+        Dim cropResult As Rectangle? = ReadCropData(senderStrip.Text)
+        If cropResult.HasValue Then
+            SetCropData(cropResult.Value)
+        Else
+            'Discard changes unless we don't have anything to begin with as users should be allowed to manually type it in
+            If Me.CropRect().HasValue Then
+                UpdateCropStatus()
+            End If
+        End If
     End Sub
 #End Region
 

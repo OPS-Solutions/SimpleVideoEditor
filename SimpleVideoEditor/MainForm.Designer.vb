@@ -100,10 +100,7 @@ Partial Class MainForm
         Me.LoadFromClipboardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.CopyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator4 = New System.Windows.Forms.ToolStripSeparator()
-        Me.ToolStripCropWidth = New System.Windows.Forms.ToolStripTextBox()
-        Me.ToolStripCropHeight = New System.Windows.Forms.ToolStripTextBox()
-        Me.ToolStripCropX = New System.Windows.Forms.ToolStripTextBox()
-        Me.ToolStripCropY = New System.Windows.Forms.ToolStripTextBox()
+        Me.ToolStripCropArg = New System.Windows.Forms.ToolStripTextBox()
         Me.cmsResolution = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.ShowMetadataToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.Show11ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -662,54 +659,34 @@ Partial Class MainForm
         '
         'cmsCrop
         '
-        Me.cmsCrop.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LoadFromClipboardToolStripMenuItem, Me.CopyToolStripMenuItem, Me.ToolStripSeparator4, Me.ToolStripCropWidth, Me.ToolStripCropHeight, Me.ToolStripCropX, Me.ToolStripCropY})
+        Me.cmsCrop.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LoadFromClipboardToolStripMenuItem, Me.CopyToolStripMenuItem, Me.ToolStripSeparator4, Me.ToolStripCropArg})
         Me.cmsCrop.Name = "cmsCrop"
-        Me.cmsCrop.Size = New System.Drawing.Size(187, 154)
+        Me.cmsCrop.Size = New System.Drawing.Size(211, 101)
         '
         'LoadFromClipboardToolStripMenuItem
         '
         Me.LoadFromClipboardToolStripMenuItem.Name = "LoadFromClipboardToolStripMenuItem"
-        Me.LoadFromClipboardToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
+        Me.LoadFromClipboardToolStripMenuItem.Size = New System.Drawing.Size(210, 22)
         Me.LoadFromClipboardToolStripMenuItem.Text = "Load From Clipboard"
         '
         'CopyToolStripMenuItem
         '
         Me.CopyToolStripMenuItem.Name = "CopyToolStripMenuItem"
-        Me.CopyToolStripMenuItem.Size = New System.Drawing.Size(186, 22)
+        Me.CopyToolStripMenuItem.Size = New System.Drawing.Size(210, 22)
         Me.CopyToolStripMenuItem.Text = "Copy"
         '
         'ToolStripSeparator4
         '
         Me.ToolStripSeparator4.Name = "ToolStripSeparator4"
-        Me.ToolStripSeparator4.Size = New System.Drawing.Size(183, 6)
+        Me.ToolStripSeparator4.Size = New System.Drawing.Size(207, 6)
         '
-        'ToolStripCropWidth
+        'ToolStripCropArg
         '
-        Me.ToolStripCropWidth.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-        Me.ToolStripCropWidth.Name = "ToolStripCropWidth"
-        Me.ToolStripCropWidth.Size = New System.Drawing.Size(100, 23)
-        Me.ToolStripCropWidth.ToolTipText = "Width of crop rectangle"
-        '
-        'ToolStripCropHeight
-        '
-        Me.ToolStripCropHeight.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-        Me.ToolStripCropHeight.Name = "ToolStripCropHeight"
-        Me.ToolStripCropHeight.Size = New System.Drawing.Size(100, 23)
-        Me.ToolStripCropHeight.ToolTipText = "Height of crop rectangle"
-        '
-        'ToolStripCropX
-        '
-        Me.ToolStripCropX.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-        Me.ToolStripCropX.Name = "ToolStripCropX"
-        Me.ToolStripCropX.Size = New System.Drawing.Size(100, 23)
-        Me.ToolStripCropX.ToolTipText = "X coordinate of crop rectangle"
-        '
-        'ToolStripCropY
-        '
-        Me.ToolStripCropY.Font = New System.Drawing.Font("Segoe UI", 9.0!)
-        Me.ToolStripCropY.Name = "ToolStripCropY"
-        Me.ToolStripCropY.Size = New System.Drawing.Size(100, 23)
-        Me.ToolStripCropY.ToolTipText = "Y coordinate of crop rectangle"
+        Me.ToolStripCropArg.AutoSize = False
+        Me.ToolStripCropArg.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+        Me.ToolStripCropArg.Name = "ToolStripCropArg"
+        Me.ToolStripCropArg.Size = New System.Drawing.Size(150, 23)
+        Me.ToolStripCropArg.ToolTipText = "Crop arguments to be used (width:height:x:y)"
         '
         'cmsResolution
         '
@@ -1052,10 +1029,7 @@ Partial Class MainForm
     Friend WithEvents ShowMetadataToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents Show11ToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ToolStripSeparator4 As ToolStripSeparator
-    Friend WithEvents ToolStripCropX As ToolStripTextBox
-    Friend WithEvents ToolStripCropY As ToolStripTextBox
-    Friend WithEvents ToolStripCropWidth As ToolStripTextBox
-    Friend WithEvents ToolStripCropHeight As ToolStripTextBox
     Friend WithEvents GenerateBatchScriptToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents lblStatusPixelColor As ToolStripStatusLabel
+    Friend WithEvents ToolStripCropArg As ToolStripTextBox
 End Class
