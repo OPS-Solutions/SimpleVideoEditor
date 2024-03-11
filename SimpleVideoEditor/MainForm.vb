@@ -470,7 +470,7 @@ Public Class MainForm
         Task.Run(Sub()
                      'Try to read from file, otherwise go ahead and extract them
                      If Not mobjMetaData.ReadScenesFromFile Then
-                         mobjMetaData.ExtractSceneChanges(mobjMetaData.TotalFrames / ctlVideoSeeker.Width)
+                         mobjMetaData.ExtractSceneChanges(mobjMetaData.TotalFrames / ctlVideoSeeker.Width).Awaitnt
                          'mobjMetaData.SaveScenesToFile()
                      End If
                      Dim fullFrameGrab As Task(Of Bitmap) = Nothing
@@ -2458,7 +2458,7 @@ Public Class MainForm
             Me.Width += widthDelta
             Me.Height += heightDelta
         End If
-        mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame, 0, mobjMetaData.Size)
+        mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame, 0, mobjMetaData.Size).Awaitnt
     End Sub
 
 #Region "Cropping Menu"

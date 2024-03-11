@@ -103,7 +103,7 @@ Module Globals
             Dim outText As Task(Of String) = tempProcess.StandardOutput.ReadToEndAsync
             Dim errText As Task(Of String) = tempProcess.StandardError.ReadToEndAsync
 
-            Task.WaitAll(outText, errText)
+            Await Task.WhenAll(outText, errText)
 
             Dim muxMatcher As New Regex("extensions: (?<extension>\w*)")
             For Each objLine In outText.Result.Split(vbLf)

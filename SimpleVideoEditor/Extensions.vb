@@ -1000,4 +1000,11 @@ Module Extensions
                             End If
                         End Function)
     End Function
+
+    ''' <summary>
+    ''' Use on an async method that is not awaited in order to suppress compiler warnings
+    ''' </summary>
+    <Extension()>
+    Public Sub Awaitnt(task As Task)
+    End Sub
 End Module
