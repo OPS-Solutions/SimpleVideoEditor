@@ -671,6 +671,10 @@ Public Class MainForm
             processInfo.Arguments += $" -plays 0"
         End If
 
+        If outPutFile.ToLower.EndsWith("webp") Then
+            processInfo.Arguments += $" -vcodec libwebp_anim -lossless 1 -loop 0"
+        End If
+
         'CROP VIDEO(Can not be done with a rotate, must run twice)
         Dim cropWidth As Integer = inputFile.Width
         Dim cropHeight As Integer = inputFile.Height
