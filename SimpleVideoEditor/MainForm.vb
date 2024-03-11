@@ -23,6 +23,7 @@ Public Class MainForm
 
     Private mptStartCrop As New Point(0, 0) 'Point for the top left of the crop rectangle, in video coordinates
     Private mptEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle, in video coordinates
+    Private mptLastMousePosition As New Point(0, 0) 'Last known mouse position inside the preview control
     Private mblnCropping As Boolean = False 'Flag for if the user has clicked to crop, useful to avoid potential mousemove events that were not initiated by the user clicking on the panel
     Private mblnCropSignal As Boolean = False 'Flag for crop text being set programatically to avoid triggering
 
@@ -879,7 +880,6 @@ Public Class MainForm
                         directoryScript = directoryScript.Replace("<?<SVEInputPath>?>", "%~1\%%~F")
                         directoryScript = directoryScript.Replace("<?<SVEOutputPath>?>", $"%~1\SHINY\{outPrefix}%%~nF{outSuffix}{Path.GetExtension(outPutFile)}")
 
-
                         Dim fileScript As String = processInfo.Arguments
                         fileScript = fileScript.Replace("<?<SVEInputPath>?>", "%~1")
                         fileScript = fileScript.Replace("<?<SVEOutputPath>?>", $"%~dp1\SHINY\%~n1{Path.GetExtension(outPutFile)}")
@@ -991,8 +991,10 @@ Public Class MainForm
             'Draw frame info
             Using pen As New Pen(Color.White, 1)
                 If mintDisplayInfo <> 0 Then
-                    e.Graphics.FillRectangle(Brushes.White, New RectangleF(New PointF(0, 0), e.Graphics.MeasureString(mintCurrentFrame, Me.Font)))
-                    e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, New PointF(0, 0))
+                    Dim frameStringSize As SizeF = e.Graphics.MeasureString(mintCurrentFrame, Me.Font)
+                    Dim frameStringPosition As PointF = New PointF(0, 0)
+                    e.Graphics.FillRectangle(Brushes.White, New RectangleF(frameStringPosition, frameStringSize))
+                    e.Graphics.DrawString(mintCurrentFrame, Me.Font, Brushes.Black, frameStringPosition)
                 End If
             End Using
         End If
@@ -1001,16 +1003,20 @@ Public Class MainForm
     ''' <summary>
     ''' Gets the transformation which converts video coorinates into client coordinates of picVideo
     ''' </summary>
-    Private Function GetVideoToClientMatrix() As System.Drawing.Drawing2D.Matrix
+    Private Function GetVideoToClientMatrix(Optional videoRectOverride As Rectangle = Nothing) As System.Drawing.Drawing2D.Matrix
         Dim resultMatrix As New System.Drawing.Drawing2D.Matrix
         'Scale to video coordinates
         Dim clientRect As Rectangle = picVideo.ClientRectangle
-        Dim imageRect As Rectangle = mobjMetaData.Size.ToRect
+        Dim videoRect As Rectangle = mobjMetaData.Size.ToRect
+        If videoRectOverride.Width > 0 Then
+            videoRect = videoRectOverride
+        End If
+        Dim imageRect As Rectangle = videoRect
         If mobjOutputProperties.RotationAngle = 90 OrElse mobjOutputProperties.RotationAngle = 270 Then
             imageRect = New Rectangle(0, 0, imageRect.Height, imageRect.Width)
         End If
         Dim fitScale As Double = imageRect.FitScale(clientRect)
-        Dim fitImage As Rectangle = Me.mobjMetaData.Size.ToRect.Scale(fitScale)
+        Dim fitImage As Rectangle = videoRect.Scale(fitScale)
 
         Dim clientCenter As Point = clientRect.Center
         Dim fitCenter As Point = fitImage.Center
@@ -1054,8 +1060,25 @@ Public Class MainForm
                     mptEndCrop = actualImagePoint
                 End If
                 UpdateCropStatus()
+                SetColorInfo(e.Location)
             End If
             picVideo.Invalidate()
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Display color information in the frame temporarily (there is no room in the status bar)
+    ''' </summary>
+    Private Sub SetColorInfo(mouseLocation As Point)
+        If picVideo.Image IsNot Nothing Then
+            Dim clientToCacheVideoMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix(picVideo.Image.Size.ToRect)
+            clientToCacheVideoMatrix.Invert()
+            Dim cacheImagePoint As Point = mouseLocation.Transform(clientToCacheVideoMatrix)
+            cacheImagePoint = cacheImagePoint.Bound(picVideo.Image.Size.ToRect)
+            Dim pixelColor As Color = CType(picVideo.Image, Bitmap).GetPixel(cacheImagePoint.X, cacheImagePoint.Y)
+            Dim colorString As String = String.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", pixelColor.A, pixelColor.R, pixelColor.G, pixelColor.B)
+            lblStatusPixelColor.Text = $"{colorString}"
+            lblStatusPixelColor.ToolTipText = $"{Regex.Split(lblStatusPixelColor.ToolTipText, vbNewLine)(0)}{vbNewLine}{colorString}{vbNewLine}{pixelColor.ToString}"
         End If
     End Sub
 
@@ -1098,6 +1121,7 @@ Public Class MainForm
     ''' Modifies the crop region, draggable in all directions
     ''' </summary>
     Private Sub picVideo_MouseMove(sender As Object, e As MouseEventArgs) Handles picVideo.MouseMove
+        mptLastMousePosition = e.Location
         'Display mouse position information
         If Me.mobjMetaData IsNot Nothing Then
             Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
@@ -1147,6 +1171,7 @@ Public Class MainForm
                 mptEndCrop.Y = maxY
                 UpdateCropStatus()
                 picVideo.Invalidate()
+                SetColorInfo(e.Location)
             End If
         End If
     End Sub
@@ -2073,7 +2098,7 @@ Public Class MainForm
             If pgbOperationProgress.Minimum <= newFrame AndAlso pgbOperationProgress.Maximum >= newFrame Then
                 pgbOperationProgress.Value = newFrame + 1
             End If
-            If pgbOperationProgress.Maximum = newFrame Then
+            If pgbOperationProgress.Maximum = pgbOperationProgress.Value Then
                 pgbOperationProgress.Visible = False
             End If
         End If
