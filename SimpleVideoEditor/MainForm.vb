@@ -766,7 +766,10 @@ Public Class MainForm
         'Maintain transparency when making a gif from images or other transparent content
         Dim isGif As Boolean = IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif")
         If isGif Then
-            videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none:alpha_threshold=64")
+            'geq will cause 8-bit transparent video files to lower the saturation when converting into a gif from another video with alpha supported
+            'Unfortunately it is not safe to apply to all videos, so we need to detect if the source has alpha or not, or force it to argb
+            'format=argb,geq=a='alpha(X,Y)':r='r(X,Y)*(alpha(X,Y)/255)':g='g(X,Y)*(alpha(X,Y)/255)':b='b(X,Y)*(alpha(X,Y)/255)',
+            videoFilterParams.Add("format=argb,geq=a='alpha(X,Y)':r='r(X,Y)*(alpha(X,Y)/255)':g='g(X,Y)*(alpha(X,Y)/255)':b='b(X,Y)*(alpha(X,Y)/255)',split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none:alpha_threshold=64")
         End If
 
         'Check if the user wants to do motion interpolation when using a framerate that would cause duplicate frames
