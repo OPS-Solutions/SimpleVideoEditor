@@ -746,26 +746,29 @@ Public Class MainForm
         End If
 
         'PLAYBACK SPEED
-        If specProperties?.PlaybackSpeed <> 1 AndAlso specProperties?.PlaybackSpeed > 0 AndAlso specProperties?.PlaybackSpeed < 3 Then
+        If specProperties?.PlaybackSpeed <> 1 AndAlso specProperties?.PlaybackSpeed > 0 Then
             videoFilterParams.Add($"setpts={1 / specProperties.PlaybackSpeed}*PTS")
-            Dim audioPlaybackSpeed As String = ""
-            If specProperties.PlaybackSpeed < 0.5 Then
-                'atempo has a limit of between 0.5 and 2.0
-                Dim atempoStack As New List(Of Double)
-                Dim currentTempo As Double = specProperties.PlaybackSpeed
-                While currentTempo < 0.5
-                    atempoStack.Add(0.5)
-                    currentTempo = currentTempo / 0.5
-                End While
-                atempoStack.Add(currentTempo)
-                For Each objTempo In atempoStack
-                    audioPlaybackSpeed += $"atempo={objTempo},"
-                Next
-                audioPlaybackSpeed = audioPlaybackSpeed.TrimEnd(",")
-            Else
-                audioPlaybackSpeed = $"atempo={specProperties.PlaybackSpeed}"
+            'Only add audio args if there is audio in the end result
+            If specProperties.PlaybackVolume > 0 Then
+                Dim audioPlaybackSpeed As String = ""
+                If specProperties.PlaybackSpeed < 0.5 Then
+                    'atempo has a limit of between 0.5 and 100.0
+                    Dim atempoStack As New List(Of Double)
+                    Dim currentTempo As Double = specProperties.PlaybackSpeed
+                    While currentTempo < 0.5
+                        atempoStack.Add(0.5)
+                        currentTempo = currentTempo / 0.5
+                    End While
+                    atempoStack.Add(currentTempo)
+                    For Each objTempo In atempoStack
+                        audioPlaybackSpeed += $"atempo={objTempo},"
+                    Next
+                    audioPlaybackSpeed = audioPlaybackSpeed.TrimEnd(",")
+                Else
+                    audioPlaybackSpeed = $"atempo={specProperties.PlaybackSpeed}"
+                End If
+                audioFilterParams.Add(audioPlaybackSpeed)
             End If
-            audioFilterParams.Add(audioPlaybackSpeed)
         End If
 
         'Maintain transparency when making a gif from images or other transparent content
