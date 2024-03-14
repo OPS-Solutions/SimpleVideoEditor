@@ -861,6 +861,7 @@ Public Class MainForm
                         fileScript = fileScript.Replace("<?<SVEInputPath>?>", "%~1")
                         fileScript = fileScript.Replace("<?<SVEOutputPath>?>", $"%~dp1\SHINY\%~n1{Path.GetExtension(outPutFile)}")
 
+                        batchOutput = batchOutput.Replace("<?<SVEVersion>?>", Application.ProductVersion)
                         batchOutput = batchOutput.Replace("<?<ffmpegPath>?>", Application.StartupPath & "\ffmpeg.exe")
                         batchOutput = batchOutput.Replace("<?<SVESourceExt>?>", Path.GetExtension(inputFile.FullPath))
                         batchOutput = batchOutput.Replace("<?<SVE%%FContents>?>", directoryScript)
