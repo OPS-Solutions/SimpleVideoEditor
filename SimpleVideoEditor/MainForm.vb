@@ -225,6 +225,7 @@ Public Class MainForm
         Me.UseWaitCursor = True
         'If overwrite is checked, re-name the current video, then run ffmpeg and output to original, and delete the re-named one
         Dim overwriteOriginal As Boolean = False
+        Dim originalName As String = mstrVideoPath
         If overwrite And System.IO.File.Exists(outputPath) Then
             'If you want to overwrite the original file that is being used, rename it
             If outputPath = mstrVideoPath Then
@@ -294,13 +295,22 @@ Public Class MainForm
 
             If overwriteOriginal Then
                 If File.Exists(outputPath) Then
-                My.Computer.FileSystem.DeleteFile(mstrVideoPath)
+                    My.Computer.FileSystem.DeleteFile(mstrVideoPath)
                     LoadFiles({outputPath})
-            End If
+                End If
             End If
             CheckOutput(outputPath, runArgs, True)
         Catch
             Throw
+        Finally
+            If overwriteOriginal Then
+                If Not File.Exists(outputPath) Then
+                    'Failed, so rename back to the original name without temp
+                    My.Computer.FileSystem.RenameFile(mstrVideoPath, System.IO.Path.GetFileName(outputPath))
+                    mobjMetaData.FullPath = originalName
+                    mstrVideoPath = originalName
+                End If
+            End If
         End Try
     End Sub
 
