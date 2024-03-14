@@ -293,7 +293,10 @@ Public Class MainForm
             Await mproFfmpegProcess.WaitForFinishAsync()
 
             If overwriteOriginal Then
+                If File.Exists(outputPath) Then
                 My.Computer.FileSystem.DeleteFile(mstrVideoPath)
+                    LoadFiles({outputPath})
+            End If
             End If
             CheckOutput(outputPath, runArgs, True)
         Catch
