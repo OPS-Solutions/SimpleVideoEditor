@@ -275,52 +275,14 @@ Public Class MainForm
                     }
         End If
 
-        'First check if something would conflict with cropping, if it will, just crop it first
-        Dim willCrop As Boolean = mptStartCrop.X <> mptEndCrop.X AndAlso mptStartCrop.Y <> mptEndCrop.Y
-        Dim postCropOperation As Boolean = sProperties.Decimate
-        'MP4 does not work with decimate for some reason, so we should lossless convert to AVI first
-        Dim isMP4 As Boolean = IO.Path.GetExtension(outputPath) = ".mp4"
-        Dim intermediateFilePath As String = mstrVideoPath
         mproFfmpegProcess = Nothing
-        Dim useIntermediate As Boolean = (sProperties.Decimate AndAlso isMP4) OrElse (sProperties.PlaybackSpeed <> 1 AndAlso Not ignoreTrim)
 
-        Dim errorLog As New StringBuilder
-        Dim outputLog As New StringBuilder
         Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mobjMetaData.Width, mobjMetaData.Height))
         Dim runArgs As String = ""
-        'If doing an intermediate conversion when making a gif, we don't want to mess up the framerate, so save as an avi first
-        Dim isGIF As Boolean = IO.Path.GetExtension(outputPath) = ".gif"
-        Dim sourceIsGIF As Boolean = IO.Path.GetExtension(mstrVideoPath) = ".gif"
         Dim workingMetadata As VideoData = mobjMetaData
-        If useIntermediate Then
-            intermediateFilePath = FileNameAppend(outputPath, "-tempCrop") + If(isMP4 OrElse (Not sourceIsGIF AndAlso isGIF), ".avi", "")
-            If isMP4 Then
-                intermediateFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputPath), IO.Path.GetFileNameWithoutExtension(outputPath) + "-tempCrop.avi")
-            End If
-            'Don't pass in special properties yet, it would be better to decimate after cropping
-            RunFfmpeg(workingMetadata, intermediateFilePath, New SpecialOutputProperties() With {.PlaybackSpeed = 1, .Rotation = RotateFlipType.RotateNoneFlipNone, .PlaybackVolume = If(mobjOutputProperties.PlaybackVolume <= 0, 0, 1), .QScale = 0}, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(0), cropArea)
-            If Not ignoreTrim Then
-                ignoreTrim = True
-            End If
-            If mproFfmpegProcess Is Nothing Then
-                Exit Sub
-            End If
-
-            'Await Task.Run(Sub() mproFfmpegProcess.WaitForExit())
-            mproFfmpegProcess.BeginErrorReadLine()
-            mproFfmpegProcess.BeginOutputReadLine()
-            runArgs += mproFfmpegProcess.StartInfo.Arguments
-            Await mproFfmpegProcess.WaitForFinishAsync()
-            workingMetadata = VideoData.FromFile(intermediateFilePath)
-            'Check if user canceled manual entry
-            CheckOutput(intermediateFilePath, runArgs, False)
-            If Not File.Exists(intermediateFilePath) Then
-                Exit Sub
-            End If
-        End If
         Try
             'Now you can apply everything else
-            RunFfmpeg(workingMetadata, outputPath, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), If(useIntermediate, New Rectangle?, cropArea))
+            RunFfmpeg(workingMetadata, outputPath, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), cropArea)
             If mproFfmpegProcess Is Nothing Then
                 Exit Sub
             End If
@@ -329,18 +291,12 @@ Public Class MainForm
             runArgs += vbNewLine & mproFfmpegProcess.StartInfo.Arguments
             Await mproFfmpegProcess.WaitForFinishAsync()
 
-            If overwriteOriginal Or (useIntermediate) Then
-                My.Computer.FileSystem.DeleteFile(intermediateFilePath)
+            If overwriteOriginal Then
+                My.Computer.FileSystem.DeleteFile(mstrVideoPath)
             End If
             CheckOutput(outputPath, runArgs, True)
         Catch
             Throw
-        Finally
-            If useIntermediate Then
-                If File.Exists(intermediateFilePath) Then
-                    My.Computer.FileSystem.DeleteFile(intermediateFilePath)
-                End If
-            End If
         End Try
     End Sub
 
@@ -675,7 +631,7 @@ Public Class MainForm
             processInfo.Arguments += $" -vcodec libwebp_anim -lossless 1 -loop 0"
         End If
 
-        'CROP VIDEO(Can not be done with a rotate, must run twice)
+        'CROP VIDEO (Should be done before mpdecimate, to ensure unwanted portions of the frame do not affect the duplicate trimming)
         Dim cropWidth As Integer = inputFile.Width
         Dim cropHeight As Integer = inputFile.Height
         If croprect IsNot Nothing Then
