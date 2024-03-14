@@ -231,6 +231,7 @@ Public Class MainForm
                 overwriteOriginal = True
                 My.Computer.FileSystem.RenameFile(outputPath, System.IO.Path.GetFileName(FileNameAppend(outputPath, "-temp")))
                 mstrVideoPath = FileNameAppend(mstrVideoPath, "-temp")
+                mobjMetaData.FullPath = mstrVideoPath
             Else
                 My.Computer.FileSystem.DeleteFile(outputPath)
             End If
