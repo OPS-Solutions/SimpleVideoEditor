@@ -1860,15 +1860,22 @@ Public Class MainForm
     ''' Updates the rotation setting icon to reflect the current rotation selection
     ''' </summary>
     Private Sub UpdateRotationButton()
+        For Each objControl As ToolStripMenuItem In cmsRotation.Items
+            objControl.Checked = False
+        Next
         Select Case mobjOutputProperties.Rotation
             Case RotateFlipType.Rotate90FlipNone
                 mobjGenericToolTip.SetToolTip(imgRotate, $"Rotate to 180°.{vbNewLine}Currently 90°.")
+                ToolStripMenuItemRotate90.Checked = True
             Case RotateFlipType.Rotate180FlipNone
                 mobjGenericToolTip.SetToolTip(imgRotate, $"Rotate to 270°.{vbNewLine}Currently 180°.")
+                ToolStripMenuItemRotate180.Checked = True
             Case RotateFlipType.Rotate270FlipNone
                 mobjGenericToolTip.SetToolTip(imgRotate, $"Do not rotate.{vbNewLine}Currently will rotate 270°.")
+                ToolStripMenuItemRotate270.Checked = True
             Case RotateFlipType.RotateNoneFlipNone
                 mobjGenericToolTip.SetToolTip(imgRotate, $"Rotate to 90°.{vbNewLine}Currently 0°.")
+                ToolStripMenuItemRotate0.Checked = True
         End Select
         Dim rotatedIcon As Image = New Bitmap(My.Resources.Rotate)
         rotatedIcon.RotateFlip(mobjOutputProperties.Rotation)
