@@ -833,39 +833,8 @@ Public Class MainForm
                 sfdGenerateBatch.OverwritePrompt = True
                 Select Case sfdGenerateBatch.ShowDialog()
                     Case DialogResult.OK
-                        Dim batchOutput As String = My.Resources.BatchTemplate
-                        Dim ffmpegPath As String = System.Reflection.Assembly.GetExecutingAssembly.Location
+                        Dim batchOutput As String = GenerateBatchScript(processInfo.Arguments, inputFile.FullPath, outPutFile)
 
-                        'Check if the user defined a special output name
-                        Dim outPrefix As String = ""
-                        Dim outSuffix As String = ""
-                        Dim inputName As String = Path.GetFileNameWithoutExtension(inputFile.FullPath)
-                        Dim outputName As String = Path.GetFileNameWithoutExtension(outPutFile)
-                        If outputName.Contains(inputName) Then
-                            Dim fixes As String() = Regex.Split(Path.GetFileNameWithoutExtension(outPutFile), Path.GetFileNameWithoutExtension(inputFile.FullPath))
-                            outPrefix = fixes(0)
-                            outSuffix = fixes(1)
-                            If outPrefix = "optionalPrefix(" Then
-                                outPrefix = ""
-                            End If
-                            If outSuffix = ")optionalSuffix" Then
-                                outSuffix = ""
-                            End If
-                        End If
-
-                        Dim directoryScript As String = processInfo.Arguments
-                        directoryScript = directoryScript.Replace("<?<SVEInputPath>?>", "%~1\%%~F")
-                        directoryScript = directoryScript.Replace("<?<SVEOutputPath>?>", $"%~1\SHINY\{outPrefix}%%~nF{outSuffix}{Path.GetExtension(outPutFile)}")
-
-                        Dim fileScript As String = processInfo.Arguments
-                        fileScript = fileScript.Replace("<?<SVEInputPath>?>", "%~1")
-                        fileScript = fileScript.Replace("<?<SVEOutputPath>?>", $"%~dp1\SHINY\%~n1{Path.GetExtension(outPutFile)}")
-
-                        batchOutput = batchOutput.Replace("<?<SVEVersion>?>", Application.ProductVersion)
-                        batchOutput = batchOutput.Replace("<?<ffmpegPath>?>", Application.StartupPath & "\ffmpeg.exe")
-                        batchOutput = batchOutput.Replace("<?<SVESourceExt>?>", Path.GetExtension(inputFile.FullPath))
-                        batchOutput = batchOutput.Replace("<?<SVE%%FContents>?>", directoryScript)
-                        batchOutput = batchOutput.Replace("<?<SVEContents>?>", fileScript)
                         File.WriteAllText(sfdGenerateBatch.FileName, batchOutput)
                         OpenOrFocusFile(sfdGenerateBatch.FileName)
                 End Select
@@ -883,6 +852,47 @@ Public Class MainForm
         mproFfmpegProcess.StartInfo = processInfo
         mproFfmpegProcess.Start()
     End Sub
+
+    ''' <summary>
+    ''' Takes ffmpeg arguments that would normally be applied to a specific video, and returns a batch script that can do it via drag drop
+    ''' </summary>
+    Public Function GenerateBatchScript(arguments As String, inputPath As String, outputPath As String) As String
+        Dim batchOutput As String = My.Resources.BatchTemplate
+        Dim ffmpegPath As String = System.Reflection.Assembly.GetExecutingAssembly.Location
+
+        'Check if the user defined a special output name
+        Dim outPrefix As String = ""
+        Dim outSuffix As String = ""
+        Dim inputName As String = Path.GetFileNameWithoutExtension(inputPath)
+        Dim outputName As String = Path.GetFileNameWithoutExtension(outputPath)
+        If outputName.Contains(inputName) Then
+            Dim fixes As String() = Regex.Split(outputName, inputName)
+            outPrefix = fixes(0)
+            outSuffix = fixes(1)
+            If outPrefix = "optionalPrefix(" Then
+                outPrefix = ""
+            End If
+            If outSuffix = ")optionalSuffix" Then
+                outSuffix = ""
+            End If
+        End If
+
+        'Replace tags within template file with generated content
+        Dim directoryScript As String = arguments
+        directoryScript = directoryScript.Replace("<?<SVEInputPath>?>", "%~1\%%~F")
+        directoryScript = directoryScript.Replace("<?<SVEOutputPath>?>", $"%~1\%outDirectoryName%\{outPrefix}%%~nF{outSuffix}{Path.GetExtension(outputPath)}")
+
+        Dim fileScript As String = arguments
+        fileScript = fileScript.Replace("<?<SVEInputPath>?>", "%~1")
+        fileScript = fileScript.Replace("<?<SVEOutputPath>?>", $"%~dp1\%outDirectoryName%\{outPrefix}%~n1{outSuffix}{Path.GetExtension(outputPath)}")
+
+        batchOutput = batchOutput.Replace("<?<SVEVersion>?>", Application.ProductVersion)
+        batchOutput = batchOutput.Replace("<?<ffmpegPath>?>", Application.StartupPath & "\ffmpeg.exe")
+        batchOutput = batchOutput.Replace("<?<SVESourceExt>?>", Path.GetExtension(inputPath))
+        batchOutput = batchOutput.Replace("<?<SVE%%FContents>?>", directoryScript)
+        batchOutput = batchOutput.Replace("<?<SVEContents>?>", fileScript)
+        Return batchOutput
+    End Function
 
 #Region "CROPPING"
     ''' <summary>
