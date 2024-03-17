@@ -1,4 +1,5 @@
 ﻿Imports System.Drawing.Imaging
+Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports System.Runtime.InteropServices.ComTypes
@@ -1063,4 +1064,28 @@ Module Extensions
         Next
         bottomImage.SetBytes(pixBytesA)
     End Sub
+
+    ''' <summary>
+    ''' Working implementation of GetLineFromCharIndex, but not ruined by word wrap
+    ''' </summary>
+    <Extension()>
+    Public Function GetLineFromCharIndexUnwrapped(textBox As RichTextBox, index As Integer) As Integer
+        Dim remainingDistance As Integer = index
+        'Lines are split with either lf or crlf
+        Dim lineMatches As MatchCollection = Regex.Matches(textBox.Text.Substring(0, index), "\n")
+
+        Return lineMatches.Count
+    End Function
+
+    ''' <summary>
+    ''' Working implementation of GetFirstCharIndexOfCurrentLine, but not ruined by word wrap
+    ''' </summary>
+    <Extension()>
+    Public Function GetFirstCharIndexOfCurrentLineUnwrapped(textBox As RichTextBox) As String
+        Dim lineMatches As MatchCollection = Regex.Matches(textBox.Text.Substring(0, textBox.SelectionStart), "\n")
+        If lineMatches.Count = 0 Then
+            Return 0
+        End If
+        Return lineMatches.Item(lineMatches.Count - 1).Groups(0).Index + 1
+    End Function
 End Module

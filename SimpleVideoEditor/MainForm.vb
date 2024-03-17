@@ -49,6 +49,11 @@ Public Class MainForm
     Private mobjFramesToGrab As New System.Collections.Concurrent.BlockingCollection(Of Integer) 'Queue of frames to grab, will be emptied until latest relevant item to avoid wasting CPU
     Private mthdRenderDecay As Thread 'Loops and reduces display time for frame display on image preview
 
+    'Management of the export overlaid feature
+    Private mblnOverlaid As Boolean = False
+    Private mobjOverlaid As Bitmap = Nothing
+    Private mlstWorkingFiles As New List(Of String)
+
     ''' <summary>
     ''' Stores the last location of the form, used to detect location delta for moving child forms
     ''' </summary>
@@ -2089,10 +2094,6 @@ Public Class MainForm
             End Select
         End Using
     End Sub
-
-    Private mblnOverlaid As Boolean = False
-    Private mobjOverlaid As Bitmap = Nothing
-    Private mlstWorkingFiles As New List(Of String)
 
     Private Sub SelectedRangeOverlaidToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles SelectedRangeOverlaidToolStripMenuItem.Click
         Using sfdExportFrame As New SaveFileDialog
