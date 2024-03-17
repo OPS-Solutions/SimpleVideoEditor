@@ -458,6 +458,10 @@ Module Extensions
                 End If
             Next
             If Not areEquivalent Then
+                'Reached edge of check without a consistent bound, should be outer edge of image
+                If index = endIndex Then
+                    Return index + 1
+                End If
                 Continue For
             End If
             'Expand perpendicular the other way
@@ -471,6 +475,12 @@ Module Extensions
                     Exit For
                 End If
             Next
+            If Not areEquivalent Then
+                'Reached edge of check without a consistent bound, should be outer edge of image
+                If index = endIndex Then
+                    Return index + 1
+                End If
+            End If
             If areEquivalent Then
                 Return index
             End If

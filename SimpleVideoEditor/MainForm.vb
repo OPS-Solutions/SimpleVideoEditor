@@ -1304,13 +1304,12 @@ Public Class MainForm
                                    stillExpanding = False
                                    For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                        If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                                           'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
                                            Dim boundRect As Rectangle
                                            If CacheFullBitmaps Then
-                                               boundRect = Me.mobjMetaData.GetImageFromCache(index).ExpandContents(cropRect, 4)
+                                               boundRect = Me.mobjMetaData.GetImageFromCache(index).ExpandContents(cropRect)
                                            Else
                                                Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
-                                                   boundRect = checkImage.ExpandContents(cropRect, 4)
+                                                   boundRect = checkImage.ExpandContents(cropRect)
                                                End Using
                                            End If
                                            Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
