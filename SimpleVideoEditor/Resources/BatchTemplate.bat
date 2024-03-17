@@ -48,7 +48,7 @@ goto isFile
 
 :isDirectory
 ECHO Creating output directory %~1\%outDirectoryName%
-mkdir %~1\%outDirectoryName%
+mkdir "%~1\%outDirectoryName%"
 ECHO.
 rem Loop over each file in the directory, applying the SVE produced script to each file
 rem Contents should have input replaced with %%F by SVE, and output replaced with a new directory like "%~dp1\%outDirectoryName%\%%~nF.ext"
@@ -64,7 +64,7 @@ goto endProcess
 
 :isFile
 ECHO Creating output directory %~dp1\%outDirectoryName%
-mkdir %~dp1\%outDirectoryName%
+mkdir "%~dp1\%outDirectoryName%"
 ECHO.
 rem Apply SVE produced script to a single file
 rem Contents should have input replaced with "%~1" by SVE, and output like "%~dp1\%outDirectoryName%\%~n1.ext"
