@@ -649,7 +649,7 @@ Public Class MainForm
         Dim cropWidth As Integer = inputFile.Width
         Dim cropHeight As Integer = inputFile.Height
         If croprect IsNot Nothing Then
-            If croprect.Value.Width <> cropWidth AndAlso croprect.Value.Height <> cropHeight Then
+            If croprect.Value.Width < cropWidth OrElse croprect.Value.Height < cropHeight Then
                 cropWidth = croprect.Value.Width
                 cropHeight = croprect.Value.Height
                 videoFilterParams.Add(GetCropArgs(croprect))
