@@ -118,7 +118,7 @@ Public Class MainForm
             If mptStartCrop.X = mptEndCrop.X OrElse mptStartCrop.Y = mptEndCrop.Y Then
                 Return Nothing
             Else
-                Return New Rectangle(mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X, mptEndCrop.Y - mptStartCrop.Y)
+                Return New Rectangle(mptStartCrop.X, mptStartCrop.Y, Math.Min(mobjMetaData.Width - mptStartCrop.X, mptEndCrop.X - mptStartCrop.X), Math.Min(mobjMetaData.Height - mptStartCrop.Y, mptEndCrop.Y - mptStartCrop.Y))
             End If
         End Get
     End Property
