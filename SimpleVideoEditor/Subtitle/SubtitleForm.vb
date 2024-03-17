@@ -90,7 +90,7 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
         mobjGenericToolTip.SetToolTip(btnAdd, $"Add new subtitle entry starting at the current frame.")
         mobjGenericToolTip.SetToolTip(btnDelete, $"Delete the current selected subtitle entry.")
         mobjGenericToolTip.SetToolTip(ctlSubtitleSeeker, $"While focused or selecting a timespan line.{vbNewLine}Use [A][D][←][→] to move subtitle sliders frame by frame.{vbNewLine}Hold [Shift] to move preview slider instead.")
-        CurrentSubrip = SubRip.FromString(txtEditor.Text)
+        SetSRT(True)
     End Sub
 
     Private Sub btnBrowse_Click(sender As Object, e As EventArgs) Handles btnBrowse.Click
@@ -294,9 +294,9 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
     ''' <summary>
     ''' Sets the current text to an srt format string created from the current collection of entries
     ''' </summary>
-    Private Sub SetSRT()
+    Private Sub SetSRT(Optional forceLoad As Boolean = False)
         Dim newText As String = CurrentSubrip.ToString.Replace(vbCrLf, vbLf)
-        If Not txtEditor.Text.Equals(newText) Then
+        If Not txtEditor.Text.Equals(newText) OrElse forceLoad Then
             txtEditor.SetText(newText)
             CurrentSubrip = SubRip.FromString(txtEditor.Text)
             CurrentEntry = CurrentSubrip.FindByChar(txtEditor.SelectionStart)
