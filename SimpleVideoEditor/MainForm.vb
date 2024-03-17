@@ -883,14 +883,14 @@ Public Class MainForm
         directoryScript = directoryScript.Replace("<?<SVEOutputPath>?>", $"%~1\%outDirectoryName%\{outPrefix}%%~nF{outSuffix}{Path.GetExtension(outputPath)}")
 
         Dim fileScript As String = arguments
-        fileScript = fileScript.Replace("<?<SVEInputPath>?>", "%~1")
-        fileScript = fileScript.Replace("<?<SVEOutputPath>?>", $"%~dp1\%outDirectoryName%\{outPrefix}%~n1{outSuffix}{Path.GetExtension(outputPath)}")
+        fileScript = fileScript.Replace("<?<SVEInputPath>?>", "%%~F")
+        fileScript = fileScript.Replace("<?<SVEOutputPath>?>", $"%%~dpF\%outDirectoryName%\{outPrefix}%%~nF{outSuffix}{Path.GetExtension(outputPath)}")
 
         batchOutput = batchOutput.Replace("<?<SVEVersion>?>", Application.ProductVersion)
         batchOutput = batchOutput.Replace("<?<ffmpegPath>?>", Application.StartupPath & "\ffmpeg.exe")
         batchOutput = batchOutput.Replace("<?<SVESourceExt>?>", Path.GetExtension(inputPath))
-        batchOutput = batchOutput.Replace("<?<SVE%%FContents>?>", directoryScript)
-        batchOutput = batchOutput.Replace("<?<SVEContents>?>", fileScript)
+        batchOutput = batchOutput.Replace("<?<SVEDirLoopContents>?>", directoryScript)
+        batchOutput = batchOutput.Replace("<?<SVEArgLoopContents>?>", fileScript)
         Return batchOutput
     End Function
 

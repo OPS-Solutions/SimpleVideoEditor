@@ -34,7 +34,7 @@ goto hasInput
 
 :missingInput
 ECHO No source file/directory was provided
-ECHO Please drag and drop a source video or directory containing source videos onto the .bat file, or provide it as a command line argument
+ECHO Please drag and drop source video(s) or a directory containing source videos onto the .bat file, or provide it as a command line argument
 pause
 rem Exit script and set error level
 exit /b 2
@@ -56,7 +56,7 @@ ECHO #Applying script to all files in "%~1"
 SETLOCAL EnableDelayedExpansion
 for /f "delims=" %%F in ('dir /b /a-d %~1\*<?<SVESourceExt>?> ^| sort') do (
     ECHO %%~F
-    call %ffmpegPath% -v error -stats <?<SVE%%FContents>?>
+    call %ffmpegPath% -v error -stats <?<SVEDirLoopContents>?>
 )
 ENDLOCAL
 ECHO.
@@ -66,10 +66,15 @@ goto endProcess
 ECHO Creating output directory %~dp1\%outDirectoryName%
 mkdir "%~dp1\%outDirectoryName%"
 ECHO.
-rem Apply SVE produced script to a single file
-rem Contents should have input replaced with "%~1" by SVE, and output like "%~dp1\%outDirectoryName%\%~n1.ext"
-ECHO #Applying script to "%~1"
-call %ffmpegPath% -v error -stats <?<SVEContents>?>
+rem Apply SVE produced script to each file argument one by one
+rem Contents should have input replaced with "%%~F" by SVE, and output like "%%~dpF\%outDirectoryName%\%%~nF.ext"
+SETLOCAL EnableDelayedExpansion
+ECHO #Applying script to all arguments
+for %%F in (%*) do (
+    ECHO %%~F
+    call %ffmpegPath% -v error -stats <?<SVEArgLoopContents>?>
+)
+ENDLOCAL
 ECHO.
 
 :endProcess
