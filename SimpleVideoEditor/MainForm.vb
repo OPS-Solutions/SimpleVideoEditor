@@ -1215,13 +1215,13 @@ Public Class MainForm
             Await Task.Run(Sub()
                                For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                    If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                                       'TODO Add something so user can specify alpha that is acceptable, 127 is just here because converting to a gif loses everything below some value(I assume 127 or 128)
+                                       'TODO Add something so user can specify alpha that is acceptable, 64 is just here because converting to a gif loses everything below 64
                                        Dim boundRect As Rectangle
                                        If CacheFullBitmaps Then
-                                           boundRect = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 127)
+                                           boundRect = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 64)
                                        Else
                                            Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
-                                               boundRect = checkImage.BoundContents(cropRect,, 127)
+                                               boundRect = checkImage.BoundContents(cropRect,, 64)
                                            End Using
                                        End If
                                        Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
