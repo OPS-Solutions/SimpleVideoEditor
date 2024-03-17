@@ -1,6 +1,7 @@
 ﻿Imports System.Drawing.Imaging
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
+Imports System.Runtime.InteropServices.ComTypes
 Imports System.Text.RegularExpressions
 Imports System.Threading
 Imports Microsoft.VisualBasic.Devices
@@ -1006,5 +1007,50 @@ Module Extensions
     ''' </summary>
     <Extension()>
     Public Sub Awaitnt(task As Task)
+    End Sub
+
+    ''' <summary>
+    ''' Alpha blends two images by overlaying the given image on this image
+    ''' See https://en.wikipedia.org/wiki/Alpha_compositing
+    ''' </summary>
+    ''' <param name="topImage"></param>
+    <Extension()>
+    Public Sub AlphaBlend(bottomImage As Bitmap, topImage As Bitmap)
+        'Add onto overlaid output
+
+        'Must manually overlay, as graphics drawimage causes edge artifacts, and poor color (even with highquality composting)
+        Dim pixBytesA As Byte() = topImage.GetBytes
+        Dim pixBytesB As Byte() = bottomImage.GetBytes
+        'Dim pixTestColor As Color = pixBytes.GetPixel(404, 466, 2800, 4)
+        For index As Integer = 0 To pixBytesA.Count - 1 Step 4
+            Dim pixIndex As Integer = index
+            'A
+            Dim alphaA As Single = pixBytesA(pixIndex + 3) / 255
+            Dim alphaB As Single = pixBytesB(pixIndex + 3) / 255
+            Dim resultAlpha As Byte = Math.Min(pixBytesA(pixIndex + 3) + pixBytesB(pixIndex + 3) * (1 - alphaA), 255)
+            Dim resultA As Single = resultAlpha / 255
+            If resultA = 0 Then
+                pixBytesA(pixIndex) = 0
+                pixIndex += 1
+                pixBytesA(pixIndex) = 0
+                pixIndex += 1
+                pixBytesA(pixIndex) = 0
+                pixIndex += 1
+                pixBytesA(pixIndex) = 0
+            Else
+                'B
+                pixBytesA(pixIndex) = Math.Min((pixBytesA(pixIndex) * alphaA + pixBytesB(pixIndex) * alphaB * (1 - alphaA)) / resultA, 255)
+                'G
+                pixIndex += 1
+                pixBytesA(pixIndex) = Math.Min((pixBytesA(pixIndex) * alphaA + pixBytesB(pixIndex) * alphaB * (1 - alphaA)) / resultA, 255)
+                'R
+                pixIndex += 1
+                pixBytesA(pixIndex) = Math.Min((pixBytesA(pixIndex) * alphaA + pixBytesB(pixIndex) * alphaB * (1 - alphaA)) / resultA, 255)
+                'A
+                pixIndex += 1
+                pixBytesA(pixIndex) = resultAlpha
+            End If
+        Next
+        bottomImage.SetBytes(pixBytesA)
     End Sub
 End Module

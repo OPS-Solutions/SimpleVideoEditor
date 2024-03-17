@@ -69,6 +69,7 @@ Partial Class MainForm
         Me.cmsPicVideoExportFrame = New System.Windows.Forms.ToolStripMenuItem()
         Me.CurrentToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.SelectedRangeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.SelectedRangeOverlaidToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.cmsAutoCrop = New System.Windows.Forms.ToolStripMenuItem()
         Me.ContractToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ExpandToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -425,32 +426,32 @@ Partial Class MainForm
         '
         Me.cmsRotation.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripMenuItemRotate0, Me.ToolStripMenuItemRotate90, Me.ToolStripMenuItemRotate180, Me.ToolStripMenuItemRotate270})
         Me.cmsRotation.Name = "cmsRotation"
-        Me.cmsRotation.Size = New System.Drawing.Size(181, 114)
+        Me.cmsRotation.Size = New System.Drawing.Size(135, 92)
         '
         'ToolStripMenuItemRotate0
         '
         Me.ToolStripMenuItemRotate0.Checked = True
         Me.ToolStripMenuItemRotate0.CheckState = System.Windows.Forms.CheckState.Checked
         Me.ToolStripMenuItemRotate0.Name = "ToolStripMenuItemRotate0"
-        Me.ToolStripMenuItemRotate0.Size = New System.Drawing.Size(180, 22)
+        Me.ToolStripMenuItemRotate0.Size = New System.Drawing.Size(134, 22)
         Me.ToolStripMenuItemRotate0.Text = "0° (Default)"
         '
         'ToolStripMenuItemRotate90
         '
         Me.ToolStripMenuItemRotate90.Name = "ToolStripMenuItemRotate90"
-        Me.ToolStripMenuItemRotate90.Size = New System.Drawing.Size(180, 22)
+        Me.ToolStripMenuItemRotate90.Size = New System.Drawing.Size(134, 22)
         Me.ToolStripMenuItemRotate90.Text = "90°"
         '
         'ToolStripMenuItemRotate180
         '
         Me.ToolStripMenuItemRotate180.Name = "ToolStripMenuItemRotate180"
-        Me.ToolStripMenuItemRotate180.Size = New System.Drawing.Size(180, 22)
+        Me.ToolStripMenuItemRotate180.Size = New System.Drawing.Size(134, 22)
         Me.ToolStripMenuItemRotate180.Text = "180"
         '
         'ToolStripMenuItemRotate270
         '
         Me.ToolStripMenuItemRotate270.Name = "ToolStripMenuItemRotate270"
-        Me.ToolStripMenuItemRotate270.Size = New System.Drawing.Size(180, 22)
+        Me.ToolStripMenuItemRotate270.Size = New System.Drawing.Size(134, 22)
         Me.ToolStripMenuItemRotate270.Text = "270°"
         '
         'sfdVideoOut
@@ -471,7 +472,7 @@ Partial Class MainForm
         '
         'cmsPicVideoExportFrame
         '
-        Me.cmsPicVideoExportFrame.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.CurrentToolStripMenuItem, Me.SelectedRangeToolStripMenuItem})
+        Me.cmsPicVideoExportFrame.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.CurrentToolStripMenuItem, Me.SelectedRangeToolStripMenuItem, Me.SelectedRangeOverlaidToolStripMenuItem})
         Me.cmsPicVideoExportFrame.Enabled = False
         Me.cmsPicVideoExportFrame.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.cmsPicVideoExportFrame.Name = "cmsPicVideoExportFrame"
@@ -482,15 +483,22 @@ Partial Class MainForm
         '
         Me.CurrentToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.CurrentToolStripMenuItem.Name = "CurrentToolStripMenuItem"
-        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(154, 22)
+        Me.CurrentToolStripMenuItem.Size = New System.Drawing.Size(201, 22)
         Me.CurrentToolStripMenuItem.Text = "Current"
         '
         'SelectedRangeToolStripMenuItem
         '
         Me.SelectedRangeToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.ExportRange
         Me.SelectedRangeToolStripMenuItem.Name = "SelectedRangeToolStripMenuItem"
-        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(154, 22)
+        Me.SelectedRangeToolStripMenuItem.Size = New System.Drawing.Size(201, 22)
         Me.SelectedRangeToolStripMenuItem.Text = "Selected Range"
+        '
+        'SelectedRangeOverlaidToolStripMenuItem
+        '
+        Me.SelectedRangeOverlaidToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.ExportRangeOverlaid
+        Me.SelectedRangeOverlaidToolStripMenuItem.Name = "SelectedRangeOverlaidToolStripMenuItem"
+        Me.SelectedRangeOverlaidToolStripMenuItem.Size = New System.Drawing.Size(201, 22)
+        Me.SelectedRangeOverlaidToolStripMenuItem.Text = "Selected Range Overlaid"
         '
         'cmsAutoCrop
         '
@@ -1032,4 +1040,5 @@ Partial Class MainForm
     Friend WithEvents GenerateBatchScriptToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents lblStatusPixelColor As ToolStripStatusLabel
     Friend WithEvents ToolStripCropArg As ToolStripTextBox
+    Friend WithEvents SelectedRangeOverlaidToolStripMenuItem As ToolStripMenuItem
 End Class

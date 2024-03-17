@@ -162,6 +162,7 @@ Public Class VideoData
     Private mdblSceneFrames As Double()
     Private mblnSceneFramesLoaded As Boolean = False
     Private mblnTotalOk As Boolean = False
+    Public Exporting As Boolean = False 'Tracks completion of a frame export request
 
 
     Private mobjImageCache As ImageCache
@@ -180,7 +181,7 @@ Public Class VideoData
     Public Event RetrievedFrames(sender As Object, cache As ImageCache, ranges As List(Of List(Of Integer)))
 
     ''' <summary>Event for when a frame that was requested to export is detected as having a file created for it</summary>
-    Public Event ExportProgressed(sender As Object, frame As Integer)
+    Public Event ExportProgressed(sender As Object, frame As String)
 
     ''' <summary>Event for a scene frame value being retrieved. Frame -1 when finished</summary>
     Public Event ProcessedScene(sender As Object, frame As Integer)
@@ -1001,6 +1002,7 @@ Public Class VideoData
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'processInfo.Arguments = $" -ss {FormatHHMMSSm((frame) / Me.Framerate)}"
+        processInfo.Arguments += " -y"
         processInfo.Arguments += Me.InputArgs
         'processInfo.Arguments += " -vf ""select=gte(n\," & frame.ToString & "), scale=228:-1"" -vframes 1 " & """" & targetFilePath & """"
         processInfo.Arguments += $" -vf ""select='between(n,{frameStart},{frameEnd})'"
@@ -1016,24 +1018,29 @@ Public Class VideoData
 
         processInfo.UseShellExecute = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
-        Dim tempProcess As Process = Process.Start(processInfo)
-
+        Exporting = True
         Using fsWatcher As New FileSystemWatcher(System.IO.Path.GetDirectoryName(targetFilePath))
             fsWatcher.EnableRaisingEvents = True
             AddHandler fsWatcher.Created, AddressOf ExportProgress
             AddHandler fsWatcher.Changed, AddressOf ExportProgress
+            Dim tempProcess As Process = Process.Start(processInfo)
             tempProcess.WaitForExit()
+            'TODO Below is just a dirty way to try and ensure the filewatcher has had enough time to trigger everything
+            Task.Run(Sub()
+                         Dim timeout As Integer = 3000
+                         While Exporting AndAlso timeout > 0
+                             timeout -= 100
+                             Threading.Thread.Sleep(100)
+                         End While
+                     End Sub).Wait()
+            Exporting = False
             RemoveHandler fsWatcher.Created, AddressOf ExportProgress
             RemoveHandler fsWatcher.Changed, AddressOf ExportProgress
         End Using
     End Sub
 
     Private Sub ExportProgress(sender As Object, e As FileSystemEventArgs)
-        Dim fileName As String = e.Name
-        Dim frameNumber As Integer = -1
-        If Integer.TryParse(Regex.Match(fileName, "\d+").Value, frameNumber) Then
-            RaiseEvent ExportProgressed(Me, frameNumber)
-        End If
+        RaiseEvent ExportProgressed(Me, e.FullPath)
     End Sub
 
     ''' <summary>

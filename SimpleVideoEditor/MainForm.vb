@@ -1440,10 +1440,21 @@ Public Class MainForm
         'Context menu tooltips
         MotionInterpolationToolStripMenuItem.ToolTipText = $"Creates new frames to smooth motion when increasing FPS, or decreasing playback speed.{vbNewLine}WARNING: Slow processing and large file size may occur."
         CacheAllFramesToolStripMenuItem.ToolTipText = $"Caches every frame of the video into memory (high RAM requirement).{vbNewLine}Afterwards, frame scrubbing will be borderline instant."
+
+        'Cropping
         ContractToolStripMenuItem.ToolTipText = $"Attempts to shrink the current selection rectangle as long as the pixels it overlays are of consistent color."
         ExpandToolStripMenuItem.ToolTipText = $"Attempts to expand the current selection rectangle until the pixels it overlays are of consistent color."
+
+        'Export frames
+        CurrentToolStripMenuItem.ToolTipText = $"Save the current previewed frame as a new image file."
+        SelectedRangeToolStripMenuItem.ToolTipText = $"Saves each frame in the selected range as a new image file."
+        SelectedRangeOverlaidToolStripMenuItem.ToolTipText = $"Saves each frame into a new image file by alpha blending them together.{vbNewLine}Video must contain transparent content."
+
+        'Saving
         InjectCustomArgumentsToolStripMenuItem.ToolTipText = $"An additional editable form will appear after selecting a save location, containing the command line arguments to be sent to ffmpeg."
         GenerateBatchScriptToolStripMenuItem.ToolTipText = $"Generates a batch script with drag/dropping support for videos or directories to apply the current settings.{vbNewLine}Batch script outputs are placed in a SHINY directory.{vbNewLine}Prefix/Suffix will be ignored unless manually modified."
+
+        'Subtitles
         BakedInHardToolStripMenuItem.ToolTipText = "Subtitles are baked into the video stream. This ensures any player will render the text."
         ToggleableSoftToolStripMenuItem.ToolTipText = "Subtitles added as an element that can be turned on or off during playback. Relies on player support to see."
 
@@ -2012,11 +2023,7 @@ Public Class MainForm
                     Dim chosenName As String = sfdExportFrame.FileName
                     Task.Run(Sub()
                                  Me.Invoke(Sub()
-                                               Me.UseWaitCursor = True
-                                               pgbOperationProgress.Minimum = mintCurrentFrame
-                                               pgbOperationProgress.Maximum = mintCurrentFrame + 1
-                                               pgbOperationProgress.Value = pgbOperationProgress.Minimum
-                                               pgbOperationProgress.Visible = True
+                                               SetupExportProgress()
                                            End Sub)
                                  If File.Exists(chosenName) Then
                                      My.Computer.FileSystem.DeleteFile(chosenName)
@@ -2053,18 +2060,9 @@ Public Class MainForm
                     Dim chosenName As String = sfdExportFrame.FileName
                     Task.Run(Sub()
                                  Me.Invoke(Sub()
-                                               Me.UseWaitCursor = True
-                                               pgbOperationProgress.Minimum = 0
-                                               pgbOperationProgress.Maximum = endFrame - startFrame
-                                               pgbOperationProgress.Value = pgbOperationProgress.Minimum
-                                               pgbOperationProgress.Visible = True
+                                               SetupExportProgress()
                                            End Sub)
-
-                                 If chosenName.Contains("#") Then
-                                     chosenName = chosenName.Replace("#", "%03d")
-                                 Else
-                                     chosenName = Path.Combine({Path.GetDirectoryName(chosenName), Path.GetFileNameWithoutExtension(chosenName), "%03d", ".png"})
-                                 End If
+                                 chosenName = RenameFileForMultipleOutputs(chosenName)
                                  Dim firstFrame As String = Regex.Replace(chosenName, "%03d", "001")
                                  mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, Me.CropRect, mobjOutputProperties.Rotation)
                                  Me.Invoke(Sub()
@@ -2081,17 +2079,112 @@ Public Class MainForm
         End Using
     End Sub
 
-    Private Sub ExportProgress(sender As Object, newFrame As Integer) Handles mobjMetaData.ExportProgressed
+    Private mblnOverlaid As Boolean = False
+    Private mobjOverlaid As Bitmap = Nothing
+    Private mlstWorkingFiles As New List(Of String)
+
+    Private Sub SelectedRangeOverlaidToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles SelectedRangeOverlaidToolStripMenuItem.Click
+        Using sfdExportFrame As New SaveFileDialog
+            sfdExportFrame.Title = "Select Save Location for Overlaid Image"
+            sfdExportFrame.Filter = "PNG|*.png|All files (*.*)|*.*"
+            Dim validExtensions() As String = sfdVideoOut.Filter.Split("|")
+            Dim startFrame As Integer = ctlVideoSeeker.RangeMinValue
+            Dim endFrame As Integer = ctlVideoSeeker.RangeMaxValue
+            sfdExportFrame.FileName = $"{IO.Path.GetFileNameWithoutExtension(mobjMetaData.FullPath)}-Overlaid.png"
+            sfdExportFrame.OverwritePrompt = True
+            Select Case sfdExportFrame.ShowDialog()
+                Case DialogResult.OK
+                    Dim chosenName As String = sfdExportFrame.FileName
+                    Task.Run(Sub()
+                                 Me.Invoke(Sub()
+                                               SetupExportProgress()
+                                           End Sub)
+
+                                 chosenName = RenameFileForMultipleOutputs(chosenName)
+                                 mblnOverlaid = True
+                                 mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, Me.CropRect, mobjOutputProperties.Rotation)
+                                 mblnOverlaid = False
+                                 For Each objFile In mlstWorkingFiles
+                                     IO.File.Delete(objFile)
+                                 Next
+                                 mlstWorkingFiles.Clear()
+                                 Me.Invoke(Sub()
+                                               Me.UseWaitCursor = False
+                                           End Sub)
+                                 mobjOverlaid.Save(sfdExportFrame.FileName)
+                                 mobjOverlaid.Dispose()
+                                 mobjOverlaid = Nothing
+                                 'Show file location of saved file
+                                 OpenOrFocusFile(sfdExportFrame.FileName)
+                             End Sub)
+                Case Else
+                    'Do nothing
+            End Select
+        End Using
+    End Sub
+
+    ''' <summary>
+    ''' Takes a given file name, and returns it with an ending %03d to be used by ffmpeg for exporting multiple image outputs
+    ''' # characters will be replaced with %03d instead if present
+    ''' </summary>
+    Private Function RenameFileForMultipleOutputs(chosenName As String) As String
+        Dim result As String = chosenName
+        If result.Contains("#") Then
+            result = result.Replace("#", "%03d")
+        Else
+            result = Path.Combine({Path.GetDirectoryName(result), $"{Path.GetFileNameWithoutExtension(result)}%03d{Path.GetExtension(result)}"})
+        End If
+        Return result
+    End Function
+
+    ''' <summary>
+    ''' Shows the progress bar, and sets its range to cover the number of frames being exported
+    ''' </summary>
+    Private Sub SetupExportProgress()
+        Me.UseWaitCursor = True
+        pgbOperationProgress.Minimum = 0
+        pgbOperationProgress.Maximum = ctlVideoSeeker.RangeMaxValue - ctlVideoSeeker.RangeMinValue + 1
+        pgbOperationProgress.Value = pgbOperationProgress.Minimum
+        pgbOperationProgress.Visible = True
+    End Sub
+
+    Private Sub ExportProgress(sender As Object, fileName As String) Handles mobjMetaData.ExportProgressed
+        Dim frameNumber As Integer = -1
+        If Not Integer.TryParse(Regex.Match(fileName, "\d+(?=\.)").Value, frameNumber) Then
+            Exit Sub
+        End If
+        If mlstWorkingFiles.Contains(fileName) Then
+            Exit Sub
+        End If
+
         If Me.InvokeRequired Then
             Me.Invoke(Sub()
-                          ExportProgress(sender, newFrame)
+                          ExportProgress(sender, fileName)
                       End Sub)
         Else
-            If pgbOperationProgress.Minimum <= newFrame AndAlso pgbOperationProgress.Maximum >= newFrame Then
-                pgbOperationProgress.Value = newFrame + 1
+            'Process overlaid frames
+            If mblnOverlaid Then
+                'Read new frame
+                If mobjOverlaid Is Nothing Then
+                    'Clone bitmap pixels and release file
+                    Using newImage As Bitmap = New Bitmap(fileName)
+                        mobjOverlaid = New Bitmap(newImage)
+                    End Using
+                Else
+                    Using newImage As Bitmap = New Bitmap(fileName)
+                        mobjOverlaid.AlphaBlend(newImage)
+                    End Using
+                End If
+            End If
+            'Mark frame for deletion
+            mlstWorkingFiles.Add(fileName)
+
+            If pgbOperationProgress.Minimum <= frameNumber AndAlso pgbOperationProgress.Maximum >= frameNumber Then
+                pgbOperationProgress.Value = frameNumber
             End If
             If pgbOperationProgress.Maximum = pgbOperationProgress.Value Then
                 pgbOperationProgress.Visible = False
+                mobjMetaData.Exporting = False
             End If
         End If
     End Sub
