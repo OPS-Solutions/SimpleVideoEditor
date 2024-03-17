@@ -5,7 +5,7 @@ To use this application, download the zip from https://github.com/OPS-Solutions/
 Run the SimpleVideoEditor.exe to open the main GUI.
 
 **Video Editing Features:**
-- Trim start/end
+- Trim start/end (frame perfect)
 - Crop (manual and automatic)
 - Rotate
 - Reduce resolution
@@ -19,7 +19,10 @@ Run the SimpleVideoEditor.exe to open the main GUI.
 **Advanced Features:**
 - Detect and remove duplicate content from multiple videos
 - Create videos from collections of images
+- Subtitle editor
 - Generate command line arguments for use in other ffmpeg scripts
+- Generate batch scripts to easily process many videos
+- Export frames, individually, or combined and overlaid using alpha blend
 
 # Interface Overview
 ![Interface Overview](https://github.com/OPS-Solutions/SimpleVideoEditor/blob/master/SimpleVideoEditor/Resources/Interface%20Overview.png?raw=true)
