@@ -387,7 +387,7 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
     ''' Checks the current timespan values for the selected entry, updating it to reflect the selected range from the seeker
     ''' </summary>
     Private Sub UpdateSRT()
-        If Me.ctlSubtitleSeeker.MetaData Is Nothing Then
+        If Me.ctlSubtitleSeeker.MetaData Is Nothing OrElse Not Me.Visible Then
             Exit Sub
         End If
 
