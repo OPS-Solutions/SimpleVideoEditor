@@ -642,7 +642,7 @@ Partial Class MainForm
         Me.lblStatusCropRect.Image = Global.SimpleVideoEditor.My.Resources.Resources.Crop
         Me.lblStatusCropRect.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.lblStatusCropRect.Name = "lblStatusCropRect"
-        Me.lblStatusCropRect.Size = New System.Drawing.Size(90, 20)
+        Me.lblStatusCropRect.Size = New System.Drawing.Size(88, 20)
         '
         'lblStatusResolution
         '
@@ -652,7 +652,7 @@ Partial Class MainForm
         Me.lblStatusResolution.Image = Global.SimpleVideoEditor.My.Resources.Resources.Resolution
         Me.lblStatusResolution.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.lblStatusResolution.Name = "lblStatusResolution"
-        Me.lblStatusResolution.Size = New System.Drawing.Size(90, 20)
+        Me.lblStatusResolution.Size = New System.Drawing.Size(88, 20)
         Me.lblStatusResolution.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
         'pgbOperationProgress
