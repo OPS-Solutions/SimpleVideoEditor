@@ -1369,12 +1369,15 @@ Public Class MainForm
         Return New Rectangle(x, y, width, height)
     End Function
 
-    Private Sub lblStatusCropRect_MouseUp(sender As Object, e As MouseEventArgs) Handles lblStatusCropRect.MouseUp, lblStatusResolution.MouseUp
+    Private Sub lblStatusRect_MouseUp(sender As Object, e As MouseEventArgs) Handles lblStatusCropRect.MouseUp, lblStatusResolution.MouseUp, lblStatusPixelColor.MouseUp
         If e.Button = MouseButtons.Right Then
             Dim stripLabelOffset As Integer = 0
             For index As Integer = 0 To StatusStrip1.Items.Count - 1
                 If StatusStrip1.Items(index) Is sender Then
                     Exit For
+                End If
+                If Not StatusStrip1.Items(index).Visible Then
+                    Continue For
                 End If
                 stripLabelOffset += StatusStrip1.Items(index).Width
             Next
@@ -1382,6 +1385,8 @@ Public Class MainForm
                 cmsCrop.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
             ElseIf sender Is lblStatusResolution Then
                 cmsResolution.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
+            ElseIf sender Is lblStatusPixelColor Then
+                cmsPixelColor.Show(StatusStrip1, e.Location.Add(New Point(stripLabelOffset, 0)))
             End If
         End If
     End Sub
@@ -1402,6 +1407,13 @@ Public Class MainForm
     Private Sub cmsResolution_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsResolution.Opening
         ShowMetadataToolStripMenuItem.Enabled = mobjMetaData?.VideoStream?.Raw IsNot Nothing
         Show11ToolStripMenuItem.Enabled = mobjMetaData IsNot Nothing
+    End Sub
+
+    ''' <summary>
+    ''' Disable pixel color items that are not available, like copy when nothing has been picked
+    ''' </summary>
+    Private Sub cmsPixelColor_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsPixelColor.Opening
+        CopyPixelColorToolStripMenuItem.Enabled = Regex.Split(lblStatusPixelColor.ToolTipText, vbNewLine).Count > 1
     End Sub
 #End Region
 
@@ -2598,6 +2610,16 @@ Public Class MainForm
             End If
         End If
     End Sub
+
 #End Region
 
+    Private Sub CopyColorToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CopyPixelColorToolStripMenuItem.Click
+        Dim pixelStatusLines As String() = Regex.Split(lblStatusPixelColor.ToolTipText, vbNewLine)
+        If pixelStatusLines.Count <= 1 Then
+            'Can happen if the crop gets cleared while menu is still opened and then user tries to copy
+            Exit Sub
+        End If
+
+        Clipboard.SetText(pixelStatusLines(1))
+    End Sub
 End Class
