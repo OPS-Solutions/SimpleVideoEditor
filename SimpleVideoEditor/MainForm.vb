@@ -940,8 +940,8 @@ Public Class MainForm
 
             Dim lastTransform As Drawing2D.Matrix = e.Graphics.Transform
             e.Graphics.Transform = GetVideoToClientMatrix()
-            Dim penSize As Single = 1
-            Dim currentScale As Single = 1
+            Dim penSize As Double = 1
+            Dim currentScale As Double = 1
             If picVideo.Image IsNot Nothing Then
                 currentScale = FitScale(picVideo.Image.Size, picVideo.Size)
                 If currentScale > 1 Then
@@ -955,29 +955,35 @@ Public Class MainForm
                 currentScale = FitScale(mobjMetaData.Size, picVideo.Size)
             End If
 
+            Dim startInner As PointF = New PointF(mptStartCrop.X + 0.5 * penSize, mptStartCrop.Y + 0.5 * penSize)
+            Dim endInner As PointF = New PointF(mptEndCrop.X - 0.5 * penSize, mptEndCrop.Y - 0.5 * penSize)
+
+            'Draw white alignment lines shooting off from the crop points
             Using pen As New Pen(Color.White, penSize)
                 pen.DashPattern = {3 / currentScale, 2 / currentScale}
                 If Not Me.CropRect Is Nothing Then
                     'Top Left
-                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, 0), New Point(mptStartCrop.X, mptStartCrop.Y))
-                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, mptStartCrop.Y), New Point(0, mptStartCrop.Y))
+                    e.Graphics.DrawLine(pen, New PointF(startInner.X, 0), New PointF(startInner.X, startInner.Y))
+                    e.Graphics.DrawLine(pen, New PointF(startInner.X, startInner.Y), New PointF(0, startInner.Y))
 
                     'Top Right
-                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, 0), New Point(mptEndCrop.X, mptStartCrop.Y))
-                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, mptStartCrop.Y), New Point(mobjMetaData.Width, mptStartCrop.Y))
+                    e.Graphics.DrawLine(pen, New PointF(endInner.X, 0), New PointF(endInner.X, startInner.Y))
+                    e.Graphics.DrawLine(pen, New PointF(endInner.X, startInner.Y), New PointF(mobjMetaData.Width, startInner.Y))
 
                     'Bottom Left
-                    e.Graphics.DrawLine(pen, New Point(0, mptEndCrop.Y), New Point(mptStartCrop.X, mptEndCrop.Y))
-                    e.Graphics.DrawLine(pen, New Point(mptStartCrop.X, mptEndCrop.Y), New Point(mptStartCrop.X, mobjMetaData.Height))
+                    e.Graphics.DrawLine(pen, New PointF(0, endInner.Y), New PointF(startInner.X, endInner.Y))
+                    e.Graphics.DrawLine(pen, New PointF(startInner.X, endInner.Y), New PointF(startInner.X, mobjMetaData.Height))
 
                     'Bottom Right
-                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, mptEndCrop.Y), New Point(mptEndCrop.X, mobjMetaData.Height))
-                    e.Graphics.DrawLine(pen, New Point(mptEndCrop.X, mptEndCrop.Y), New Point(mobjMetaData.Width, mptEndCrop.Y))
+                    e.Graphics.DrawLine(pen, New PointF(endInner.X, endInner.Y), New PointF(endInner.X, mobjMetaData.Height))
+                    e.Graphics.DrawLine(pen, New PointF(endInner.X, endInner.Y), New PointF(mobjMetaData.Width, endInner.Y))
                 End If
             End Using
+
+            'Draw green dotted rectangle inset in crop area
             Using rectPen As New Pen(Color.Green, penSize)
                 rectPen.DashPattern = {3 / currentScale, 2 / currentScale}
-                e.Graphics.DrawRectangle(rectPen, mptStartCrop.X, mptStartCrop.Y, mptEndCrop.X - mptStartCrop.X, mptEndCrop.Y - mptStartCrop.Y)
+                e.Graphics.DrawRectangle(rectPen, startInner.X, startInner.Y, endInner.X - startInner.X, endInner.Y - startInner.Y)
                 e.Graphics.Transform = lastTransform
             End Using
 
