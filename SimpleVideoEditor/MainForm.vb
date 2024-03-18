@@ -1338,6 +1338,7 @@ Public Class MainForm
                                Loop While stillExpanding
                            End Sub)
             ctlVideoSeeker.PreviewLocation = largestFrame
+
             'Scale to actual size
             If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
                 SetCropPoints(New Point(0, 0), New Point(0, 0))

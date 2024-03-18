@@ -406,6 +406,7 @@ Module Extensions
         Dim stride As Integer = imageData.Stride
         img1.UnlockBits(imageData)
 
+        Dim imageRect As Rectangle = img1.Size.ToRect
         Dim startIndex As Integer = 0
         Dim endIndex As Integer = 0
         Dim boundCenter As Point = boundRect.Center
@@ -441,10 +442,15 @@ Module Extensions
                 isHorizontal = False
         End Select
 
-        For index As Integer = startIndex To endIndex Step (If(startIndex > endIndex, -1, 1))
+        Dim stepDirection As Integer = (If(startIndex > endIndex, -1, 1))
+        For index As Integer = startIndex To endIndex Step stepDirection
             Dim xIndex As Integer = If(isHorizontal, index, startPerp)
             Dim yIndex As Integer = If(isHorizontal, startPerp, index)
             Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
+            If Not imageRect.Contains(xIndex, yIndex) Then
+                'Don't check outside the bounds of the image
+                Return startIndex
+            End If
             Dim startPixel As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
             Dim areEquivalent As Boolean = True
             'Expand perpendicular
@@ -452,6 +458,10 @@ Module Extensions
                 xIndex = If(isHorizontal, index, perpIndex)
                 yIndex = If(isHorizontal, perpIndex, index)
                 pixIndex = (xIndex * 4) + yIndex * stride
+                If Not imageRect.Contains(xIndex, yIndex) Then
+                    'Don't check outside the bounds of the image
+                    Continue For
+                End If
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
                 If Not srcPix.Equivalent(startPixel, 5) Then
                     areEquivalent = False
@@ -461,7 +471,7 @@ Module Extensions
             If Not areEquivalent Then
                 'Reached edge of check without a consistent bound, should be outer edge of image
                 If index = endIndex Then
-                    Return index + 1
+                    Return index + stepDirection
                 End If
                 Continue For
             End If
@@ -479,7 +489,7 @@ Module Extensions
             If Not areEquivalent Then
                 'Reached edge of check without a consistent bound, should be outer edge of image
                 If index = endIndex Then
-                    Return index + 1
+                    Return index + stepDirection
                 End If
             End If
             If areEquivalent Then
