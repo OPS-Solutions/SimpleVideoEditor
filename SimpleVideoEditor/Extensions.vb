@@ -1098,4 +1098,23 @@ Module Extensions
         End If
         Return lineMatches.Item(lineMatches.Count - 1).Groups(0).Index + 1
     End Function
+
+    ''' <summary>
+    ''' Checks the image for any pixels with alpha under 255
+    ''' </summary>
+    <Extension()>
+    Public Function HasAlpha(objImage As Bitmap)
+        Dim pixBytes As Byte() = objImage.GetBytes
+        Dim imageData As BitmapData = objImage.LockBits(New Rectangle(0, 0, objImage.Width, objImage.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
+        Dim stride As Integer = imageData.Stride
+        objImage.UnlockBits(imageData)
+        For indexX As Integer = 0 To imageData.Width - 1
+            For indexY As Integer = 0 To imageData.Height - 1
+                If pixBytes.GetPixel(indexX, indexY, stride, 4).A < 255 Then
+                    Return True
+                End If
+            Next
+        Next
+        Return False
+    End Function
 End Module

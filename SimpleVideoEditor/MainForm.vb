@@ -642,14 +642,6 @@ Public Class MainForm
             processInfo.Arguments += $" -i ""{mobjOutputProperties.Subtitles}"""
         End If
 
-        If outPutFile.ToLower.EndsWith("png") Then
-            processInfo.Arguments += $" -plays 0"
-        End If
-
-        If outPutFile.ToLower.EndsWith("webp") Then
-            processInfo.Arguments += $" -vcodec libwebp_anim -lossless 1 -loop 0"
-        End If
-
         'CROP VIDEO (Should be done before mpdecimate, to ensure unwanted portions of the frame do not affect the duplicate trimming)
         Dim cropWidth As Integer = inputFile.Width
         Dim cropHeight As Integer = inputFile.Height
@@ -747,12 +739,25 @@ Public Class MainForm
         End If
 
         'Maintain transparency when making a gif from images or other transparent content
-        Dim isGif As Boolean = IO.Path.GetExtension(outPutFile).ToLower().Equals(".gif")
-        If isGif Then
-            'geq will cause 8-bit transparent video files to lower the saturation when converting into a gif from another video with alpha supported
-            'Unfortunately it is not safe to apply to all videos, so we need to detect if the source has alpha or not, or force it to argb
-            'format=argb,geq=a='alpha(X,Y)':r='r(X,Y)*(alpha(X,Y)/255)':g='g(X,Y)*(alpha(X,Y)/255)':b='b(X,Y)*(alpha(X,Y)/255)',
-            videoFilterParams.Add("format=argb,geq=a='alpha(X,Y)':r='r(X,Y)*(alpha(X,Y)/255)':g='g(X,Y)*(alpha(X,Y)/255)':b='b(X,Y)*(alpha(X,Y)/255)',split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none:alpha_threshold=64")
+        Dim transparentOutput As Boolean = False
+        Dim transparentInput As Boolean = False
+        'Check if input has any transparency, unfortunately just checking 1 frame could fail, but it is better than nothing
+        If inputFile.GetImageFromAnyCache(If(trimData IsNot Nothing, trimData.StartFrame, 0))?.HasAlpha Then
+            transparentInput = True
+            Select Case IO.Path.GetExtension(outPutFile).ToLower()
+                'Known formats that can support full transparency (MOV WEBM MKV MOV AVI APNG)
+                Case ".webm", ".avi", ".mov", ".mkv", ".png", ".webp"
+                    'Ignore as these support proper transparency with the right args
+                    transparentOutput = True
+                Case ".gif"
+                    'geq will cause 8-bit transparent video files to lower the saturation when converting into a gif from another video with alpha supported
+                    'Unfortunately it is not safe to apply to all videos, so we need to detect if the source has alpha or not, or force it to argb
+                    'format=argb,geq=a='alpha(X,Y)':r='r(X,Y)*(alpha(X,Y)/255)':g='g(X,Y)*(alpha(X,Y)/255)':b='b(X,Y)*(alpha(X,Y)/255)',
+                    videoFilterParams.Add("geq=a='alpha(X,Y)':r='r(X,Y)*(alpha(X,Y)/255)':g='g(X,Y)*(alpha(X,Y)/255)':b='b(X,Y)*(alpha(X,Y)/255)',split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none:alpha_threshold=64")
+                Case Else
+                    'The saturation unboosting geq should be applied for any 8-bit alpha to 0 or 1-bit alpha conversions
+                    videoFilterParams.Add("geq=a='alpha(X,Y)':r='r(X,Y)*(alpha(X,Y)/255)':g='g(X,Y)*(alpha(X,Y)/255)':b='b(X,Y)*(alpha(X,Y)/255)'")
+            End Select
         End If
 
         'Check if the user wants to do motion interpolation when using a framerate that would cause duplicate frames
@@ -785,13 +790,18 @@ Public Class MainForm
         processInfo.Arguments += complexFilterString
 
         'ADJUST VOLUME
-        If specProperties?.PlaybackVolume <> 1 Then
-            If specProperties.PlaybackVolume = 0 Then
-                processInfo.Arguments += " -an"
-            Else
-                audioFilterParams.Add($"volume={specProperties.PlaybackVolume}")
-            End If
-        End If
+        Select Case IO.Path.GetExtension(outPutFile).ToLower()
+            Case ".gif", ".png", ".webp"
+                'Ignore formats that don't support audio
+            Case Else
+                If specProperties?.PlaybackVolume <> 1 Then
+                    If specProperties.PlaybackVolume = 0 Then
+                        processInfo.Arguments += " -an"
+                    Else
+                        audioFilterParams.Add($"volume={specProperties.PlaybackVolume}")
+                    End If
+                End If
+        End Select
 
         'ASSEMBLE AUDIO PARAMETERS
         For paramIndex As Integer = 0 To audioFilterParams.Count - 1
@@ -812,10 +822,25 @@ Public Class MainForm
             processInfo.Arguments += " -c:s mov_text -metadata:s:s:0 language=eng"
         End If
 
-        'ANIMATED PNG FORMAT
-        If outPutFile.EndsWith(".png") Then
-            processInfo.Arguments += " -f apng"
+        'Transparent supporting formats
+        'Ffmpeg doesn't seem to do a great job auto detecting this stuff, so we have to provide extra fluff
+        If transparentOutput Then
+            Select Case IO.Path.GetExtension(outPutFile).ToLower()
+                Case ".mkv", ".mov", ".avi"
+                    processInfo.Arguments += " -c:v ffv1 -pix_fmt yuva420p"
+                Case ".png"
+                    processInfo.Arguments += " -f apng"
+                Case ".webm"
+                    processInfo.Arguments += " -c:v vp9 -crf 0 -pix_fmt yuva420p"
+            End Select
         End If
+
+        Select Case IO.Path.GetExtension(outPutFile).ToLower()
+            Case ".png"
+                processInfo.Arguments += $" -plays 0"
+            Case ".webp"
+                processInfo.Arguments += $" -vcodec libwebp_anim -lossless 1 -loop 0"
+        End Select
 
         'OUTPUT TO FILE
         processInfo.Arguments += " """ & If(mblnBatchOutput, "<?<SVEOutputPath>?>", outPutFile) & """"

@@ -410,6 +410,16 @@ Public Class VideoData
         End If
     End Function
 
+    Public Function GetImageFromAnyCache(imageIndex As Integer) As Bitmap
+        If Me.ImageCacheStatus(imageIndex) = ImageCache.CacheStatus.Cached Then
+            Return Me.GetImageFromCache(imageIndex)
+        ElseIf Me.ThumbImageCacheStatus(imageIndex) = ImageCache.CacheStatus.Cached Then
+            Return Me.GetImageFromThumbCache(imageIndex)
+        Else
+            Return Nothing
+        End If
+    End Function
+
     Public Function ThumbImageCacheStatus(imageIndex As Integer) As ImageCache.CacheStatus
         Return mobjThumbCache.ImageCacheStatus(imageIndex)
     End Function
