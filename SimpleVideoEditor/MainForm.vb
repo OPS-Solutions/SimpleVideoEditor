@@ -404,7 +404,7 @@ Public Class MainForm
         Else
             If mobjMetaData IsNot Nothing Then
                 If ctlVideoSeeker.RangeModified Then
-                    If mobjMetaData.TotalOk AndAlso mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime IsNot Nothing Then
+                    If mobjMetaData.TotalOk OrElse mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime IsNot Nothing Then
                         btnSave.Enabled = True
                     Else
                         btnSave.Enabled = False
