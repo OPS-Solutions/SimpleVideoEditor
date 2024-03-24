@@ -158,6 +158,7 @@ Public Class MainForm
     ''' File is opened, load in the images, and the file attributes.
     ''' </summary>
     Public Sub LoadFile(ByVal fullPath As String, Optional inputMash As Boolean = False)
+        Debug.Print($"Loading file '{fullPath}'")
         mstrVideoPath = fullPath
         sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
         If mobjMetaData IsNot Nothing Then
@@ -540,9 +541,24 @@ Public Class MainForm
         Dim previewFrames As New List(Of Integer)
         previewFrames.Add(0)
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.25))
+        previewFrames.Add(previewFrames.Last - 2)
+        previewFrames.Add(previewFrames.Last + 1)
+        previewFrames.Add(previewFrames.Last + 2)
+        previewFrames.Add(previewFrames.Last + 1)
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.5))
+        previewFrames.Add(previewFrames.Last - 2)
+        previewFrames.Add(previewFrames.Last + 1)
+        previewFrames.Add(previewFrames.Last + 2)
+        previewFrames.Add(previewFrames.Last + 1)
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.75))
+        previewFrames.Add(previewFrames.Last - 2)
+        previewFrames.Add(previewFrames.Last + 1)
+        previewFrames.Add(previewFrames.Last + 2)
+        previewFrames.Add(previewFrames.Last + 1)
         previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 1))
+        previewFrames.Add(previewFrames.Last - 2)
+        previewFrames.Add(previewFrames.Last + 1)
+        Dim removedFrames As Integer = previewFrames.RemoveAll(Function(obj) obj > mobjMetaData.TotalFrames - 1 OrElse obj < 0)
         Return previewFrames
     End Function
 
@@ -566,7 +582,7 @@ Public Class MainForm
 
             For previewIndex As Integer = 0 To previewFrames.Count - 1
                 Dim gotImage As Bitmap = Nothing
-                If objCache.ImageCacheStatus(previewIndex) = ImageCache.CacheStatus.Cached Then
+                If objCache.ImageCacheStatus(previewFrames(previewIndex)) = ImageCache.CacheStatus.Cached Then
                     gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
                     Dim targetPreview As PictureBoxPlus = Nothing
                     Select Case previewIndex
@@ -943,15 +959,6 @@ Public Class MainForm
                 Case sender Is picFrame5
                     newPreview = Math.Floor(mobjMetaData.TotalFrames - 1)
             End Select
-            'Find a nearby available frame because the totalframes may have been modified slightly
-            If Not mobjMetaData.ImageCacheStatus(newPreview) = ImageCache.CacheStatus.Cached Then
-                For index As Integer = Math.Max(0, newPreview - 2) To newPreview + 2
-                    If mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                        ctlVideoSeeker.PreviewLocation = index
-                        Exit Sub
-                    End If
-                Next
-            End If
             ctlVideoSeeker.PreviewLocation = newPreview
         End If
     End Sub
