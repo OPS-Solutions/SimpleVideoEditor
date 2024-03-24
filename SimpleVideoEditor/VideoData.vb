@@ -420,6 +420,14 @@ Public Class VideoData
         End If
     End Function
 
+    Public Function AnyImageCacheStatus(imageIndex As Integer) As ImageCache.CacheStatus
+        If Me.ImageCacheStatus(imageIndex) <> ImageCache.CacheStatus.None Then
+            Return Me.ImageCacheStatus(imageIndex)
+        Else
+            Return mobjThumbCache.ImageCacheStatus(imageIndex)
+        End If
+    End Function
+
     Public Function ThumbImageCacheStatus(imageIndex As Integer) As ImageCache.CacheStatus
         Return mobjThumbCache.ImageCacheStatus(imageIndex)
     End Function
@@ -626,10 +634,10 @@ Public Class VideoData
                                                                End If
 
                                                                targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
-                                                               framesRetrieved.Add(currentFrame)
+                                                               framesRetrieved.Add(frames(currentFrame))
 
-                                                               'If we have grabbed a few frames, it wouldn't hurt to update the UI
-                                                               If framesRetrieved.Count > 10 Then
+                                                               'If we have grabbed and done a lot, it wouldn't hurt to update the UI
+                                                               If framesRetrieved.Last > framesRetrieved.First + 10 Then
                                                                    RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
                                                                    framesRetrieved.Clear()
                                                                End If
@@ -1313,7 +1321,7 @@ Public Class VideoData
     End Sub
 
     ''' <summary>
-    ''' Reads scene frames from a file. Returns false on failure
+    ''' Reads thumbnails from a file. Returns false on failure
     ''' </summary>
     Public Function ReadThumbsFromFile() As Boolean
         If IO.File.Exists(Me.ThumbFramesPath) Then

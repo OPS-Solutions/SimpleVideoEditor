@@ -444,12 +444,8 @@ Public Class MainForm
         Me.UseWaitCursor = True
         mintCurrentFrame = 0
         Task.Run(Sub()
-                     'Try to read from file, otherwise go ahead and extract them
-                     If Not mobjMetaData.ReadScenesFromFile Then
-                         mobjMetaData.ExtractSceneChanges(mobjMetaData.TotalFrames / ctlVideoSeeker.Width).Awaitnt
-                         'mobjMetaData.SaveScenesToFile()
-                     End If
                      Dim fullFrameGrab As Task(Of Bitmap) = Nothing
+                     TryReadScenes()
                      'Grab compressed frames
                      If Not mobjMetaData.ReadThumbsFromFile Then
                          Dim sizeLimit As Integer = 50000
@@ -489,14 +485,27 @@ Public Class MainForm
                          Task.Run(Sub()
                                       mtskPreview.Wait()
                                       PreviewFinished()
+                                      'TryReadScenes()
                                   End Sub)
                      Else
                          Task.Run(Sub()
                                       fullFrameGrab.Wait()
                                       PreviewFinished()
+                                      'TryReadScenes()
                                   End Sub)
                      End If
                  End Sub)
+    End Sub
+
+    ''' <summary>
+    ''' Checks for scenes file and reads it, otherwise calls ffmpeg to get them
+    ''' </summary>
+    Private Async Sub TryReadScenes()
+        'Try to read from file, otherwise go ahead and extract them
+        If Not mobjMetaData.ReadScenesFromFile Then
+            Await mobjMetaData.ExtractSceneChanges(mobjMetaData.TotalFrames / ctlVideoSeeker.Width)
+            'mobjMetaData.SaveScenesToFile()
+        End If
     End Sub
 
 
@@ -537,27 +546,35 @@ Public Class MainForm
     ''' <summary>
     ''' Generates a list of frames that will be used as the default preview frame images
     ''' </summary>
-    Private Function CreatePreviewFrameDefaults() As List(Of Integer)
+    Private Function CreatePreviewFrameDefaults(Optional exact As Boolean = False) As List(Of Integer)
         Dim previewFrames As New List(Of Integer)
         previewFrames.Add(0)
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.25))
-        previewFrames.Add(previewFrames.Last - 2)
-        previewFrames.Add(previewFrames.Last + 1)
-        previewFrames.Add(previewFrames.Last + 2)
-        previewFrames.Add(previewFrames.Last + 1)
+        If Not exact Then
+            previewFrames.Add(previewFrames.Last - 2)
+            previewFrames.Add(previewFrames.Last + 1)
+            previewFrames.Add(previewFrames.Last + 2)
+            previewFrames.Add(previewFrames.Last + 1)
+        End If
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.5))
-        previewFrames.Add(previewFrames.Last - 2)
-        previewFrames.Add(previewFrames.Last + 1)
-        previewFrames.Add(previewFrames.Last + 2)
-        previewFrames.Add(previewFrames.Last + 1)
+        If Not exact Then
+            previewFrames.Add(previewFrames.Last - 2)
+            previewFrames.Add(previewFrames.Last + 1)
+            previewFrames.Add(previewFrames.Last + 2)
+            previewFrames.Add(previewFrames.Last + 1)
+        End If
         previewFrames.Add(Math.Floor(mobjMetaData.TotalFrames * 0.75))
-        previewFrames.Add(previewFrames.Last - 2)
-        previewFrames.Add(previewFrames.Last + 1)
-        previewFrames.Add(previewFrames.Last + 2)
-        previewFrames.Add(previewFrames.Last + 1)
+        If Not exact Then
+            previewFrames.Add(previewFrames.Last - 2)
+            previewFrames.Add(previewFrames.Last + 1)
+            previewFrames.Add(previewFrames.Last + 2)
+            previewFrames.Add(previewFrames.Last + 1)
+        End If
         previewFrames.Add(Math.Max(0, mobjMetaData.TotalFrames - 1))
-        previewFrames.Add(previewFrames.Last - 2)
-        previewFrames.Add(previewFrames.Last + 1)
+        If Not exact Then
+            previewFrames.Add(previewFrames.Last - 2)
+            previewFrames.Add(previewFrames.Last + 1)
+        End If
         Dim removedFrames As Integer = previewFrames.RemoveAll(Function(obj) obj > mobjMetaData.TotalFrames - 1 OrElse obj < 0)
         Return previewFrames
     End Function
@@ -568,7 +585,6 @@ Public Class MainForm
             If ctlVideoSeeker.RangeMaxValue.InRange(ranges(0)(0), ranges(0)(1)) Then
                 CheckSave()
             End If
-            Exit Sub
         ElseIf Not objCache Is mobjMetaData.ImageFrames Then
             'Skip upgrade frames for 1:1 display
             Exit Sub
@@ -578,12 +594,12 @@ Public Class MainForm
                                PreviewsLoaded(sender, objCache, ranges)
                            End Sub)
         Else
-            Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults()
+            Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults(True)
 
             For previewIndex As Integer = 0 To previewFrames.Count - 1
                 Dim gotImage As Bitmap = Nothing
-                If objCache.ImageCacheStatus(previewFrames(previewIndex)) = ImageCache.CacheStatus.Cached Then
-                    gotImage = mobjMetaData.GetImageFromCache(previewFrames(previewIndex), objCache)
+
+                If mobjMetaData.AnyImageCacheStatus(previewFrames(previewIndex)) = ImageCache.CacheStatus.Cached Then
                     Dim targetPreview As PictureBoxPlus = Nothing
                     Select Case previewIndex
                         Case 0
@@ -597,6 +613,7 @@ Public Class MainForm
                         Case Else
                             targetPreview = picFrame5
                     End Select
+                    gotImage = mobjMetaData.GetImageFromAnyCache(previewFrames(previewIndex))
                     If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
                         targetPreview.SetImage(gotImage)
                     Else
@@ -2356,7 +2373,7 @@ Public Class MainForm
                 Dim increments As Integer = mobjMetaData.TotalFrames / ctlVideoSeeker.Width
                 'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
                 ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
-                If mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime Then
+                If mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime IsNot Nothing Then
                     subForm.SetSRT(mobjMetaData.SubtitleStream?.Text)
                     chkSubtitles.Enabled = True
                 End If
