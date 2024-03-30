@@ -2512,9 +2512,12 @@ Public Class MainForm
         CustomSpeedTextToolStripMenuItem.Text = Regex.Match(CustomSpeedTextToolStripMenuItem.Text, "\d*.?\d*").Value
     End Sub
 
+    ''' <summary>
+    ''' Ensure custom playback speed value is loaded if the option is checked in case user changed the field
+    ''' </summary>
     Private Sub cmsPlaybackSpeed_Closing(sender As Object, e As ToolStripDropDownClosingEventArgs) Handles cmsPlaybackSpeed.Closing
         If CustomToolStripMenuItem.Checked Then
-            cmsPlaybackVolume_ItemClicked(Me, New ToolStripItemClickedEventArgs(CustomToolStripMenuItem))
+            cmsPlaybackSpeed_ItemClicked(Me, New ToolStripItemClickedEventArgs(CustomToolStripMenuItem))
         End If
     End Sub
 
