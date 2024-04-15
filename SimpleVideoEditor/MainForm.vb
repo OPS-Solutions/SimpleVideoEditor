@@ -866,8 +866,6 @@ Public Class MainForm
             Select Case IO.Path.GetExtension(outPutFile).ToLower()
                 Case ".mkv", ".mov", ".avi"
                     processInfo.Arguments += " -c:v ffv1 -pix_fmt yuva420p"
-                Case ".png"
-                    processInfo.Arguments += " -f apng"
                 Case ".webm"
                     processInfo.Arguments += " -c:v vp9 -crf 0 -pix_fmt yuva420p"
             End Select
@@ -875,6 +873,7 @@ Public Class MainForm
 
         Select Case IO.Path.GetExtension(outPutFile).ToLower()
             Case ".png"
+                processInfo.Arguments += " -f apng"
                 processInfo.Arguments += $" -plays 0"
             Case ".webp"
                 processInfo.Arguments += $" -vcodec libwebp_anim -lossless 1 -loop 0"
