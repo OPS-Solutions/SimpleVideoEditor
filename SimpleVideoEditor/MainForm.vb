@@ -791,6 +791,11 @@ Public Class MainForm
                     'The saturation unboosting geq should be applied for any 8-bit alpha to 0 or 1-bit alpha conversions
                     videoFilterParams.Add("geq=a='alpha(X,Y)':r='r(X,Y)*(alpha(X,Y)/255)':g='g(X,Y)*(alpha(X,Y)/255)':b='b(X,Y)*(alpha(X,Y)/255)'")
             End Select
+        Else
+            Select Case IO.Path.GetExtension(outPutFile).ToLower()
+                Case ".gif"
+                    videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none")
+            End Select
         End If
 
         'Check if the user wants to do motion interpolation when using a framerate that would cause duplicate frames
