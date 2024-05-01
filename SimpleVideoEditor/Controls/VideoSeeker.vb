@@ -270,15 +270,19 @@
                 Dim drawPen As Pen = Pens.Gray
                 Select Case Me.mobjMetaData.ImageCacheStatus(currentFrameTick)
                     Case ImageCache.CacheStatus.None
-                        If Me.mobjMetaData.ThumbImageCacheStatus(currentFrameTick) <> ImageCache.CacheStatus.Cached Then
-                            tickHeight = 1
-                        End If
                         drawPen = Pens.DarkGray
                     Case ImageCache.CacheStatus.Queued
                         drawPen = Pens.Orange
                     Case ImageCache.CacheStatus.Cached
                         drawPen = Pens.Black
                 End Select
+                'If no thumb or regular image has been cached, make the tick smaller for subtle visualization
+                'when someone tries to cache all while thumbs are still processing
+                If Me.mobjMetaData.ImageCacheStatus(currentFrameTick) <> ImageCache.CacheStatus.Cached Then
+                    If Me.mobjMetaData.ThumbImageCacheStatus(currentFrameTick) <> ImageCache.CacheStatus.Cached Then
+                        tickHeight = 1
+                    End If
+                End If
                 e.Graphics.DrawLine(drawPen, New Point(index * DistanceBetweenTicks, Me.Height), New Point(index * DistanceBetweenTicks, Me.Height - tickHeight))
             Next
         End If
