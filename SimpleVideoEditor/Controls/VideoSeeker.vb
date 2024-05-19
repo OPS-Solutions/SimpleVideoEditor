@@ -199,9 +199,11 @@
             Me.PreviewLocation = 0
         Else
             'Leverage property setters which will bound the values in range
+            'Remember preview location, as the setters will try to change it
+            Dim oldPreview As Integer = Me.PreviewLocation
             Me.RangeMinValue = Me.RangeMinValue
             Me.RangeMaxValue = Me.RangeMaxValue
-            Me.PreviewLocation = Me.PreviewLocation
+            Me.PreviewLocation = oldPreview
         End If
     End Sub
 
