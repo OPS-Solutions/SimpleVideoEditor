@@ -2287,18 +2287,20 @@ Public Class MainForm
     End Sub
 
     Private Sub ctlVideoSeeker_SeekChanged(newVal As Integer) Handles ctlVideoSeeker.SeekChanged
-        If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
-            mintCurrentFrame = newVal
-            If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-                'Grab immediate
-                picVideo.SetImage(mobjMetaData.GetImageFromCache(mintCurrentFrame))
-            Else
-                If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-                    'Check for low res thumbnail if we have it
-                    picVideo.SetImage(mobjMetaData.GetImageFromThumbCache(mintCurrentFrame))
+        If Not mintCurrentFrame = newVal Then
+            If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
+                mintCurrentFrame = newVal
+                If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+                    'Grab immediate
+                    picVideo.SetImage(mobjMetaData.GetImageFromCache(mintCurrentFrame))
                 Else
-                    'Loading image...
-                    picVideo.SetImage(Nothing)
+                    If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
+                        'Check for low res thumbnail if we have it
+                        picVideo.SetImage(mobjMetaData.GetImageFromThumbCache(mintCurrentFrame))
+                    Else
+                        'Loading image...
+                        picVideo.SetImage(Nothing)
+                    End If
                 End If
                 'Queue, event will change the image for us
                 If mthdFrameGrabber Is Nothing OrElse Not mthdFrameGrabber.IsAlive Then
@@ -2309,10 +2311,11 @@ Public Class MainForm
                     mthdFrameGrabber.Start()
                 End If
                 mobjFramesToGrab.Add(mintCurrentFrame)
+
+                mintDisplayInfo = RENDER_DECAY_TIME
+                subForm.ctlSubtitleSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation
+                RefreshStatusToolTips()
             End If
-            mintDisplayInfo = RENDER_DECAY_TIME
-            subForm.ctlSubtitleSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation
-            RefreshStatusToolTips()
         End If
         CheckSave()
     End Sub
@@ -2335,7 +2338,27 @@ Public Class MainForm
             If discardCount > 0 Then
                 Debug.Print($"Discarded {discardCount} frame requests")
             End If
-            mobjMetaData.GetFfmpegFrame(latestFrameRequest)
+            'If we didn't load full resolution, then we should grab a full res image for the current frame
+            'TODO Beware upgrade disposing an image we are currently using, we need to make sure the image isn't still in use
+            Dim currentImage As Image = mobjMetaData.GetImageFromAnyCache(latestFrameRequest)
+            'Must do image access on the main thread, as the UI would potentially be using it, leading to an access exception
+            'Bitmaps can only be accessed on one thread, drawing and checking size are two things that count as being accessed
+            Dim fullSize As Boolean = True
+            Me.Invoke(Sub()
+                          If currentImage IsNot Nothing Then
+                              fullSize = currentImage.Size.Equals(mobjMetaData.Size)
+                          End If
+                      End Sub)
+            If Not fullSize Then
+                Debug.Print($"Grabbing ss full {latestFrameRequest}")
+                mobjMetaData.GetFfmpegFrame(latestFrameRequest, 0, mobjMetaData.Size, True)
+            End If
+            'Cache some nearby stuff
+            If mobjMetaData.ImageCacheStatus(latestFrameRequest) = ImageCache.CacheStatus.Cached Then
+                'Don't need to regrab
+            Else
+                mobjMetaData.GetFfmpegFrame(latestFrameRequest)
+            End If
         End While
     End Sub
 
@@ -2621,7 +2644,9 @@ Public Class MainForm
             Me.Width += widthDelta
             Me.Height += heightDelta
         End If
-        mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame, 0, mobjMetaData.Size).Awaitnt
+        If Not picVideo.Image.Size.Equals(mobjMetaData.Size) Then
+            mobjMetaData.GetFfmpegFrameAsync(mintCurrentFrame, 0, mobjMetaData.Size).Awaitnt
+        End If
     End Sub
 
 #Region "Cropping Menu"

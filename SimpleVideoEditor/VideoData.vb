@@ -3,6 +3,7 @@ Imports System.Runtime.CompilerServices
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports SimpleVideoEditor.ImageCache
 
 Public Class VideoData
     Implements IDisposable
@@ -35,6 +36,7 @@ Public Class VideoData
         Public ReadOnly Property Resolution As System.Drawing.Size
         Public ReadOnly Property Framerate As Double
         Public ReadOnly Property Bitrate As Integer 'kb/s
+        Public ReadOnly Property TimeBase As Integer
         Private Sub New(streamDescription As String)
             _Raw = streamDescription
             Dim resolutionString As String = Regex.Match(streamDescription, "(?<=, )\d*x\d*").Groups(0).Value
@@ -80,6 +82,24 @@ Public Class VideoData
             Dim tempRate As Integer = -1
             Integer.TryParse(Regex.Match(streamDescription, "bitrate: (?<bitrate>\d*).kb\/s").Groups("bitrate").Value, tempRate)
             _Bitrate = tempRate
+
+            'Timebase
+            Dim timeBaseMatcher As New Regex("stream.*?(?<timebase>\d+)(?<mult>k)? tbn")
+            Dim tempBase As Integer = 0
+            Dim timeBaseMatch As Match = timeBaseMatcher.Match(streamDescription)
+            If timeBaseMatch.Success Then
+                Integer.TryParse(timeBaseMatch.Groups("timebase").Value, tempBase)
+                Select Case timeBaseMatch.Groups("mult").Value
+                    Case "k"
+                        tempBase *= 1000
+                    Case "m" 'Unsure if this can actually happen
+                        tempBase *= 1000000
+                    Case "b" 'Unsure if this can actually happen
+                        tempBase *= 1000000000
+                End Select
+            End If
+
+            _TimeBase = tempBase
         End Sub
         Public Shared Function FromDescription(streamDescription As String)
             If Regex.Match(streamDescription, "stream.*video.*").Groups(0).Value?.Length > 0 Then
@@ -172,6 +192,9 @@ Public Class VideoData
     Private mobjSizeOverride As Size? 'For holding resolution data, such as when the resolution fails to be read, but we can still get an image from the stream and figure it out
 
     Private Shared mobjLock As String = "Lock"
+
+    Private showInfoRegex As New Regex("n:\s*(?<index>\d*).*pts:\s*(?<pts>(-|)\d+|nan).*pts_time:(?<pts_time>(-|)[\d\.]+|nan)")
+    Private showInfoBaseRegex As New Regex("config in time_base: (?<numerator>\d+)\/(?<denominator>\d+)")
 
 
     ''' <summary>Event for when some number of frames have been queued for retrieval</summary>
@@ -318,7 +341,8 @@ Public Class VideoData
         Dim readTask As Task = Task.Run(Sub()
                                             Dim dispatchedCount As Integer = 0
                                             Dim sceneMatcher As New Regex("(?<=.scene_score=)\d+\.\d+")
-                                            Dim ptsMatcher As New Regex("pts_time:(?<pts_time>[\d\.]+|nan)")
+                                            Dim ptsMatcher As New Regex("pts:\s*(?<pts>(-|)\d+|nan)\s*pts_time:(?<pts_time>[\d\.]+|nan)")
+
                                             While True
                                                 Dim currentLine As String = tempProcess.StandardError.ReadLine
                                                 dispatchedCount += 1
@@ -343,16 +367,23 @@ Public Class VideoData
                                                 Else
                                                     Dim ptsMatch As Match = ptsMatcher.Match(currentLine)
                                                     If ptsMatch.Success Then
-                                                        Dim ptsValue As Double = Double.NaN
-                                                        If Double.TryParse(ptsMatch.Groups("pts_time").Value, ptsValue) Then
+                                                        Dim ptsTimeValue As Double = Double.NaN
+                                                        Dim ptsValue As Integer = 0
+                                                        If Integer.TryParse(ptsMatch.Groups("pts").Value, ptsValue) AndAlso mobjMetaData.VideoStreams(0).TimeBase > 0 Then
                                                             SyncLock ThumbFrames
                                                                 If ThumbFrames().Item(currentFrame).PTSTime Is Nothing Then
-                                                                    ThumbFrames().Item(currentFrame).PTSTime = Math.Max(0, ptsValue)
+                                                                    ThumbFrames().Item(currentFrame).PTSTime = Math.Max(0, ptsValue / mobjMetaData.VideoStreams(0).TimeBase)
+                                                                End If
+                                                            End SyncLock
+                                                        ElseIf Double.TryParse(ptsMatch.Groups("pts_time").Value, ptsTimeValue) Then
+                                                            SyncLock ThumbFrames
+                                                                If ThumbFrames().Item(currentFrame).PTSTime Is Nothing Then
+                                                                    ThumbFrames().Item(currentFrame).PTSTime = Math.Max(0, ptsTimeValue)
                                                                 End If
                                                             End SyncLock
                                                         End If
                                                     End If
-                                                End If
+                                                    End If
 #If DEBUG Then
                                                 fullDataRead.Append(currentLine & vbCrLf)
 #End If
@@ -425,6 +456,15 @@ Public Class VideoData
             Return Me.ImageCacheStatus(imageIndex)
         Else
             Return mobjThumbCache.ImageCacheStatus(imageIndex)
+        End If
+    End Function
+
+    Public Function AnyImageCachePTS(imageIndex As Integer) As Double?
+        Dim resultItem As CacheItem = Me.mobjImageCache.Item(imageIndex)
+        If resultItem?.PTSTime IsNot Nothing Then
+            Return resultItem.PTSTime
+        Else
+            Return Me.mobjThumbCache.Item(imageIndex).PTSTime
         End If
     End Function
 
@@ -582,7 +622,6 @@ Public Class VideoData
 #End If
             Dim currentFrame As Integer = 0
             Dim currentErrorFrame As Integer = 0
-            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:((-|)[\d\.]+|nan)")
             Dim framesRetrieved As New List(Of Integer)
             'Dim frameRegex As New Regex("frame=\s*(\d*)")
             Dim dispatchedCount As Integer = 0
@@ -649,6 +688,8 @@ Public Class VideoData
 
             Dim standardErrTask As Task = Task.Run(Sub()
                                                        Dim lineRead As String = tempProcess.StandardError.ReadLine
+                                                       Dim ptsNumerator As Integer = 1
+                                                       Dim ptsDenominator As Integer = 1
                                                        Do
                                                            'Read StandardError for the showinfo result for PTS_Time
                                                            If lineRead IsNot Nothing Then
@@ -656,17 +697,26 @@ Public Class VideoData
                                                                fullDataRead.Append(lineRead + vbCrLf)
 #End If
                                                                Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+                                                               Dim baseMatch As Match = showInfoBaseRegex.Match(lineRead)
+
                                                                If infoMatch.Success Then
-                                                                   Dim matchPTS As Double = 0
-                                                                   Double.TryParse(infoMatch.Groups(2).Value, matchPTS)
-                                                                   Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
+                                                                   Dim matchPTSTime As Double = 0
+                                                                   Dim matchPTS As Integer = -1
+                                                                   Double.TryParse(infoMatch.Groups("pts_time").Value, matchPTSTime)
+                                                                   If Integer.TryParse(infoMatch.Groups("pts").Value, matchPTS) Then
+                                                                       matchPTSTime = (ptsNumerator * matchPTS) / ptsDenominator
+                                                                   End If
+                                                                   Dim matchValue As Integer = Integer.Parse(infoMatch.Groups("index").Value)
                                                                    If frames(matchValue) = frames(currentErrorFrame) Then
                                                                        SyncLock targetCache
-                                                                           targetCache(frames(currentErrorFrame)).PTSTime = Math.Max(0, matchPTS)
+                                                                           targetCache(frames(currentErrorFrame)).PTSTime = Math.Max(0, matchPTSTime)
                                                                            targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
                                                                        End SyncLock
                                                                        currentErrorFrame += 1
                                                                    End If
+                                                               ElseIf baseMatch.Success Then
+                                                                   Integer.TryParse(baseMatch.Groups("numerator").Value, ptsNumerator)
+                                                                   Integer.TryParse(baseMatch.Groups("denominator").Value, ptsDenominator)
                                                                End If
                                                                lineRead = tempProcess.StandardError.ReadLine
                                                                dispatchedCount += 1
@@ -794,7 +844,7 @@ Public Class VideoData
                 targetCache.TryQueue(startFrame, endFrame)
             End If
         End SyncLock
-        If upgradeImage Then
+        If upgradeImage OrElse targetCache Is mobjTempCache Then
             mobjTempCache.ClearImageCache()
             targetCache = mobjTempCache
         End If
@@ -812,20 +862,34 @@ Public Class VideoData
                                   End Function)
         End If
 
-        Dim cacheTotal As Integer = endFrame - startFrame + 1
         Dim tempWatch As New Stopwatch
         'ffmpeg -i video.mp4 -vf "select=gte(n\,100), scale=800:-1" -vframes 1 image.jpg
         tempWatch.Start()
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
         'processInfo.Arguments += $" -ss {FormatHHMMSSm((startFrame) / Me.Framerate)}"
+
+        Dim ssFlag As Boolean = False
+        'If we know the exact timestamp, we should be able to accurately seek to the exact frame
+        Dim currentPTS As Double? = AnyImageCachePTS(startFrame)
+        If currentPTS IsNot Nothing Then
+            ssFlag = True
+            Dim formattedPTS As String = FormatHHMMSSm(AnyImageCachePTS(startFrame))
+            formattedPTS = FormatHHMMSSm(currentPTS)
+            processInfo.Arguments += $" -ss {formattedPTS}"
+        End If
+
         processInfo.Arguments += Me.InputArgs
         If frameSize.Width = 0 AndAlso frameSize.Height = 0 Then
             frameSize.Width = Math.Min(Me.Width, 288)
         End If
         'processInfo.Arguments += $" -r {Me.Framerate} -vf scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vframes {cacheTotal} -f image2pipe -vcodec bmp -"
         'FFMPEG expression evaluation https://ffmpeg.org/ffmpeg-utils.html
-        processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vcodec png -f image2pipe -"
+        If ssFlag Then
+            processInfo.Arguments += $" -vf select='between(n,{0},{endFrame - startFrame})',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vcodec png -f image2pipe -"
+        Else
+            processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},showinfo -vsync 0 -vcodec png -f image2pipe -"
+        End If
         'processInfo.Arguments += $" -vf select='between(n,{startFrame},{endFrame})*gte(scene,0)',scale={If(frameSize.Width = 0, -1, frameSize.Width)}:{If(frameSize.Height = 0, -1, frameSize.Height)},metadata=print -vsync 0 -f image2pipe -vcodec bmp -"
         processInfo.UseShellExecute = False
         processInfo.CreateNoWindow = True
@@ -849,7 +913,6 @@ Public Class VideoData
 #End If
             Dim currentFrame As Integer = startFrame
             Dim currentErrorFrame As Integer = startFrame
-            Dim showInfoRegex As New Regex("n:\s*(\d*).*pts_time:((-|)[\d\.]+|nan)")
             Dim framesRetrieved As New List(Of Integer)
             'Dim frameRegex As New Regex("frame=\s*(\d*)")
             Dim dispatchedCount As Integer = 0
@@ -916,6 +979,8 @@ Public Class VideoData
 
             Dim standardErrTask As Task = Task.Run(Sub()
                                                        Dim lineRead As String = tempProcess.StandardError.ReadLine
+                                                       Dim ptsNumerator As Integer = 1
+                                                       Dim ptsDenominator As Integer = 1
                                                        Do
                                                            'Read StandardError for the showinfo result for PTS_Time
                                                            If lineRead IsNot Nothing Then
@@ -923,16 +988,30 @@ Public Class VideoData
                                                                fullDataRead.Append(lineRead + vbCrLf)
 #End If
                                                                Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+                                                               Dim baseMatch As Match = showInfoBaseRegex.Match(lineRead)
+
                                                                If infoMatch.Success Then
-                                                                   Dim matchPTS As Double = 0
-                                                                   Double.TryParse(infoMatch.Groups(2).Value, matchPTS)
-                                                                   Dim matchValue As Integer = Integer.Parse(infoMatch.Groups(1).Value)
+                                                                   Dim matchPTSTime As Double = 0
+                                                                   Dim matchPTS As Integer = -1
+                                                                   Double.TryParse(infoMatch.Groups("pts_time").Value, matchPTSTime)
+                                                                   If Integer.TryParse(infoMatch.Groups("pts").Value, matchPTS) Then
+                                                                       matchPTSTime = (ptsNumerator * matchPTS) / ptsDenominator
+                                                                   End If
+                                                                   Dim matchValue As Integer = Integer.Parse(infoMatch.Groups("index").Value)
                                                                    If (matchValue + startFrame) = currentErrorFrame Then
                                                                        SyncLock targetCache
-                                                                           targetCache(currentErrorFrame).PTSTime = Math.Max(0, matchPTS)
+                                                                           Dim existingPTS As Double? = AnyImageCachePTS(currentErrorFrame)
+                                                                           If existingPTS IsNot Nothing Then
+                                                                               targetCache(currentErrorFrame).PTSTime = existingPTS
+                                                                           Else
+                                                                               targetCache(currentErrorFrame).PTSTime = Math.Max(0, matchPTSTime)
+                                                                           End If
                                                                        End SyncLock
                                                                        currentErrorFrame += 1
                                                                    End If
+                                                               ElseIf baseMatch.Success Then
+                                                                   Integer.TryParse(baseMatch.Groups("numerator").Value, ptsNumerator)
+                                                                   Integer.TryParse(baseMatch.Groups("denominator").Value, ptsDenominator)
                                                                End If
                                                                lineRead = tempProcess.StandardError.ReadLine
                                                                dispatchedCount += 1
@@ -971,8 +1050,12 @@ Public Class VideoData
     ''' <summary>
     ''' Immediately polls ffmpeg for the given frame
     ''' </summary>
-    Public Function GetFfmpegFrame(ByVal frame As Integer, Optional cacheSize As Integer = 20) As Bitmap
-        Return GetFfmpegFrameAsync(frame, cacheSize).Result
+    Public Function GetFfmpegFrame(ByVal frame As Integer, Optional cacheSize As Integer = 20, Optional frameSize As Size = Nothing, Optional temp As Boolean = False) As Bitmap
+        If temp Then
+            Return GetFfmpegFrameAsync(frame, cacheSize, frameSize, mobjTempCache).Result
+        Else
+            Return GetFfmpegFrameAsync(frame, cacheSize, frameSize).Result
+        End If
     End Function
 
     ''' <summary>
