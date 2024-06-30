@@ -99,17 +99,11 @@ Module Extensions
     ''' Converts a double like 100.5 seconds to HHMMSSm... like "00:01:40.5"
     ''' </summary>
     Public Function FormatHHMMSSm(ByVal totalSS As Decimal) As String
-        Dim hours As Double = ((totalSS / 60) / 60)
-        Dim minutes As Double = (hours Mod 1) * 60
-        Dim seconds As Double = (minutes Mod 1) * 60
-        Dim millisecond As Double = (totalSS Mod 1) 'Math.Round(totalSS Mod 1, 2, MidpointRounding.AwayFromZero) * 100
-        Dim hrString As String = Math.Truncate(hours).ToString.PadLeft(2, "0")
-        Dim minString As String = Math.Truncate(minutes).ToString.PadLeft(2, "0")
-        Dim secString As String = Math.Truncate(seconds).ToString.PadLeft(2, "0")
-        Dim milliString As String = millisecond.ToString("R")
-        If milliString.Length > 2 Then
-            milliString = milliString.Substring(2)
-        End If
+        Dim tempTime As New DateTime(totalSS * 10000000L)
+        Dim hrString As String = tempTime.Hour.ToString.PadLeft(2, "0")
+        Dim minString As String = tempTime.Minute.ToString.PadLeft(2, "0")
+        Dim secString As String = tempTime.Second.ToString.PadLeft(2, "0")
+        Dim milliString As String = tempTime.Millisecond.ToString()
         Return $"{hrString}:{minString}:{secString}.{milliString}"
     End Function
 
