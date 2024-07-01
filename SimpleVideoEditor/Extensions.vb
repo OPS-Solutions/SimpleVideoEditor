@@ -103,7 +103,7 @@ Module Extensions
         Dim hrString As String = tempTime.Hour.ToString.PadLeft(2, "0")
         Dim minString As String = tempTime.Minute.ToString.PadLeft(2, "0")
         Dim secString As String = tempTime.Second.ToString.PadLeft(2, "0")
-        Dim milliString As String = tempTime.Millisecond.ToString()
+        Dim milliString As String = tempTime.Millisecond.ToString().PadLeft(3, "0")
         Return $"{hrString}:{minString}:{secString}.{milliString}"
     End Function
 
