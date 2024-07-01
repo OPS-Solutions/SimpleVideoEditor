@@ -1722,10 +1722,6 @@ Public Class MainForm
                 'Might be some other kind of files, ask to concatenate
                 Select Case MessageBox.Show(Me, $"Detected multiple {defaultExt} inputs. Concatenate {args.Count - 1} files temporarily?", "Concatenate Files?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                     Case DialogResult.Yes
-                        Dim argInputs As String = ""
-                        For index As Integer = 1 To args.Count - 1
-                            argInputs += $"-i ""{args(index)}"" "
-                        Next
                         Dim outPath As String = Path.Combine(Globals.TempPath, $"combined {Now.ToString("yyyy-MM-dd hh-mm-ss")}{Path.GetExtension(args(1))}")
                         If File.Exists(outPath) Then
                             File.Delete(outPath)
@@ -1735,7 +1731,19 @@ Public Class MainForm
                             Directory.CreateDirectory(Path.GetDirectoryName(outPath))
                         End If
 
-                        Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}:v=1:a=1"" ""{outPath}""")
+                        'Generate temporary text file containing the files to concatenate
+                        'This method avoids a problem I ran into with some ftypisom error, allows audio to get though, and is WAY faster than complex filter. Though I'm not sure about file type support.
+                        Dim filesBuilder As New StringBuilder()
+                        For inputIndex As Integer = 1 To args.Count - 1
+                            filesBuilder.AppendLine($"file '{args(inputIndex)}'")
+                        Next
+                        Dim textPath As String = Path.Combine(Globals.TempPath, $"concatFiles {Now.ToString("yyyy-MM-dd hh-mm-ss")}.txt")
+                        File.WriteAllText(textPath, filesBuilder.ToString)
+                        Dim startInfo As New ProcessStartInfo("ffmpeg.exe", $" -safe 0 -f concat -i ""{textPath}"" -c copy ""{outPath}""")
+
+                        'If you add a=1, you get audo concatenation, but then it seems stuff without audio can't concatenate
+                        'Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}:v=1:a=1"" ""{outPath}""")
+                        'Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}"" ""{outPath}""")
                         Dim manualEntryForm As New ManualEntryForm(startInfo.Arguments)
                         Select Case manualEntryForm.ShowDialog()
                             Case DialogResult.Cancel
