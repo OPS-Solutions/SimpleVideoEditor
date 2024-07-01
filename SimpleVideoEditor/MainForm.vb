@@ -1735,7 +1735,7 @@ Public Class MainForm
                             Directory.CreateDirectory(Path.GetDirectoryName(outPath))
                         End If
 
-                        Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}"" ""{outPath}""")
+                        Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}:v=1:a=1"" ""{outPath}""")
                         Dim manualEntryForm As New ManualEntryForm(startInfo.Arguments)
                         Select Case manualEntryForm.ShowDialog()
                             Case DialogResult.Cancel
