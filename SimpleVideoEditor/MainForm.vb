@@ -49,6 +49,8 @@ Public Class MainForm
     Private mobjFramesToGrab As New System.Collections.Concurrent.BlockingCollection(Of Integer) 'Queue of frames to grab, will be emptied until latest relevant item to avoid wasting CPU
     Private mthdRenderDecay As Thread 'Loops and reduces display time for frame display on image preview
 
+    Private mobjLastRefresh As DateTime = Now 'Manual record of last forced UI refresh, helps align seek bar dragging with actual preview renders
+
     'Management of the export overlaid feature
     Private mblnOverlaid As Boolean = False
     Private mobjOverlaid As Bitmap = Nothing
@@ -1591,7 +1593,6 @@ Public Class MainForm
     ''' </summary>
     Private Sub RefreshStatusToolTips()
         'Status  tooltips
-        lblStatusMousePosition.ToolTipText = "X,Y position of the mouse in video coordinates"
         UpdateCropStatus()
         Dim startText As String = $"Original resolution Width x Height of the loaded content.{vbNewLine}Double click to fit window to original resolution.{vbNewLine}Right click for raw stream info from ffmpeg."
         If mobjMetaData IsNot Nothing AndAlso picVideo.Image IsNot Nothing Then
@@ -2332,6 +2333,13 @@ Public Class MainForm
             End If
         End If
         CheckSave()
+
+        Dim msDelta As Integer = Now.Subtract(mobjLastRefresh).TotalMilliseconds
+        'Forcing a refresh of the UI ensures dragging the seek bar will look reasonable as it will render more often
+        'A side effect seems to be that this function is called less often, going from 100-200Hz to 20-30Hz in testing
+        'This is likely a result of UI freezing to re-render causing a skip of seek bar locations
+        Me.Refresh()
+        mobjLastRefresh = Now
     End Sub
 
     ''' <summary>

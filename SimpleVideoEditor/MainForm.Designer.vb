@@ -38,7 +38,6 @@ Partial Class MainForm
         Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
         Me.MotionInterpolationToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.grpSettings = New System.Windows.Forms.GroupBox()
-        Me.chkSubtitles = New SimpleVideoEditor.ImageSwitch()
         Me.cmsSubtitle = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.BakedInHardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToggleableSoftToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -46,8 +45,6 @@ Partial Class MainForm
         Me.picColorKey = New System.Windows.Forms.PictureBox()
         Me.cmsColorKey = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.ClearToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
-        Me.chkMute = New SimpleVideoEditor.ImageSwitch()
         Me.cmsPlaybackVolume = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.MuteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripMenuItem10 = New System.Windows.Forms.ToolStripMenuItem()
@@ -114,6 +111,9 @@ Partial Class MainForm
         Me.CopyPixelColorToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ctlVideoSeeker = New SimpleVideoEditor.VideoSeeker()
         Me.picFrame5 = New SimpleVideoEditor.PictureBoxPlus()
+        Me.chkSubtitles = New SimpleVideoEditor.ImageSwitch()
+        Me.chkDeleteDuplicates = New SimpleVideoEditor.ImageSwitch()
+        Me.chkMute = New SimpleVideoEditor.ImageSwitch()
         Me.picFrame4 = New SimpleVideoEditor.PictureBoxPlus()
         Me.picFrame3 = New SimpleVideoEditor.PictureBoxPlus()
         Me.picFrame2 = New SimpleVideoEditor.PictureBoxPlus()
@@ -121,13 +121,10 @@ Partial Class MainForm
         Me.picVideo = New SimpleVideoEditor.PictureBoxPlus()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
-        CType(Me.chkSubtitles, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsSubtitle.SuspendLayout()
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picColorKey, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsColorKey.SuspendLayout()
-        CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.chkMute, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsPlaybackVolume.SuspendLayout()
         CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsRotation.SuspendLayout()
@@ -141,6 +138,9 @@ Partial Class MainForm
         Me.cmsResolution.SuspendLayout()
         Me.cmsPixelColor.SuspendLayout()
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.chkSubtitles, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).BeginInit()
+        CType(Me.chkMute, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -253,21 +253,6 @@ Partial Class MainForm
         Me.grpSettings.TabStop = False
         Me.grpSettings.Text = "Settings"
         '
-        'chkSubtitles
-        '
-        Me.chkSubtitles.Checked = False
-        Me.chkSubtitles.ContextMenuStrip = Me.cmsSubtitle
-        Me.chkSubtitles.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.chkSubtitles.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.SubtitleOff
-        Me.chkSubtitles.Image = Global.SimpleVideoEditor.My.Resources.Resources.SubtitleOff
-        Me.chkSubtitles.Location = New System.Drawing.Point(52, 95)
-        Me.chkSubtitles.Name = "chkSubtitles"
-        Me.chkSubtitles.Size = New System.Drawing.Size(18, 18)
-        Me.chkSubtitles.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
-        Me.chkSubtitles.TabIndex = 25
-        Me.chkSubtitles.TabStop = False
-        Me.chkSubtitles.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.Subtitle
-        '
         'cmsSubtitle
         '
         Me.cmsSubtitle.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.BakedInHardToolStripMenuItem, Me.ToggleableSoftToolStripMenuItem})
@@ -325,35 +310,6 @@ Partial Class MainForm
         Me.ClearToolStripMenuItem.Name = "ClearToolStripMenuItem"
         Me.ClearToolStripMenuItem.Size = New System.Drawing.Size(101, 22)
         Me.ClearToolStripMenuItem.Text = "Clear"
-        '
-        'chkDeleteDuplicates
-        '
-        Me.chkDeleteDuplicates.Checked = False
-        Me.chkDeleteDuplicates.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.chkDeleteDuplicates.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
-        Me.chkDeleteDuplicates.Image = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
-        Me.chkDeleteDuplicates.Location = New System.Drawing.Point(17, 59)
-        Me.chkDeleteDuplicates.Name = "chkDeleteDuplicates"
-        Me.chkDeleteDuplicates.Size = New System.Drawing.Size(18, 18)
-        Me.chkDeleteDuplicates.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
-        Me.chkDeleteDuplicates.TabIndex = 22
-        Me.chkDeleteDuplicates.TabStop = False
-        Me.chkDeleteDuplicates.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOff
-        '
-        'chkMute
-        '
-        Me.chkMute.Checked = True
-        Me.chkMute.ContextMenuStrip = Me.cmsPlaybackVolume
-        Me.chkMute.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.chkMute.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOn
-        Me.chkMute.Image = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
-        Me.chkMute.Location = New System.Drawing.Point(52, 23)
-        Me.chkMute.Name = "chkMute"
-        Me.chkMute.Size = New System.Drawing.Size(18, 18)
-        Me.chkMute.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
-        Me.chkMute.TabIndex = 21
-        Me.chkMute.TabStop = False
-        Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
         '
         'cmsPlaybackVolume
         '
@@ -536,30 +492,30 @@ Partial Class MainForm
         '
         Me.cmsPlaybackSpeed.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.QuarterSpeedToolstripMenuItem, Me.OneThirdSpeedToolStripMenuItem, Me.HalfSpeedToolStripMenuItem, Me.ThreeQuarterSpeedToolStripMenuItem, Me.DefaultSpeedToolStripMenuItem, Me.OneAndAQuarterSpeedToolStripMenuItem, Me.OneAndAHalfSpeedToolStripMenuItem, Me.OneAndThreeQuarterSpeedToolStripMenuItem, Me.DoubleSpeedToolStripMenuItem, Me.CustomToolStripMenuItem, Me.ToolStripSeparator3, Me.CustomSpeedTextToolStripMenuItem})
         Me.cmsPlaybackSpeed.Name = "cmsPlaybackSpeed"
-        Me.cmsPlaybackSpeed.Size = New System.Drawing.Size(181, 277)
+        Me.cmsPlaybackSpeed.Size = New System.Drawing.Size(161, 255)
         '
         'QuarterSpeedToolstripMenuItem
         '
         Me.QuarterSpeedToolstripMenuItem.Name = "QuarterSpeedToolstripMenuItem"
-        Me.QuarterSpeedToolstripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.QuarterSpeedToolstripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.QuarterSpeedToolstripMenuItem.Text = "0.25"
         '
         'OneThirdSpeedToolStripMenuItem
         '
         Me.OneThirdSpeedToolStripMenuItem.Name = "OneThirdSpeedToolStripMenuItem"
-        Me.OneThirdSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.OneThirdSpeedToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.OneThirdSpeedToolStripMenuItem.Text = "0.333"
         '
         'HalfSpeedToolStripMenuItem
         '
         Me.HalfSpeedToolStripMenuItem.Name = "HalfSpeedToolStripMenuItem"
-        Me.HalfSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.HalfSpeedToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.HalfSpeedToolStripMenuItem.Text = "0.5"
         '
         'ThreeQuarterSpeedToolStripMenuItem
         '
         Me.ThreeQuarterSpeedToolStripMenuItem.Name = "ThreeQuarterSpeedToolStripMenuItem"
-        Me.ThreeQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ThreeQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.ThreeQuarterSpeedToolStripMenuItem.Text = "0.75"
         '
         'DefaultSpeedToolStripMenuItem
@@ -567,43 +523,43 @@ Partial Class MainForm
         Me.DefaultSpeedToolStripMenuItem.Checked = True
         Me.DefaultSpeedToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
         Me.DefaultSpeedToolStripMenuItem.Name = "DefaultSpeedToolStripMenuItem"
-        Me.DefaultSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.DefaultSpeedToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.DefaultSpeedToolStripMenuItem.Text = "1 (Default)"
         '
         'OneAndAQuarterSpeedToolStripMenuItem
         '
         Me.OneAndAQuarterSpeedToolStripMenuItem.Name = "OneAndAQuarterSpeedToolStripMenuItem"
-        Me.OneAndAQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.OneAndAQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.OneAndAQuarterSpeedToolStripMenuItem.Text = "1.25"
         '
         'OneAndAHalfSpeedToolStripMenuItem
         '
         Me.OneAndAHalfSpeedToolStripMenuItem.Name = "OneAndAHalfSpeedToolStripMenuItem"
-        Me.OneAndAHalfSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.OneAndAHalfSpeedToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.OneAndAHalfSpeedToolStripMenuItem.Text = "1.5"
         '
         'OneAndThreeQuarterSpeedToolStripMenuItem
         '
         Me.OneAndThreeQuarterSpeedToolStripMenuItem.Name = "OneAndThreeQuarterSpeedToolStripMenuItem"
-        Me.OneAndThreeQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.OneAndThreeQuarterSpeedToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.OneAndThreeQuarterSpeedToolStripMenuItem.Text = "1.75"
         '
         'DoubleSpeedToolStripMenuItem
         '
         Me.DoubleSpeedToolStripMenuItem.Name = "DoubleSpeedToolStripMenuItem"
-        Me.DoubleSpeedToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.DoubleSpeedToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.DoubleSpeedToolStripMenuItem.Text = "2"
         '
         'CustomToolStripMenuItem
         '
         Me.CustomToolStripMenuItem.Name = "CustomToolStripMenuItem"
-        Me.CustomToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.CustomToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.CustomToolStripMenuItem.Text = "Custom"
         '
         'ToolStripSeparator3
         '
         Me.ToolStripSeparator3.Name = "ToolStripSeparator3"
-        Me.ToolStripSeparator3.Size = New System.Drawing.Size(177, 6)
+        Me.ToolStripSeparator3.Size = New System.Drawing.Size(157, 6)
         '
         'CustomSpeedTextToolStripMenuItem
         '
@@ -678,6 +634,7 @@ Partial Class MainForm
         Me.lblStatusMousePosition.Margin = New System.Windows.Forms.Padding(3, 3, 0, 2)
         Me.lblStatusMousePosition.Name = "lblStatusMousePosition"
         Me.lblStatusMousePosition.Size = New System.Drawing.Size(80, 20)
+        Me.lblStatusMousePosition.ToolTipText = "X,Y position of the mouse in video coordinates"
         '
         'lblStatusCropRect
         '
@@ -834,6 +791,50 @@ Partial Class MainForm
         Me.picFrame5.TabIndex = 20
         Me.picFrame5.TabStop = False
         '
+        'chkSubtitles
+        '
+        Me.chkSubtitles.Checked = False
+        Me.chkSubtitles.ContextMenuStrip = Me.cmsSubtitle
+        Me.chkSubtitles.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.chkSubtitles.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.SubtitleOff
+        Me.chkSubtitles.Image = Global.SimpleVideoEditor.My.Resources.Resources.SubtitleOff
+        Me.chkSubtitles.Location = New System.Drawing.Point(52, 95)
+        Me.chkSubtitles.Name = "chkSubtitles"
+        Me.chkSubtitles.Size = New System.Drawing.Size(18, 18)
+        Me.chkSubtitles.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
+        Me.chkSubtitles.TabIndex = 25
+        Me.chkSubtitles.TabStop = False
+        Me.chkSubtitles.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.Subtitle
+        '
+        'chkDeleteDuplicates
+        '
+        Me.chkDeleteDuplicates.Checked = False
+        Me.chkDeleteDuplicates.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.chkDeleteDuplicates.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
+        Me.chkDeleteDuplicates.Image = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOn
+        Me.chkDeleteDuplicates.Location = New System.Drawing.Point(17, 59)
+        Me.chkDeleteDuplicates.Name = "chkDeleteDuplicates"
+        Me.chkDeleteDuplicates.Size = New System.Drawing.Size(18, 18)
+        Me.chkDeleteDuplicates.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
+        Me.chkDeleteDuplicates.TabIndex = 22
+        Me.chkDeleteDuplicates.TabStop = False
+        Me.chkDeleteDuplicates.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.DuplicatesOff
+        '
+        'chkMute
+        '
+        Me.chkMute.Checked = True
+        Me.chkMute.ContextMenuStrip = Me.cmsPlaybackVolume
+        Me.chkMute.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.chkMute.FalseImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOn
+        Me.chkMute.Image = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
+        Me.chkMute.Location = New System.Drawing.Point(52, 23)
+        Me.chkMute.Name = "chkMute"
+        Me.chkMute.Size = New System.Drawing.Size(18, 18)
+        Me.chkMute.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
+        Me.chkMute.TabIndex = 21
+        Me.chkMute.TabStop = False
+        Me.chkMute.TrueImage = Global.SimpleVideoEditor.My.Resources.Resources.SpeakerOff
+        '
         'picFrame4
         '
         Me.picFrame4.Anchor = System.Windows.Forms.AnchorStyles.Bottom
@@ -932,13 +933,10 @@ Partial Class MainForm
         Me.Text = "Simple Video Editor"
         Me.cmsFrameRate.ResumeLayout(False)
         Me.grpSettings.ResumeLayout(False)
-        CType(Me.chkSubtitles, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsSubtitle.ResumeLayout(False)
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picColorKey, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsColorKey.ResumeLayout(False)
-        CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.chkMute, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsPlaybackVolume.ResumeLayout(False)
         CType(Me.imgRotate, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsRotation.ResumeLayout(False)
@@ -955,6 +953,9 @@ Partial Class MainForm
         Me.cmsResolution.ResumeLayout(False)
         Me.cmsPixelColor.ResumeLayout(False)
         CType(Me.picFrame5, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.chkSubtitles, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.chkDeleteDuplicates, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.chkMute, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame4, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame3, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picFrame2, System.ComponentModel.ISupportInitialize).EndInit()
