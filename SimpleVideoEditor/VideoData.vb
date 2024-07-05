@@ -570,8 +570,24 @@ Public Class VideoData
             If ranges.Count <= 0 Then
                 Return True
             End If
+            Dim discardedFrames As New List(Of Integer)
             For Each objRange In ranges
                 targetCache.TryQueue(objRange(0), objRange(1))
+            Next
+            For Each objVal In frames
+                Dim hasValue As Boolean = False
+                For Each objRange In ranges
+                    If objRange(0) <= objVal AndAlso objRange(1) >= objVal Then
+                        hasValue = True
+                        Exit For
+                    End If
+                Next
+                If Not hasValue Then
+                    discardedFrames.Add(objVal)
+                End If
+            Next
+            For Each objDiscardedFrame In discardedFrames
+                frames.Remove(objDiscardedFrame)
             Next
         End SyncLock
         RaiseEvent QueuedFrames(Me, targetCache, ranges)
@@ -690,6 +706,7 @@ Public Class VideoData
                                                        Dim lineRead As String = tempProcess.StandardError.ReadLine
                                                        Dim ptsNumerator As Integer = 1
                                                        Dim ptsDenominator As Integer = 1
+                                                       fullDataRead.AppendLine(processInfo.Arguments)
                                                        Do
                                                            'Read StandardError for the showinfo result for PTS_Time
                                                            If lineRead IsNot Nothing Then
