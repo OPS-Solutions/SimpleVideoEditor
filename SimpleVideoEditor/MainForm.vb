@@ -2320,6 +2320,9 @@ Public Class MainForm
                 RemoveHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
                 subForm.ctlSubtitleSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation
                 AddHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
+                If subForm.Visible Then
+                    subForm.Refresh()
+                End If
                 RefreshStatusToolTips()
             End If
         End If
