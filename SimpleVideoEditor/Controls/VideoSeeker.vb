@@ -1,6 +1,7 @@
 ﻿Public Class VideoSeeker
     Inherits UserControl
     Public Event SeekChanged(ByVal newVal As Integer)
+    Public Event SeekStopped(ByVal newVal As Integer)
 
     Private pRangeMinValue As Integer = 0 'Value that should only be accessed by the property below
     Private mobjPreviewForm As Form
@@ -98,6 +99,9 @@
                 mintPreviewLocation = newVal
                 If EventsEnabled Then
                     RaiseEvent SeekChanged(mintPreviewLocation)
+                    If menmSelectedSlider = SliderID.None Then
+                        RaiseEvent SeekStopped(mintPreviewLocation)
+                    End If
                 End If
                 Me.Invalidate()
             End If
@@ -545,6 +549,7 @@
         If Me.Enabled AndAlso EventsEnabled Then
             menmSelectedSlider = SliderID.None
             RaiseEvent SeekChanged(mintPreviewLocation) 'Not actually changed, but we are done manipulating at least
+            RaiseEvent SeekStopped(mintPreviewLocation)
         End If
     End Sub
 #End Region

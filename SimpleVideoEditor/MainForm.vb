@@ -176,10 +176,12 @@ Public Class MainForm
 
         RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_SeekChanged
         RemoveHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
+        RemoveHandler ctlVideoSeeker.SeekStopped, AddressOf ctlVideoSeeker_SeekStopped
         ctlVideoSeeker.MetaData = mobjMetaData
         subForm.Seeker.MetaData = mobjMetaData
         AddHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_SeekChanged
         AddHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
+        AddHandler ctlVideoSeeker.SeekStopped, AddressOf ctlVideoSeeker_SeekStopped
 
         'Remove irrelevant resolutions
         cmbDefinition.Items.Clear()
@@ -2317,15 +2319,6 @@ Public Class MainForm
                         picVideo.SetImage(Nothing)
                     End If
                 End If
-                'Queue, event will change the image for us
-                If mthdFrameGrabber Is Nothing OrElse Not mthdFrameGrabber.IsAlive Then
-                    mthdFrameGrabber = New Thread(Sub()
-                                                      FrameQueueProcessor()
-                                                  End Sub)
-                    mthdFrameGrabber.IsBackground = True
-                    mthdFrameGrabber.Start()
-                End If
-                mobjFramesToGrab.Add(mintCurrentFrame)
 
                 mintDisplayInfo = RENDER_DECAY_TIME
                 subForm.ctlSubtitleSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation
@@ -2340,6 +2333,24 @@ Public Class MainForm
         'This is likely a result of UI freezing to re-render causing a skip of seek bar locations
         Me.Refresh()
         mobjLastRefresh = Now
+    End Sub
+
+    ''' <summary>
+    ''' Handles when the seek bar should be in a relatively stable position, such as when the user releases the mouse
+    ''' Causes higher resolution grabs compared to seekchanged which would mostly grab already cached things
+    ''' </summary>
+    Private Sub ctlVideoSeeker_SeekStopped(newVal As Integer) Handles ctlVideoSeeker.SeekStopped
+        If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
+            'Queue, event will change the image for us
+            If mthdFrameGrabber Is Nothing OrElse Not mthdFrameGrabber.IsAlive Then
+                mthdFrameGrabber = New Thread(Sub()
+                                                  FrameQueueProcessor()
+                                              End Sub)
+                mthdFrameGrabber.IsBackground = True
+                mthdFrameGrabber.Start()
+            End If
+            mobjFramesToGrab.Add(mintCurrentFrame)
+        End If
     End Sub
 
     ''' <summary>
