@@ -452,34 +452,30 @@ Public Class MainForm
                      TryReadScenes()
                      'Grab compressed frames
                      If Not mobjMetaData.ReadThumbsFromFile Then
-                         Dim sizeLimit As Integer = 50000
-                         Dim lengthLimit As Integer = 300
+                         Dim freeMemoryKB As Integer = My.Computer.Info.AvailablePhysicalMemory / 1024
+                         'With 2 Gig estimated size limit, somehow I have seen 4+ gigs
+                         'We do not want to hit memory limit, and we want some breathing room for
+                         Dim sizeLimitKB As Integer = Math.Min(1000000, freeMemoryKB / 3)
+                         Dim estimatedFrameSizeKB As Integer = mobjMetaData.Width * mobjMetaData.Height * 32 / 8 / 1024
+                         Dim estimatedCacheSize As Long = estimatedFrameSizeKB * mobjMetaData.TotalFrames
 
-                         'If the video is pretty small, just cache the whole thing
-                         'Tests showed 7.5s load for a 3.5 minute 50MB video, vs 9s for full cache
-                         For index As Integer = 100 To 1 Step -1
-                             'Grab higher resolution cached images for shorter videos so users have higher quality images for tiny clips, enabling very accurate cropping
-                             If mobjMetaData.FileSize < (sizeLimit / index) AndAlso mobjMetaData.DurationSeconds <= (lengthLimit / index) Then
-                                 CacheFullBitmaps = True
-                                 fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1, New Drawing.Size(Math.Min(288 * Math.Sqrt(Math.Sqrt(index)), mobjMetaData.Width), 0))
-                                 Exit For
-                             End If
-                         Next
+                         Dim scaleReduction As Double = sizeLimitKB / estimatedCacheSize
 
-                         If fullFrameGrab Is Nothing Then
+                         Dim squareReductionSize As Integer = Math.Sqrt((mobjMetaData.Width * mobjMetaData.Height) * scaleReduction)
+                         Dim targetSize As New Size(Math.Min(Math.Min(squareReductionSize, mobjMetaData.Width), My.Computer.Screen.WorkingArea.Height), 0)
+
+                         If scaleReduction > 1 Then
+                             'Full resolution all the things
+                             fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1, mobjMetaData.Size)
+                             CacheFullBitmaps = True
+                         ElseIf squareReductionSize < (picVideo.MinimumSize.Height / 2) Then
+                             Task.Run(Async Function()
+                                          Await mobjMetaData.ExtractThumbFrames(squareReductionSize)
+                                      End Function)
                              CacheFullBitmaps = False
-                             If mobjMetaData.DurationSeconds < 7 Then
-                                 'If the video is pretty short, just cache the whole thing
-                                 fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1)
-                             Else
-                                 Dim thumbSize As Integer = 32
-                                 If mobjMetaData.FileSize <= 50000 AndAlso mobjMetaData.DurationSeconds <= 600 Then
-                                     thumbSize = 64
-                                 End If
-                                 Task.Run(Async Function()
-                                              Await mobjMetaData.ExtractThumbFrames(thumbSize)
-                                          End Function)
-                             End If
+                         Else
+                             fullFrameGrab = mobjMetaData.GetFfmpegFrameAsync(0, -1, targetSize)
+                             CacheFullBitmaps = False
                          End If
                          'mobjMetaData.SaveThumbsToFile()
                      End If
