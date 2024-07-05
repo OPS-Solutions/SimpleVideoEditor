@@ -2317,7 +2317,9 @@ Public Class MainForm
                 End If
 
                 mintDisplayInfo = RENDER_DECAY_TIME
+                RemoveHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
                 subForm.ctlSubtitleSeeker.PreviewLocation = ctlVideoSeeker.PreviewLocation
+                AddHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
                 RefreshStatusToolTips()
             End If
         End If
