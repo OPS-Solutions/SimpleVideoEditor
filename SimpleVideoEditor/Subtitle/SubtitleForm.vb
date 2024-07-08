@@ -269,16 +269,21 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
     ''' <summary>
     ''' Saves current editor text into temp folder so it can be grabbed by ffmpeg
     ''' </summary>
-    Public Sub SaveToTemp()
-        If FilePath.StartsWith(Globals.TempPath) Then
-            If Not IO.Directory.Exists(Globals.TempPath) Then
-                IO.Directory.CreateDirectory(Globals.TempPath)
-            End If
-            If Not IO.File.Exists(FilePath) Then
-                IO.File.Create(FilePath).Dispose()
-            End If
-            IO.File.WriteAllText(FilePath, txtEditor.Text)
+    Public Sub SaveToTemp(seek As Double, playbackSpeed As Double)
+        If Not IO.Directory.Exists(Globals.TempPath) Then
+            IO.Directory.CreateDirectory(Globals.TempPath)
         End If
+        If Not IO.File.Exists(FilePath) Then
+            IO.File.Create(FilePath).Dispose()
+        End If
+        Dim modifiedSubrip As SubRip = SubRip.FromString(CurrentSubrip.ToString)
+        For Each objEntry In modifiedSubrip.Entries
+            objEntry.StartTime = New TimeSpan(objEntry.StartTime.Ticks / playbackSpeed)
+            objEntry.StartTime = objEntry.StartTime.Subtract(New TimeSpan(Math.Max(0, (seek / playbackSpeed) * 10000000)))
+            objEntry.EndTime = New TimeSpan(objEntry.EndTime.Ticks / playbackSpeed)
+            objEntry.EndTime = objEntry.EndTime.Subtract(New TimeSpan(Math.Max(0, (seek / playbackSpeed) * 10000000)))
+        Next
+        IO.File.WriteAllText(GetTempSrt, modifiedSubrip.ToString)
     End Sub
 
     ''' <summary>

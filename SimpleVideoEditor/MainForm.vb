@@ -287,6 +287,8 @@ Public Class MainForm
                     }
         End If
 
+        subForm.SaveToTemp(trimData.StartPTS, If(mobjOutputProperties.BakeSubs, 1, sProperties.PlaybackSpeed))
+
         mproFfmpegProcess = Nothing
 
         Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mobjMetaData.Width, mobjMetaData.Height))
@@ -387,7 +389,6 @@ Public Class MainForm
                 Exit For
             End If
         Next
-        subForm.SaveToTemp()
 
         'Retarget the location of the last attempted save, as when you save, the full path gets placed into the FileName member
         sfdVideoOut.FileName = targetName
@@ -636,6 +637,7 @@ Public Class MainForm
         mobjErrorLog.Clear()
         mobjOutputLog.Clear()
         Dim softSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso Not mobjOutputProperties.BakeSubs
+        Dim hardSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso mobjOutputProperties.BakeSubs
 
         If specProperties?.PlaybackSpeed <> 0 AndAlso trimData IsNot Nothing Then
             'duration /= specProperties.PlaybackSpeed
@@ -654,13 +656,14 @@ Public Class MainForm
         Dim videoFilterParams As New List(Of String)
         Dim audioFilterParams As New List(Of String)
 
+        Dim startDurationArgs As String = ""
         If specProperties?.PlaybackVolume <> 0 Then
             If trimData IsNot Nothing Then
                 Dim duration As String = (trimData.EndPTS) - (trimData.StartPTS)
                 If duration > 0 Then
                     'duration = Math.Truncate(duration * mobjMetaData.Framerate) / mobjMetaData.Framerate
                     Dim startHHMMSS As String = FormatHHMMSSm(trimData.StartPTS / specProperties.PlaybackSpeed)
-                    processInfo.Arguments += " -ss " & startHHMMSS & " -t " & duration.ToString
+                    startDurationArgs = " -ss " & startHHMMSS & " -t " & (duration / specProperties.PlaybackSpeed).ToString
                 End If
             End If
         Else
@@ -670,9 +673,9 @@ Public Class MainForm
             End If
         End If
 
-        processInfo.Arguments += inputFile.InputArgs(If(mblnBatchOutput, "<?<SVEInputPath>?>", ""))
+        Dim inputArgs As String = inputFile.InputArgs(If(mblnBatchOutput, "<?<SVEInputPath>?>", ""))
         If softSubs Then
-            processInfo.Arguments += $" -i ""{mobjOutputProperties.Subtitles}"""
+            inputArgs += $" -i ""{GetTempSrt()}"""
         End If
 
         'CROP VIDEO (Should be done before mpdecimate, to ensure unwanted portions of the frame do not affect the duplicate trimming)
@@ -723,13 +726,11 @@ Public Class MainForm
         End If
 
         'HARD SUBTITLES
-        If mobjOutputProperties.Subtitles?.Length > 0 Then
-            If mobjOutputProperties.BakeSubs Then
-                'To use a file path inside complex filter, you need to escape the colon, and reverse all slashes
-                Dim reverseSlashed As String = mobjOutputProperties.Subtitles.Replace("\", "/")
-                reverseSlashed = reverseSlashed.Replace(":", "\:")
-                videoFilterParams.Add($"subtitles='{reverseSlashed}'")
-            End If
+        If hardSubs Then
+            'To use a file path inside complex filter, you need to escape the colon, and reverse all slashes
+            Dim reverseSlashed As String = GetTempSrt().Replace("\", "/")
+            reverseSlashed = reverseSlashed.Replace(":", "\:")
+            videoFilterParams.Add($"subtitles='{reverseSlashed}'")
         End If
 
         'DELETE DUPLICATE FRAMES
@@ -746,7 +747,8 @@ Public Class MainForm
         End If
 
         'PLAYBACK SPEED
-        If specProperties?.PlaybackSpeed <> 1 AndAlso specProperties?.PlaybackSpeed > 0 Then
+        Dim speedChanged As Boolean = specProperties?.PlaybackSpeed <> 1 AndAlso specProperties?.PlaybackSpeed > 0
+        If speedChanged Then
             videoFilterParams.Add($"setpts={1 / specProperties.PlaybackSpeed}*PTS")
             'Only add audio args if there is audio in the end result
             If specProperties.PlaybackVolume > 0 Then
@@ -807,15 +809,11 @@ Public Class MainForm
         End If
 
         'ASSEMBLE VIDEO PARAMETERS
-        Dim filterString As String = ""
         Dim complexFilterString As String = ""
         Dim lastOutput As String = "[0:v]"
         For paramIndex As Integer = 0 To videoFilterParams.Count - 1
             If paramIndex = 0 Then
-                filterString += " -filter:v " & videoFilterParams(paramIndex)
                 complexFilterString += $" -filter_complex """
-            Else
-                filterString += "," & videoFilterParams(paramIndex)
             End If
             Dim outParam As String = $" [out{paramIndex}]; "
             complexFilterString += $"{lastOutput} " & videoFilterParams(paramIndex) & $" [out{paramIndex}]; "
@@ -825,6 +823,9 @@ Public Class MainForm
                 complexFilterString += """"
             End If
         Next
+
+        processInfo.Arguments += startDurationArgs
+        processInfo.Arguments += inputArgs
         processInfo.Arguments += complexFilterString
 
         'ADJUST VOLUME
