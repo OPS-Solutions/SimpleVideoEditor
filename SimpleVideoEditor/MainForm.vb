@@ -882,7 +882,8 @@ Public Class MainForm
         'Just do a simple copy if nothing is changing, so we don't waste time re-encoding
         'This is most likely to occur when someone uses the concatenation feature, and just wants to save it somewhere
         Dim sameExtension As Boolean = IO.Path.GetExtension(inputFile.FullPath).Equals(IO.Path.GetExtension(outPutFile))
-        If audioFilterParams.Count = 0 AndAlso videoFilterParams.Count = 0 AndAlso sameExtension AndAlso trimData Is Nothing AndAlso Not softSubs Then
+        If audioFilterParams.Count = 0 AndAlso videoFilterParams.Count = 0 AndAlso sameExtension AndAlso trimData Is Nothing AndAlso Not softSubs And Not inputFile.InputMash Then
+            'TODO Don't do this for multi-argument files
             processInfo.Arguments += $" -c copy"
         End If
         'OUTPUT TO FILE
