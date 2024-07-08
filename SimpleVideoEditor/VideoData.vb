@@ -84,12 +84,22 @@ Public Class VideoData
             _Bitrate = tempRate
 
             'Timebase
-            Dim timeBaseMatcher As New Regex("stream.*?(?<timebase>\d+)(?<mult>k)? tbn")
+            Dim timeBaseMatcher As New Regex("stream.*?((?<timebasereal>\d+)(?<multtbr>[kmb])? tbr)?(, (?<timebasenumber>\d+)(?<multtbn>[kmb])? tbn)")
             Dim tempBase As Integer = 0
+            Dim tempBaseReal As Integer = 0
             Dim timeBaseMatch As Match = timeBaseMatcher.Match(streamDescription)
             If timeBaseMatch.Success Then
-                Integer.TryParse(timeBaseMatch.Groups("timebase").Value, tempBase)
-                Select Case timeBaseMatch.Groups("mult").Value
+                Integer.TryParse(timeBaseMatch.Groups("timebasereal").Value, tempBaseReal)
+                Select Case timeBaseMatch.Groups("multtbr").Value
+                    Case "k"
+                        tempBaseReal *= 1000
+                    Case "m" 'Unsure if this can actually happen
+                        tempBaseReal *= 1000000
+                    Case "b" 'Unsure if this can actually happen
+                        tempBaseReal *= 1000000000
+                End Select
+                Integer.TryParse(timeBaseMatch.Groups("timebasenumber").Value, tempBase)
+                Select Case timeBaseMatch.Groups("multtbn").Value
                     Case "k"
                         tempBase *= 1000
                     Case "m" 'Unsure if this can actually happen
@@ -99,6 +109,11 @@ Public Class VideoData
                 End Select
             End If
 
+            'Some videos can be missing the framerate (observed on a 2 frame gif)
+            'tbr is not perfectly accurate, but should at least be better than 0
+            If _Framerate = 0 Then
+                _Framerate = tempBaseReal
+            End If
             _TimeBase = tempBase
         End Sub
         Public Shared Function FromDescription(streamDescription As String)
