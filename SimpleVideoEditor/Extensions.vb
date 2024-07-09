@@ -474,6 +474,10 @@ Module Extensions
                 xIndex = If(isHorizontal, index, perpIndex)
                 yIndex = If(isHorizontal, perpIndex, index)
                 pixIndex = (xIndex * 4) + yIndex * stride
+                If Not imageRect.Contains(xIndex, yIndex) Then
+                    'Don't check outside the bounds of the image
+                    Continue For
+                End If
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
                 If Not srcPix.Equivalent(startPixel, 5) Then
                     areEquivalent = False
