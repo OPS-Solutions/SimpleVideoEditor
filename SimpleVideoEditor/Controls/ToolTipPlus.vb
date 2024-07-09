@@ -65,7 +65,7 @@ Public Class ToolTipPlus
     ''' Ensures the tip disappears with mouse movement, and whatever control is being moved on is set as the thing we monitor for future hovers
     ''' </summary>
     Private Sub control_OnMouseMove(sender As Object, e As EventArgs)
-        Dim positionChanged As Boolean = mptLastMouseMove Is Nothing OrElse (mptLastMouseMove.Value.X <> CType(e, MouseEventArgs).X AndAlso mptLastMouseMove.Value.Y <> CType(e, MouseEventArgs).Y)
+        Dim positionChanged As Boolean = mptLastMouseMove Is Nothing OrElse (mptLastMouseMove.Value.X <> CType(e, MouseEventArgs).X OrElse mptLastMouseMove.Value.Y <> CType(e, MouseEventArgs).Y)
         If Not positionChanged Then
             Exit Sub
         End If
