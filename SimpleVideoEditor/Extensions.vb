@@ -9,6 +9,8 @@ Imports Microsoft.VisualBasic.Devices
 Imports Shell32
 
 Module Extensions
+    Public PixelEquivalenceLimit As Integer = 5
+
     ''' <summary>
     ''' Checks that a given value is equal to another within a given margen of error
     ''' </summary>
@@ -23,6 +25,14 @@ Module Extensions
     <Extension>
     Public Function InRange(value1 As Integer, min As Integer, max As Integer) As Boolean
         Return value1 >= min AndAlso value1 <= max
+    End Function
+
+    ''' <summary>
+    ''' Forces the given value to the closest value between min and max (inclusive)
+    ''' </summary>
+    <Extension>
+    Public Function Bound(value As Integer, min As Integer, max As Integer) As Integer
+        Return Math.Min(Math.Max(value, min), max)
     End Function
 
     ''' <summary>
@@ -274,7 +284,7 @@ Module Extensions
             For yIndex As Integer = startingRect.Y To startingRect.Bottom - 1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
                     'We found an edge
@@ -286,7 +296,7 @@ Module Extensions
             For yIndex As Integer = startingRect.Bottom - 1 To startingRect.Y Step -1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
                     'We found an edge
@@ -301,7 +311,7 @@ Module Extensions
             For xIndex As Integer = startingRect.X To startingRect.Right - 1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
                     'We found an edge
@@ -313,7 +323,7 @@ Module Extensions
             For xIndex As Integer = startingRect.Right - 1 To startingRect.X Step -1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, 5)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
                     'We found an edge
@@ -457,7 +467,7 @@ Module Extensions
                     Continue For
                 End If
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If Not srcPix.Equivalent(startPixel, 5) Then
+                If Not srcPix.Equivalent(startPixel, PixelEquivalenceLimit) Then
                     areEquivalent = False
                     Exit For
                 End If
@@ -479,7 +489,7 @@ Module Extensions
                     Continue For
                 End If
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If Not srcPix.Equivalent(startPixel, 5) Then
+                If Not srcPix.Equivalent(startPixel, PixelEquivalenceLimit) Then
                     areEquivalent = False
                     Exit For
                 End If

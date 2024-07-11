@@ -1420,6 +1420,19 @@ Public Class MainForm
     Private Sub cmsPixelColor_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsPixelColor.Opening
         CopyPixelColorToolStripMenuItem.Enabled = Regex.Split(lblStatusPixelColor.ToolTipText, vbNewLine).Count > 1
     End Sub
+
+    Private Sub CropSensitivityToolStripTextBox_TextChanged(sender As Object, e As EventArgs) Handles CropSensitivityToolStripTextBox.TextChanged
+        Dim newValue As Integer
+        If Integer.TryParse(CropSensitivityToolStripTextBox.Text, newValue) Then
+            newValue = newValue.Bound(0, 255)
+            PixelEquivalenceLimit = newValue
+        Else
+            newValue = PixelEquivalenceLimit
+        End If
+        If newValue.ToString <> CropSensitivityToolStripTextBox.Text Then
+            CropSensitivityToolStripTextBox.Text = newValue.ToString
+        End If
+    End Sub
 #End Region
 
 #Region "Form Open/Close"

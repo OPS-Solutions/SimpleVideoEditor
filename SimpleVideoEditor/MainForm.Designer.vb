@@ -70,6 +70,8 @@ Partial Class MainForm
         Me.cmsAutoCrop = New System.Windows.Forms.ToolStripMenuItem()
         Me.ContractToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ExpandToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator5 = New System.Windows.Forms.ToolStripSeparator()
+        Me.CropSensitivityToolStripTextBox = New System.Windows.Forms.ToolStripTextBox()
         Me.dlgColorKey = New System.Windows.Forms.ColorDialog()
         Me.cmsPlaybackSpeed = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.QuarterSpeedToolstripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -461,7 +463,7 @@ Partial Class MainForm
         '
         'cmsAutoCrop
         '
-        Me.cmsAutoCrop.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ContractToolStripMenuItem, Me.ExpandToolStripMenuItem})
+        Me.cmsAutoCrop.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ContractToolStripMenuItem, Me.ExpandToolStripMenuItem, Me.ToolStripSeparator5, Me.CropSensitivityToolStripTextBox})
         Me.cmsAutoCrop.Enabled = False
         Me.cmsAutoCrop.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCrop
         Me.cmsAutoCrop.Name = "cmsAutoCrop"
@@ -472,15 +474,30 @@ Partial Class MainForm
         '
         Me.ContractToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCropContract
         Me.ContractToolStripMenuItem.Name = "ContractToolStripMenuItem"
-        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
+        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.ContractToolStripMenuItem.Text = "Contract"
         '
         'ExpandToolStripMenuItem
         '
         Me.ExpandToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCropExpand
         Me.ExpandToolStripMenuItem.Name = "ExpandToolStripMenuItem"
-        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(120, 22)
+        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.ExpandToolStripMenuItem.Text = "Expand"
+        '
+        'ToolStripSeparator5
+        '
+        Me.ToolStripSeparator5.Name = "ToolStripSeparator5"
+        Me.ToolStripSeparator5.Size = New System.Drawing.Size(177, 6)
+        '
+        'CropSensitivityToolStripTextBox
+        '
+        Me.CropSensitivityToolStripTextBox.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+        Me.CropSensitivityToolStripTextBox.Name = "CropSensitivityToolStripTextBox"
+        Me.CropSensitivityToolStripTextBox.Size = New System.Drawing.Size(100, 23)
+        Me.CropSensitivityToolStripTextBox.Text = "?"
+        Me.CropSensitivityToolStripTextBox.ToolTipText = "Pixel equivalency limit. (Default 5)" & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10) & "0 means the crop border must be perfectly t" &
+    "he same color." & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10) & "255 would mean the crop border could completely change pixel to " &
+    "pixel." & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10)
         '
         'dlgColorKey
         '
@@ -1061,4 +1078,6 @@ Partial Class MainForm
     Friend WithEvents SelectedRangeOverlaidToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents cmsPixelColor As ContextMenuStrip
     Friend WithEvents CopyPixelColorToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ToolStripSeparator5 As ToolStripSeparator
+    Friend WithEvents CropSensitivityToolStripTextBox As ToolStripTextBox
 End Class
