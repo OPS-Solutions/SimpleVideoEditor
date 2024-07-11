@@ -61,65 +61,6 @@ Public Class MainForm
     ''' </summary>
     Private lastLocation As New Point
 
-    Private Class SpecialOutputProperties
-        Implements ICloneable
-
-        Public Decimate As Boolean
-        Public FPS As Double
-        Public ColorKey As Color
-        Public PlaybackSpeed As Double = 1
-        Public PlaybackVolume As Double = 1
-        Public QScale As Double
-        Public Rotation As System.Drawing.RotateFlipType = RotateFlipType.RotateNoneFlipNone 'Keeps track of how the user wants to rotate the image
-        Public Subtitles As String = ""
-        Public BakeSubs As Boolean = True
-        ''' <summary>
-        ''' Angle of rotation in degrees
-        ''' </summary>
-        ''' <returns></returns>
-        Public Property RotationAngle As Integer
-            Get
-                Select Case Rotation
-                    Case RotateFlipType.RotateNoneFlipNone
-                        Return 0
-                    Case RotateFlipType.Rotate90FlipNone
-                        Return 90
-                    Case RotateFlipType.Rotate180FlipNone
-                        Return 180
-                    Case RotateFlipType.Rotate270FlipNone
-                        Return 270
-                    Case Else
-                        Return 0
-                End Select
-            End Get
-            Set(value As Integer)
-                Select Case value
-                    Case 0
-                        Rotation = RotateFlipType.RotateNoneFlipNone
-                    Case 90
-                        Rotation = RotateFlipType.Rotate90FlipNone
-                    Case 180
-                        Rotation = RotateFlipType.Rotate180FlipNone
-                    Case 270
-                        Rotation = RotateFlipType.Rotate270FlipNone
-                    Case Else
-                        Rotation = 0
-                End Select
-            End Set
-        End Property
-
-        Public Function Clone() As Object Implements ICloneable.Clone
-            Return Me.MemberwiseClone
-        End Function
-    End Class
-
-    Private Class TrimData
-        Public StartFrame As Integer
-        Public EndFrame As Integer
-        Public StartPTS As Decimal
-        Public EndPTS As Decimal
-    End Class
-
     Private ReadOnly Property CropRect As Rectangle?
         Get
             If mptStartCrop.X = mptEndCrop.X OrElse mptStartCrop.Y = mptEndCrop.Y Then
@@ -263,7 +204,6 @@ Public Class MainForm
             sProperties.FPS = optimalRate
         End If
         Dim ignoreTrim As Boolean = Not ctlVideoSeeker.RangeModified
-        Dim trimData As TrimData = Nothing
         If Not ignoreTrim Then
             Dim endFrame As Integer = ctlVideoSeeker.RangeMaxValue
             Dim lastPossible As Integer = mobjMetaData.TotalFrames - 1
@@ -279,24 +219,28 @@ Public Class MainForm
             'Apply very marginal reduction to last frame duration to ensure -ss -t can be used with frame perfect precision
             Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(frameAfterEnd) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, frameAfterEnd - 1))
             Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) + lastFrameDuration * 0.99
-            trimData = New TrimData With {
+            sProperties.Trim = New TrimData With {
                         .StartFrame = ctlVideoSeeker.RangeMinValue,
                         .StartPTS = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue),
                         .EndFrame = ctlVideoSeeker.RangeMaxValue,
                         .EndPTS = lastFramePTS
                     }
+        Else
+            sProperties.Trim = Nothing
         End If
 
-        subForm.SaveToTemp(trimData.StartPTS, If(mobjOutputProperties.BakeSubs, 1, sProperties.PlaybackSpeed))
+        subForm.SaveToTemp(If(sProperties.Trim?.StartPTS, 0), If(mobjOutputProperties.BakeSubs, 1, sProperties.PlaybackSpeed))
 
         mproFfmpegProcess = Nothing
 
-        Dim cropArea As Rectangle = If(Me.CropRect, New Rectangle(0, 0, mobjMetaData.Width, mobjMetaData.Height))
+        sProperties.Crop = Me.CropRect
+        sProperties.SetResolution(cmbDefinition.Items(cmbDefinition.SelectedIndex))
+
         Dim runArgs As String = ""
         Dim workingMetadata As VideoData = mobjMetaData
         Try
             'Now you can apply everything else
-            RunFfmpeg(workingMetadata, outputPath, sProperties, If(ignoreTrim, Nothing, trimData), cmbDefinition.Items(cmbDefinition.SelectedIndex), cropArea)
+            RunFfmpeg(workingMetadata, outputPath, sProperties)
             If mproFfmpegProcess Is Nothing Then
                 Exit Sub
             End If
@@ -633,16 +577,16 @@ Public Class MainForm
     ''' <summary>
     ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
     ''' </summary>
-    Private Sub RunFfmpeg(ByVal inputFile As VideoData, ByVal outPutFile As String, ByVal specProperties As SpecialOutputProperties, ByVal trimData As TrimData, ByVal targetDefinition As String, croprect As Rectangle?)
+    Private Sub RunFfmpeg(ByVal inputFile As VideoData, ByVal outPutFile As String, ByVal specProperties As SpecialOutputProperties)
         mobjErrorLog.Clear()
         mobjOutputLog.Clear()
         Dim softSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso Not mobjOutputProperties.BakeSubs
         Dim hardSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso mobjOutputProperties.BakeSubs
 
-        If specProperties?.PlaybackSpeed <> 0 AndAlso trimData IsNot Nothing Then
+        If specProperties?.PlaybackSpeed <> 0 AndAlso specProperties.Trim IsNot Nothing Then
             'duration /= specProperties.PlaybackSpeed
-            trimData.StartPTS *= specProperties.PlaybackSpeed
-            trimData.EndPTS *= specProperties.PlaybackSpeed
+            specProperties.Trim.StartPTS *= specProperties.PlaybackSpeed
+            specProperties.Trim.EndPTS *= specProperties.PlaybackSpeed
         End If
 
         Dim processInfo As New ProcessStartInfo
@@ -658,18 +602,18 @@ Public Class MainForm
 
         Dim startDurationArgs As String = ""
         If specProperties?.PlaybackVolume <> 0 Then
-            If trimData IsNot Nothing Then
-                Dim duration As String = (trimData.EndPTS) - (trimData.StartPTS)
+            If specProperties.Trim IsNot Nothing Then
+                Dim duration As String = (specProperties.Trim.EndPTS) - (specProperties.Trim.StartPTS)
                 If duration > 0 Then
                     'duration = Math.Truncate(duration * mobjMetaData.Framerate) / mobjMetaData.Framerate
-                    Dim startHHMMSS As String = FormatHHMMSSm(trimData.StartPTS / specProperties.PlaybackSpeed)
+                    Dim startHHMMSS As String = FormatHHMMSSm(specProperties.Trim.StartPTS / specProperties.PlaybackSpeed)
                     startDurationArgs = " -ss " & startHHMMSS & " -t " & (duration / specProperties.PlaybackSpeed).ToString
                 End If
             End If
         Else
-            If trimData IsNot Nothing Then
+            If specProperties.Trim IsNot Nothing Then
                 'Set up a select filter to trim to exact frames for maximum precision
-                videoFilterParams.Add($"select=between(n\,{trimData.StartFrame}\,{trimData.EndFrame}),setpts=PTS-STARTPTS")
+                videoFilterParams.Add($"select=between(n\,{specProperties.Trim.StartFrame}\,{specProperties.Trim.EndFrame}),setpts=PTS-STARTPTS")
             End If
         End If
 
@@ -681,31 +625,19 @@ Public Class MainForm
         'CROP VIDEO (Should be done before mpdecimate, to ensure unwanted portions of the frame do not affect the duplicate trimming)
         Dim cropWidth As Integer = inputFile.Width
         Dim cropHeight As Integer = inputFile.Height
-        If croprect IsNot Nothing Then
-            If croprect.Value.Width < cropWidth OrElse croprect.Value.Height < cropHeight Then
-                cropWidth = croprect.Value.Width
-                cropHeight = croprect.Value.Height
-                videoFilterParams.Add(GetCropArgs(croprect))
+        If specProperties.Crop IsNot Nothing Then
+            If specProperties.Crop.Value.Width < cropWidth OrElse specProperties.Crop.Value.Height < cropHeight Then
+                cropWidth = specProperties.Crop.Value.Width
+                cropHeight = specProperties.Crop.Value.Height
+                videoFilterParams.Add(GetCropArgs(specProperties.Crop))
             End If
         End If
 
         'SCALE VIDEO
         Dim scale As Double = cropHeight
-        Select Case targetDefinition
-            Case "Original"
-            Case "120p"
-                scale = 120
-            Case "240p"
-                scale = 240
-            Case "360p"
-                scale = 360
-            Case "480p"
-                scale = 480
-            Case "720p"
-                scale = 720
-            Case "1080p"
-                scale = 1080
-        End Select
+        If specProperties.VerticalResolution > 0 Then
+            scale = specProperties.VerticalResolution
+        End If
         scale /= cropHeight
         If scale <> 1 Then
             Dim scaleX As Integer = ForceEven(Math.Floor(cropWidth * scale))
@@ -777,7 +709,7 @@ Public Class MainForm
         Dim transparentOutput As Boolean = False
         Dim transparentInput As Boolean = False
         'Check if input has any transparency, unfortunately just checking 1 frame could fail, but it is better than nothing
-        If inputFile.GetImageFromAnyCache(If(trimData IsNot Nothing, trimData.StartFrame, 0))?.HasAlpha Then
+        If inputFile.GetImageFromAnyCache(If(specProperties.Trim IsNot Nothing, specProperties.Trim.StartFrame, 0))?.HasAlpha Then
             transparentInput = True
             Select Case IO.Path.GetExtension(outPutFile).ToLower()
                 'Known formats that can support full transparency (MOV WEBM MKV MOV AVI APNG)
@@ -883,7 +815,7 @@ Public Class MainForm
         'Just do a simple copy if nothing is changing, so we don't waste time re-encoding
         'This is most likely to occur when someone uses the concatenation feature, and just wants to save it somewhere
         Dim sameExtension As Boolean = IO.Path.GetExtension(inputFile.FullPath).Equals(IO.Path.GetExtension(outPutFile))
-        If audioFilterParams.Count = 0 AndAlso videoFilterParams.Count = 0 AndAlso sameExtension AndAlso trimData Is Nothing AndAlso Not softSubs And Not inputFile.InputMash Then
+        If audioFilterParams.Count = 0 AndAlso videoFilterParams.Count = 0 AndAlso sameExtension AndAlso specProperties.Trim Is Nothing AndAlso Not softSubs And Not inputFile.InputMash Then
             'TODO Don't do this for multi-argument files
             processInfo.Arguments += $" -c copy"
         End If

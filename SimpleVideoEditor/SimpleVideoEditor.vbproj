@@ -132,6 +132,7 @@
     <Compile Include="Controls\RichTextBoxPlus.vb">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Data\SpecialOutputProperties.vb" />
     <Compile Include="Extensions.vb" />
     <Compile Include="AboutForm.Designer.vb">
       <DependentUpon>AboutForm.vb</DependentUpon>
@@ -146,7 +147,7 @@
     <Compile Include="HolePuncherForm.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="ImageCache.vb" />
+    <Compile Include="Data\ImageCache.vb" />
     <Compile Include="ManualEntryForm.Designer.vb">
       <DependentUpon>ManualEntryForm.vb</DependentUpon>
     </Compile>
@@ -167,7 +168,7 @@
     <Compile Include="Subtitle\SubtitleForm.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="VideoData.vb" />
+    <Compile Include="Data\VideoData.vb" />
     <Compile Include="MainForm.vb">
       <SubType>Form</SubType>
     </Compile>

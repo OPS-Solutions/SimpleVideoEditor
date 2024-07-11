@@ -311,8 +311,6 @@ Public Class ImageCache
     Public Sub ClearImageCache()
         SyncLock Me
             For index As Integer = 0 To mobjCollection.Count - 1
-                If Not Temporary Then
-                End If
                 mobjCollection(index).ClearImageData()
                 mobjCollection(index).QueueTime = Nothing
             Next
