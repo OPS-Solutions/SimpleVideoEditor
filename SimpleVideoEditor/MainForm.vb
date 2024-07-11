@@ -2523,10 +2523,14 @@ Public Class MainForm
         Me.Activate()
 
         If Me.mobjMetaData Is Nothing AndAlso files.Count = 1 Then
+            ofdVideoIn.InitialDirectory = IO.Path.GetDirectoryName(files(0))
+            sfdVideoOut.InitialDirectory = IO.Path.GetDirectoryName(files(0))
             LoadFiles(files)
         Else
             Select Case MessageBox.Show(Me, $"Open {files.Count} file(s)?", "Open File(s)?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
                 Case DialogResult.OK
+                    ofdVideoIn.InitialDirectory = IO.Path.GetDirectoryName(files(0))
+                    sfdVideoOut.InitialDirectory = IO.Path.GetDirectoryName(files(0))
                     LoadFiles(files)
                 Case Else
                     Exit Sub
