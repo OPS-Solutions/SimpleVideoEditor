@@ -2408,15 +2408,24 @@ Public Class MainForm
                                    End Sub)
                 Else
                     'Grab immediate
-                    Dim gotImage As Bitmap = mobjMetaData.GetImageFromCache(mintCurrentFrame, objCache)
-                    If picVideo.Image Is Nothing OrElse picVideo.Image.Width < gotImage.Width Then
-                        picVideo.SetImage(gotImage)
-                        RefreshStatusToolTips()
-                    Else
-                        If Not CacheFullBitmaps Then
-                            gotImage.Dispose()
+                    SyncLock objCache
+                        Dim gotImage As Bitmap = mobjMetaData.GetImageFromCache(mintCurrentFrame, objCache)
+                        If picVideo.Image Is Nothing OrElse picVideo.Image.Width < gotImage.Width Then
+                            If objCache.Temporary Then
+                                picVideo.SetImage(gotImage.Clone, True)
+                            Else
+                                picVideo.SetImage(gotImage)
+                            End If
+                            RefreshStatusToolTips()
+                            If objCache.Temporary Then
+                                gotImage.Dispose()
+                            End If
+                        Else
+                            If Not CacheFullBitmaps Then
+                                gotImage.Dispose()
+                            End If
                         End If
-                    End If
+                    End SyncLock
                 End If
                 Exit For
             End If

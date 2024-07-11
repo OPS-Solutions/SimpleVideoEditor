@@ -20,31 +20,33 @@ Public Class ImageCache
         ''' </summary>
         Public ReadOnly Property GetImage As Bitmap
             Get
-                'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
-                'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
-                If (CacheFullBitmaps And Not mblnTemporary) AndAlso ImageStore IsNot Nothing Then
-                    Return ImageStore
-                End If
-                If ImageData IsNot Nothing Then
-                    Using tempStream As New MemoryStream(ImageData)
-                        Dim incomingBitmap As Bitmap = New Bitmap(tempStream)
-                        If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
-                            Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
-                            Using g As Graphics = Graphics.FromImage(newBitmap)
-                                g.DrawImage(incomingBitmap, New Point(0, 0))
-                            End Using
-                            incomingBitmap.Dispose()
-                            incomingBitmap = newBitmap
-                        End If
-                        ImageStore = incomingBitmap
-                        If (CacheFullBitmaps And Not mblnTemporary) Then
-                            ImageData = {0} 'Release memory so the next garbage collect can clean up
-                        End If
+                SyncLock Me
+                    'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
+                    'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
+                    If (CacheFullBitmaps And Not mblnTemporary) AndAlso ImageStore IsNot Nothing Then
                         Return ImageStore
-                    End Using
-                Else
-                    Return Nothing
-                End If
+                    End If
+                    If ImageData IsNot Nothing Then
+                        Using tempStream As New MemoryStream(ImageData)
+                            Dim incomingBitmap As Bitmap = New Bitmap(tempStream)
+                            If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
+                                Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
+                                Using g As Graphics = Graphics.FromImage(newBitmap)
+                                    g.DrawImage(incomingBitmap, New Point(0, 0))
+                                End Using
+                                incomingBitmap.Dispose()
+                                incomingBitmap = newBitmap
+                            End If
+                            ImageStore = incomingBitmap
+                            If (CacheFullBitmaps And Not mblnTemporary) Then
+                                ImageData = {0} 'Release memory so the next garbage collect can clean up
+                            End If
+                            Return ImageStore
+                        End Using
+                    Else
+                        Return Nothing
+                    End If
+                End SyncLock
             End Get
         End Property
 
@@ -257,15 +259,24 @@ Public Class ImageCache
     End Enum
 
     Private mobjCollection() As CacheItem
+    Private mblnTemporary As Boolean = False
+
     Public Sub New()
     End Sub
 
     Public Sub New(totalFrames As Integer, Optional temporary As Boolean = False)
+        Me.mblnTemporary = temporary
         mobjCollection = New CacheItem(totalFrames - 1) {}
         For index As Integer = 0 To totalFrames - 1
             mobjCollection(index) = New CacheItem(temporary)
         Next
     End Sub
+
+    Public ReadOnly Property Temporary As Boolean
+        Get
+            Return mblnTemporary
+        End Get
+    End Property
 
     Default ReadOnly Property Item(index As Integer) As CacheItem
         Get
@@ -298,10 +309,14 @@ Public Class ImageCache
     ''' Clears the image cache and ensures it is of the proper size
     ''' </summary>
     Public Sub ClearImageCache()
-        For index As Integer = 0 To mobjCollection.Count - 1
-            mobjCollection(index).ClearImageData()
-            mobjCollection(index).QueueTime = Nothing
-        Next
+        SyncLock Me
+            For index As Integer = 0 To mobjCollection.Count - 1
+                If Not Temporary Then
+                End If
+                mobjCollection(index).ClearImageData()
+                mobjCollection(index).QueueTime = Nothing
+            Next
+        End SyncLock
     End Sub
 
     ''' <summary>

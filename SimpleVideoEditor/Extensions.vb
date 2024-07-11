@@ -794,8 +794,8 @@ Module Extensions
     ''' Sets the image of a picturebox, ensuring the previous image is disposed
     ''' </summary>
     <Extension>
-    Public Sub SetImage(pictureBox As PictureBoxPlus, newImage As Image)
-        If Not CacheFullBitmaps AndAlso pictureBox.Image IsNot Nothing Then
+    Public Sub SetImage(pictureBox As PictureBoxPlus, newImage As Image, Optional disposeOld As Boolean = False)
+        If (Not CacheFullBitmaps OrElse disposeOld) AndAlso pictureBox.Image IsNot Nothing Then
             pictureBox.Image.Dispose()
         End If
         If newImage IsNot Nothing Then
