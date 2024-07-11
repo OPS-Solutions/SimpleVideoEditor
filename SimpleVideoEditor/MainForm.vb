@@ -2570,6 +2570,18 @@ Public Class MainForm
         lastLocation = Me.Location
     End Sub
 
+    Private Sub MainForm_ResizeEnd(sender As Object, e As EventArgs) Handles MyBase.ResizeEnd
+        If Me.Size = Me.MinimumSize Then
+            Me.MinimizeBox = False
+            Me.MaximizeBox = False
+            Me.HelpButton = True
+        Else
+            Me.MinimizeBox = True
+            Me.MaximizeBox = True
+            Me.HelpButton = False
+        End If
+    End Sub
+
     Private Sub BakedInHardToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles BakedInHardToolStripMenuItem.Click
         BakedInHardToolStripMenuItem.Checked = True
         ToggleableSoftToolStripMenuItem.Checked = False
