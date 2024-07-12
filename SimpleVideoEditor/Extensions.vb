@@ -784,17 +784,16 @@ Module Extensions
     ''' <summary>
     ''' Compares two colors using the CIELAB color space, returning the Delta E
     ''' This is to give a more human vision based difference measurement
+    ''' Alpha will cause an adjustment, so that two of the same color, one with alpha = 0, and one alpha = 255 will have Delta E of 100
     ''' </summary>
     <Extension>
     Public Function CompareDeltaE(color1 As Color, color2 As Color) As Double
         'Pre-apply alpha to move dimmed colors closer together
-        Dim color1Transparency As Double = color1.A / 255
-        Dim color2Transparency As Double = color2.A / 255
-        color1 = Color.FromArgb(255, color1.R * color1Transparency, color1.G * color1Transparency, color1.B * color1Transparency)
-        color2 = Color.FromArgb(255, color2.R * color2Transparency, color2.G * color2Transparency, color2.B * color2Transparency)
+        Dim color1Transparency As Double = (color1.A / 255) * 100
+        Dim color2Transparency As Double = (color2.A / 255) * 100
         Dim lab1 As ColorLAB = color1.ToXYZ.ToLAB
         Dim lab2 As ColorLAB = color2.ToXYZ.ToLAB
-        Return Math.Sqrt((lab2.L - lab1.L) ^ 2 + (lab2.A - lab1.A) ^ 2 + (lab2.B - lab1.B) ^ 2)
+        Return Math.Sqrt((lab2.L - lab1.L) ^ 2 + (lab2.A - lab1.A) ^ 2 + (lab2.B - lab1.B) ^ 2 + (color2Transparency - color1Transparency) ^ 2)
     End Function
 
 
