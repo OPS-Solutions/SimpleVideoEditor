@@ -1175,6 +1175,7 @@ Public Class MainForm
     ''' Modifies the crop region, draggable in all directions
     ''' </summary>
     Private Sub picVideo_MouseMove(sender As Object, e As MouseEventArgs) Handles picVideo.MouseMove
+        Dim mouseDelta As Point = e.Location.Subtract(mptLastMousePosition)
         mptLastMousePosition = e.Location
         'Display mouse position information
         If Me.mobjMetaData IsNot Nothing Then
@@ -1184,6 +1185,9 @@ Public Class MainForm
             Dim actualImagePointC As Point = e.Location.ToPointF.Transform(clientToVideoMatrix).ToPoint(1)
             lblStatusMousePosition.Text = $"{actualImagePoint.X}, {actualImagePoint.Y}"
             If e.Button = Windows.Forms.MouseButtons.Left AndAlso mblnCropping Then
+                If mouseDelta.Magnitude = 0 Then
+                    Exit Sub
+                End If
                 mptDragEnd = e.Location
                 If mintCropTarget < 0 Then
                     Dim topLeft As Point = New Point(Math.Min(mptDragStart.X, mptDragEnd.X), Math.Min(mptDragStart.Y, mptDragEnd.Y))
