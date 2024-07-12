@@ -1475,7 +1475,7 @@ Public Class MainForm
         mobjGenericToolTip.SetToolTip(btnBrowse, $"Browse for a video to edit.{vbNewLine}Alternatively, select multiple images with the same name, but numbered like ""image0.png"", ""image1.png"", etc.")
         'mobjGenericToolTip.SetToolTip(lblFileName, "Name of the currently loaded file.")
         UpdateColorKey()
-        mobjGenericToolTip.SetToolTip(picPlaybackSpeed, "Playback speed multiplier.")
+        SetPlaybackSpeedTooltip()
 
         RefreshStatusToolTips()
 
@@ -2032,6 +2032,11 @@ Public Class MainForm
                 mobjOutputProperties.PlaybackSpeed = Double.Parse(CustomSpeedTextToolStripMenuItem.Text)
             End If
         End If
+        SetPlaybackSpeedTooltip()
+    End Sub
+
+    Private Sub SetPlaybackSpeedTooltip()
+        mobjGenericToolTip.SetToolTip(picPlaybackSpeed, $"Playback speed multiplier.{vbNewLine}Currently {mobjOutputProperties.PlaybackSpeed}x")
     End Sub
 
     Private Sub cmsPlaybackVolume_ItemClicked(sender As Object, e As ToolStripItemClickedEventArgs) Handles cmsPlaybackVolume.ItemClicked
