@@ -422,13 +422,13 @@ Partial Class MainForm
         '
         Me.cmsPicVideo.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.cmsPicVideoClear, Me.cmsPicVideoExportFrame, Me.cmsAutoCrop})
         Me.cmsPicVideo.Name = "cmsPicVideo"
-        Me.cmsPicVideo.Size = New System.Drawing.Size(145, 70)
+        Me.cmsPicVideo.Size = New System.Drawing.Size(181, 92)
         '
         'cmsPicVideoClear
         '
         Me.cmsPicVideoClear.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
         Me.cmsPicVideoClear.Name = "cmsPicVideoClear"
-        Me.cmsPicVideoClear.Size = New System.Drawing.Size(144, 22)
+        Me.cmsPicVideoClear.Size = New System.Drawing.Size(180, 22)
         Me.cmsPicVideoClear.Text = "Clear"
         '
         'cmsPicVideoExportFrame
@@ -437,7 +437,7 @@ Partial Class MainForm
         Me.cmsPicVideoExportFrame.Enabled = False
         Me.cmsPicVideoExportFrame.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.cmsPicVideoExportFrame.Name = "cmsPicVideoExportFrame"
-        Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(144, 22)
+        Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(180, 22)
         Me.cmsPicVideoExportFrame.Text = "Export Frame"
         '
         'CurrentToolStripMenuItem
@@ -467,7 +467,7 @@ Partial Class MainForm
         Me.cmsAutoCrop.Enabled = False
         Me.cmsAutoCrop.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCrop
         Me.cmsAutoCrop.Name = "cmsAutoCrop"
-        Me.cmsAutoCrop.Size = New System.Drawing.Size(144, 22)
+        Me.cmsAutoCrop.Size = New System.Drawing.Size(180, 22)
         Me.cmsAutoCrop.Text = "Auto Crop"
         '
         'ContractToolStripMenuItem
@@ -495,9 +495,7 @@ Partial Class MainForm
         Me.CropSensitivityToolStripTextBox.Name = "CropSensitivityToolStripTextBox"
         Me.CropSensitivityToolStripTextBox.Size = New System.Drawing.Size(100, 23)
         Me.CropSensitivityToolStripTextBox.Text = "?"
-        Me.CropSensitivityToolStripTextBox.ToolTipText = "Pixel equivalency limit. (Default 5)" & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10) & "0 means the crop border must be perfectly t" &
-    "he same color." & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10) & "255 would mean the crop border could completely change pixel to " &
-    "pixel." & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10)
+        Me.CropSensitivityToolStripTextBox.ToolTipText = resources.GetString("CropSensitivityToolStripTextBox.ToolTipText")
         '
         'dlgColorKey
         '

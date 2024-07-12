@@ -9,6 +9,7 @@ Imports System.Runtime.Serialization
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports System.Timers
 Imports Microsoft.VisualBasic.Devices
 
 Public Class MainForm
@@ -1221,6 +1222,9 @@ Public Class MainForm
                                    If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                        'TODO Add something so user can specify alpha that is acceptable, 64 is just here because converting to a gif loses everything below 64
                                        Dim boundRect As Rectangle
+                                       Dim stopTest As New Stopwatch
+                                       stopTest.Start()
+
                                        If CacheFullBitmaps Then
                                            boundRect = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 64)
                                        Else
@@ -1228,6 +1232,8 @@ Public Class MainForm
                                                boundRect = checkImage.BoundContents(cropRect,, 64)
                                            End Using
                                        End If
+                                       stopTest.Stop()
+                                       Debug.Print($"Time: {stopTest.ElapsedTicks}")
                                        Dim currentRect As New Rectangle(left, top, right - left, bottom - top)
                                        left = Math.Min(boundRect.Left, left)
                                        top = Math.Min(boundRect.Top, top)
@@ -1237,6 +1243,10 @@ Public Class MainForm
 
                                        If potentialRect.Area > currentRect.Area Then
                                            largestFrame = index
+                                       End If
+                                       'Short circuit if the biggest frame is already the size of the current crop, so no shrinking can be done
+                                       If cropRect = potentialRect Then
+                                           Exit For
                                        End If
                                    End If
                                    Dim currentFrame As Integer = index
@@ -1250,10 +1260,10 @@ Public Class MainForm
             If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
                 SetCropPoints(New Point(0, 0), New Point(0, 0))
             Else
-                top = Math.Max(Me.CropRect.Value.Top, top / fitScale)
-                bottom = Math.Min(Me.CropRect.Value.Bottom, bottom / fitScale)
-                right = Math.Min(Me.CropRect.Value.Right, right / fitScale)
-                left = Math.Max(Me.CropRect.Value.Left, left / fitScale)
+                top = Math.Max(If(Me.CropRect?.Top, 0), top / fitScale)
+                bottom = Math.Min(If(Me.CropRect?.Bottom, Me.mobjMetaData.Height), bottom / fitScale)
+                right = Math.Min(If(Me.CropRect?.Right, Me.mobjMetaData.Width), right / fitScale)
+                left = Math.Max(If(Me.CropRect?.Left, 0), left / fitScale)
                 SetCropPoints(New Point(left, top), New Point(right, bottom))
             End If
             picVideo.Invalidate()
@@ -1328,6 +1338,9 @@ Public Class MainForm
                                                stillExpanding = True
                                                cropRect = potentialRect
                                            End If
+                                           If displaySize.Width = potentialRect.Width AndAlso displaySize.Height = potentialRect.Height Then
+                                               Exit For
+                                           End If
                                        End If
                                        Dim currentFrame As Integer = index
                                        Me.Invoke(Sub()
@@ -1342,10 +1355,10 @@ Public Class MainForm
             If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
                 SetCropPoints(New Point(0, 0), New Point(0, 0))
             Else
-                top = Math.Min(Me.CropRect.Value.Top, top / fitScale)
-                bottom = Math.Max(Me.CropRect.Value.Bottom, bottom / fitScale)
-                right = Math.Max(Me.CropRect.Value.Right, right / fitScale)
-                left = Math.Min(Me.CropRect.Value.Left, left / fitScale)
+                top = Math.Max(If(Me.CropRect?.Top, 0), top / fitScale)
+                bottom = Math.Min(If(Me.CropRect?.Bottom, Me.mobjMetaData.Height), bottom / fitScale)
+                right = Math.Min(If(Me.CropRect?.Right, Me.mobjMetaData.Width), right / fitScale)
+                left = Math.Max(If(Me.CropRect?.Left, 0), left / fitScale)
                 SetCropPoints(New Point(left, top), New Point(right, bottom))
             End If
             picVideo.Invalidate()
@@ -1425,9 +1438,9 @@ Public Class MainForm
         Dim newValue As Integer
         If Integer.TryParse(CropSensitivityToolStripTextBox.Text, newValue) Then
             newValue = newValue.Bound(0, 255)
-            PixelEquivalenceLimit = newValue
+            DeltaELimit = newValue
         Else
-            newValue = PixelEquivalenceLimit
+            newValue = DeltaELimit
         End If
         If newValue.ToString <> CropSensitivityToolStripTextBox.Text Then
             CropSensitivityToolStripTextBox.Text = newValue.ToString
@@ -2706,6 +2719,16 @@ Public Class MainForm
         End If
     End Sub
 
+    ''' <summary>
+    ''' Disables visibility of items that aren't useful on opening of the context menu
+    ''' </summary>
+    Private Sub cmsPicVideo_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsPicVideo.Opening
+        If Me.CropRect Is Nothing Then
+            ExpandToolStripMenuItem.Enabled = False
+        Else
+            ExpandToolStripMenuItem.Enabled = True
+        End If
+    End Sub
 #End Region
 
     Private Sub CopyColorToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CopyPixelColorToolStripMenuItem.Click

@@ -9,7 +9,7 @@ Imports Microsoft.VisualBasic.Devices
 Imports Shell32
 
 Module Extensions
-    Public PixelEquivalenceLimit As Integer = 5
+    Public DeltaELimit As Integer = 5
 
     ''' <summary>
     ''' Checks that a given value is equal to another within a given margen of error
@@ -247,6 +247,7 @@ Module Extensions
             startingRect = startingRectangle.Value
         End If
 
+        Dim minDeltaE As Double = Double.MaxValue
         If backColor Is Nothing Then
             'Set backcolor as most common color of the four corners
             Dim possibleColors As New List(Of Color)
@@ -255,23 +256,14 @@ Module Extensions
             possibleColors.Add(imageBytes.GetPixel(startingRect.Right - 1, startingRect.Bottom - 1, stride, 4))
             possibleColors.Add(imageBytes.GetPixel(startingRect.Left, startingRect.Bottom - 1, stride, 4))
 
-            'Do three passes to find a common color, one that shows up at least 2 times
-            For index As Integer = 0 To 2
-                Dim uniqueColors As List(Of Color) = possibleColors.Distinct(Function(clr1, clr2) clr1.CompareTo(clr2))
-                Dim occurance As New List(Of Integer)
-                Dim multiPassIndex As Integer = index
-                For uniqueColorIndex As Integer = 0 To uniqueColors.Count - 1
-                    Dim uniqueLambaIndex As Integer = uniqueColorIndex
-                    occurance.Add(possibleColors.FindAll(Function(obj As Color)
-                                                             Return obj.Equivalent(uniqueColors(uniqueLambaIndex), (multiPassIndex * 2) + 1)
-                                                         End Function).Count)
-                Next
-                backColor = uniqueColors(occurance.IndexOf(occurance.Max()))
-                If occurance.Max() >= 2 Then
-                    Exit For
+            'Use cielab color space to find color that has best Delta E with the others
+            For Each objColor In possibleColors
+                Dim testDeltaE As Double = possibleColors.Average(Function(objColor2) objColor.CompareDeltaE(objColor2))
+                If testDeltaE < minDeltaE Then
+                    minDeltaE = testDeltaE
+                    backColor = objColor
                 End If
             Next
-
         End If
 
         Dim left As Integer = startingRect.X + startingRect.Width - 1
@@ -284,7 +276,8 @@ Module Extensions
             For yIndex As Integer = startingRect.Y To startingRect.Bottom - 1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.CompareDeltaE(srcPix) < DeltaELimit) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                    'If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
                     'We found an edge
@@ -296,7 +289,7 @@ Module Extensions
             For yIndex As Integer = startingRect.Bottom - 1 To startingRect.Y Step -1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.CompareDeltaE(srcPix) < DeltaELimit) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
                     'We found an edge
@@ -311,7 +304,7 @@ Module Extensions
             For xIndex As Integer = startingRect.X To startingRect.Right - 1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.CompareDeltaE(srcPix) < DeltaELimit) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
                     'We found an edge
@@ -323,7 +316,7 @@ Module Extensions
             For xIndex As Integer = startingRect.Right - 1 To startingRect.X Step -1
                 Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, PixelEquivalenceLimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
+                If (backColor.Value.A = 0 AndAlso srcPix.A = 0) OrElse (backColor.Value.Equivalent(srcPix, DeltaELimit)) OrElse (backColor.Value.A = 0 AndAlso srcPix.A < alphaLimit) Then
                     'Good, this is the background still
                 Else
                     'We found an edge
@@ -467,7 +460,7 @@ Module Extensions
                     Continue For
                 End If
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If Not srcPix.Equivalent(startPixel, PixelEquivalenceLimit) Then
+                If Not srcPix.Equivalent(startPixel, DeltaELimit) Then
                     areEquivalent = False
                     Exit For
                 End If
@@ -489,7 +482,7 @@ Module Extensions
                     Continue For
                 End If
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If Not srcPix.Equivalent(startPixel, PixelEquivalenceLimit) Then
+                If Not srcPix.Equivalent(startPixel, DeltaELimit) Then
                     areEquivalent = False
                     Exit For
                 End If
@@ -712,6 +705,110 @@ Module Extensions
         Dim blueDif As Integer = Math.Abs(CInt(color1.B) - color2.B)
         Return alphaDif <= differenceLimit AndAlso redDif <= differenceLimit AndAlso greenDif <= differenceLimit AndAlso blueDif <= differenceLimit
     End Function
+
+    Public Class ColorLAB
+        Public L As Double
+        Public A As Double
+        Public B As Double
+        Public Sub New(l, a, b)
+            Me.L = l
+            Me.A = a
+            Me.B = b
+        End Sub
+        Public Overrides Function ToString() As String
+            Return $"L {L}, a {A}, b {B}"
+        End Function
+    End Class
+
+    Public Class ColorXYZ
+        Public Shared o As Double = 6 / 29
+        Public Shared o3 As Double = 216 / 24389 'o cubed
+        Public X As Double
+        Public Y As Double
+        Public Z As Double
+        Public Sub New(x, y, z)
+            Me.X = x
+            Me.Y = y
+            Me.Z = z
+        End Sub
+
+        Public Function ToLAB() As ColorLAB
+            'https://en.wikipedia.org/wiki/CIELAB_color_space#From_CIEXYZ_to_CIELAB
+            'Standard illuminant D65
+            Dim xr As Double = X / 0.950489
+            Dim yr As Double = Y / 1.0
+            Dim zr As Double = Z / 1.08884
+
+            Dim fx As Double = LabFunction(xr)
+            Dim fy As Double = LabFunction(yr)
+            Dim fz As Double = LabFunction(zr)
+
+            Dim L As Double = 116 * fy - 16
+            Dim A As Double = 500 * (fx - fy)
+            Dim B As Double = 200 * (fy - fz)
+            Return New ColorLAB(L, A, B)
+        End Function
+        Private Function LabFunction(value As Double)
+            If value > o3 Then
+                Return Math.Pow(value, 1 / 3)
+            Else
+                Return (value * Math.Pow(o, -2)) / 3 + 4 / 29
+            End If
+        End Function
+        Public Overrides Function ToString() As String
+            Return $"X {X}, Y {Y}, Z {Z}"
+        End Function
+    End Class
+
+    ''' <summary>
+    ''' Converts an sRGB color to XYZ color space
+    ''' </summary>
+    <Extension>
+    Public Function ToXYZ(colorRGB As Color) As ColorXYZ
+        'https://www.image-engineering.de/library/technotes/958-how-to-convert-between-srgb-and-ciexyz
+        'Change range of colors from 0-255 to 0-1
+        Dim r As Double = colorRGB.R / 255
+        Dim g As Double = colorRGB.G / 255
+        Dim b As Double = colorRGB.B / 255
+        r = LinearizeSRGBChannel(r)
+        g = LinearizeSRGBChannel(g)
+        b = LinearizeSRGBChannel(b)
+
+        Dim x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b
+        Dim y = 0.2126729 * r + 0.7151522 * g + 0.072175 * b
+        Dim z = 0.0193339 * r + 0.119192 * g + 0.9503041 * b
+
+        Return New ColorXYZ(x, y, z)
+    End Function
+
+    ''' <summary>
+    ''' Compares two colors using the CIELAB color space, returning the Delta E
+    ''' This is to give a more human vision based difference measurement
+    ''' </summary>
+    <Extension>
+    Public Function CompareDeltaE(color1 As Color, color2 As Color) As Double
+        'Pre-apply alpha to move dimmed colors closer together
+        Dim color1Transparency As Double = color1.A / 255
+        Dim color2Transparency As Double = color2.A / 255
+        color1 = Color.FromArgb(255, color1.R * color1Transparency, color1.G * color1Transparency, color1.B * color1Transparency)
+        color2 = Color.FromArgb(255, color2.R * color2Transparency, color2.G * color2Transparency, color2.B * color2Transparency)
+        Dim lab1 As ColorLAB = color1.ToXYZ.ToLAB
+        Dim lab2 As ColorLAB = color2.ToXYZ.ToLAB
+        Return Math.Sqrt((lab2.L - lab1.L) ^ 2 + (lab2.A - lab1.A) ^ 2 + (lab2.B - lab1.B) ^ 2)
+    End Function
+
+
+    ''' <summary>
+    ''' Takes a color channel value 0-1 and returns the linearized value
+    ''' </summary>
+    Private Function LinearizeSRGBChannel(channelValue As Double)
+        If channelValue < 0.04045 Then
+            Return channelValue / 12.92
+        Else
+            Return ((channelValue + 0.055) / 1.055) ^ 2.4
+        End If
+    End Function
+
 
     ''' <summary>
     ''' Compares two color values
