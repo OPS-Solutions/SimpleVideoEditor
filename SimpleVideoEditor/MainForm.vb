@@ -26,6 +26,9 @@ Public Class MainForm
     Private mptEndCrop As New Point(0, 0) 'Point for the bottom right of the crop rectangle, in video coordinates
     Private mptLastMousePosition As New Point(0, 0) 'Last known mouse position inside the preview control
     Private mblnCropping As Boolean = False 'Flag for if the user has clicked to crop, useful to avoid potential mousemove events that were not initiated by the user clicking on the panel
+    Private mintCropTarget As Integer = -1 'Flag for keeping track of which crop corner is selected
+    Private mptDragStart As Point = New Point(0, 0)
+    Private mptDragEnd As Point = New Point(0, 0)
     Private mblnCropSignal As Boolean = False 'Flag for crop text being set programatically to avoid triggering
 
     Private mintCurrentFrame As Integer = 0 'Current visible frame in the big picVideo control
@@ -1036,22 +1039,20 @@ Public Class MainForm
     Private Sub picVideo_MouseDown(sender As Object, e As MouseEventArgs) Handles picVideo.MouseDown
         If Me.mobjMetaData IsNot Nothing Then
             Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
-            Dim startCropClient As Point = mptStartCrop.Transform(videoToClientMatrix)
-            Dim endCropClient As Point = mptEndCrop.Transform(videoToClientMatrix)
-            Dim topRight As Point = New Point(mptEndCrop.X, mptStartCrop.Y).Transform(videoToClientMatrix)
-            Dim bottomLeft As Point = New Point(mptStartCrop.X, mptEndCrop.Y).Transform(videoToClientMatrix)
             videoToClientMatrix.Invert()
             Dim actualImagePoint As Point = e.Location.ToPointF.Transform(videoToClientMatrix).ToPoint(-1)
             Dim actualImagePointC As Point = e.Location.ToPointF.Transform(videoToClientMatrix).ToPoint(1)
             'Start dragging start or end point
             If e.Button = Windows.Forms.MouseButtons.Left Then
                 mblnCropping = True
-                If Not startCropClient.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
-                    Not endCropClient.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
-                    Not topRight.DistanceTo(e.Location) < CROP_COLLISION_RADIUS AndAlso
-                    Not bottomLeft.DistanceTo(e.Location) < CROP_COLLISION_RADIUS Then
-                    mptStartCrop = actualImagePoint
-                    mptEndCrop = actualImagePoint
+                mintCropTarget = CropCornerCollision(e.Location)
+                If mintCropTarget > -1 Then
+                Else
+                    mptDragStart = e.Location
+                    mptDragEnd = e.Location
+                    'Clear crop
+                    mptStartCrop = New Point(0, 0)
+                    mptEndCrop = New Point(0, 0)
                 End If
                 UpdateCropStatus()
                 SetColorInfo(e.Location)
@@ -1059,6 +1060,35 @@ Public Class MainForm
             picVideo.Invalidate()
         End If
     End Sub
+
+    Private Function CropCornerCollision(clientPoint As Point) As Integer
+        Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
+        Dim startCropClient As Point = mptStartCrop.ToPointF.Transform(videoToClientMatrix).ToPoint(-1)
+        Dim endCropClient As Point = mptEndCrop.ToPointF.Transform(videoToClientMatrix).ToPoint(1)
+
+        'Update the closest crop point so we can drag either
+        Dim topRight As Point = New Point(mptEndCrop.X, mptStartCrop.Y).Transform(videoToClientMatrix)
+        Dim bottomLeft As Point = New Point(mptStartCrop.X, mptEndCrop.Y).Transform(videoToClientMatrix)
+        Dim target As Integer = 2
+        Dim closestDistance As Single = endCropClient.DistanceTo(clientPoint)
+        If startCropClient.DistanceTo(clientPoint) < closestDistance Then
+            target = 0
+            closestDistance = startCropClient.DistanceTo(clientPoint)
+        End If
+        If topRight.DistanceTo(clientPoint) < closestDistance Then
+            target = 1
+            closestDistance = topRight.DistanceTo(clientPoint)
+        End If
+        If bottomLeft.DistanceTo(clientPoint) < closestDistance Then
+            target = 3
+            closestDistance = bottomLeft.DistanceTo(clientPoint)
+        End If
+        If closestDistance > CROP_COLLISION_RADIUS Then
+            target = -1
+        End If
+        Return target
+    End Function
+
 
     ''' <summary>
     ''' Display color information in the frame temporarily (there is no room in the status bar)
@@ -1114,44 +1144,32 @@ Public Class MainForm
         mptLastMousePosition = e.Location
         'Display mouse position information
         If Me.mobjMetaData IsNot Nothing Then
-            Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
             Dim clientToVideoMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
             clientToVideoMatrix.Invert()
-            Dim startCropClient As Point = mptStartCrop.ToPointF.Transform(videoToClientMatrix).ToPoint(-1)
-            Dim endCropClient As Point = mptEndCrop.ToPointF.Transform(videoToClientMatrix).ToPoint(1)
             Dim actualImagePoint As Point = e.Location.ToPointF.Transform(clientToVideoMatrix).ToPoint(-1)
             Dim actualImagePointC As Point = e.Location.ToPointF.Transform(clientToVideoMatrix).ToPoint(1)
             lblStatusMousePosition.Text = $"{actualImagePoint.X}, {actualImagePoint.Y}"
             If e.Button = Windows.Forms.MouseButtons.Left AndAlso mblnCropping Then
-                'Update the closest crop point so we can drag either
-                Dim topRight As Point = New Point(mptEndCrop.X, mptStartCrop.Y).Transform(videoToClientMatrix)
-                Dim bottomLeft As Point = New Point(mptStartCrop.X, mptEndCrop.Y).Transform(videoToClientMatrix)
-                Dim target As Integer = 2
-                Dim closestDistance As Single = endCropClient.DistanceTo(e.Location)
-                If startCropClient.DistanceTo(e.Location) < closestDistance Then
-                    target = 0
-                    closestDistance = startCropClient.DistanceTo(e.Location)
+                mptDragEnd = e.Location
+                If mintCropTarget < 0 Then
+                    Dim topLeft As Point = New Point(Math.Min(mptDragStart.X, mptDragEnd.X), Math.Min(mptDragStart.Y, mptDragEnd.Y))
+                    Dim bottomRight As Point = New Point(Math.Max(mptDragStart.X, mptDragEnd.X), Math.Max(mptDragStart.Y, mptDragEnd.Y))
+                    mptStartCrop = topLeft.ToPointF.Transform(clientToVideoMatrix).ToPoint(-1)
+                    mptEndCrop = bottomRight.ToPointF.Transform(clientToVideoMatrix).ToPoint(1)
+                Else
+                    Select Case mintCropTarget
+                        Case 0
+                            mptStartCrop = actualImagePoint
+                        Case 1
+                            mptEndCrop = New Point(actualImagePointC.X, mptEndCrop.Y)
+                            mptStartCrop = New Point(mptStartCrop.X, actualImagePoint.Y)
+                        Case 2
+                            mptEndCrop = actualImagePointC
+                        Case 3
+                            mptEndCrop = New Point(mptEndCrop.X, actualImagePointC.Y)
+                            mptStartCrop = New Point(actualImagePoint.X, mptStartCrop.Y)
+                    End Select
                 End If
-                If topRight.DistanceTo(e.Location) < closestDistance Then
-                    target = 1
-                    closestDistance = topRight.DistanceTo(e.Location)
-                End If
-                If bottomLeft.DistanceTo(e.Location) < closestDistance Then
-                    target = 3
-                    closestDistance = bottomLeft.DistanceTo(e.Location)
-                End If
-                Select Case target
-                    Case 0
-                        mptStartCrop = actualImagePoint
-                    Case 1
-                        mptEndCrop = New Point(actualImagePointC.X, mptEndCrop.Y)
-                        mptStartCrop = New Point(mptStartCrop.X, actualImagePoint.Y)
-                    Case 2
-                        mptEndCrop = actualImagePointC
-                    Case 3
-                        mptEndCrop = New Point(mptEndCrop.X, actualImagePointC.Y)
-                        mptStartCrop = New Point(actualImagePoint.X, mptStartCrop.Y)
-                End Select
                 Dim minX As Integer = Math.Max(0, Math.Min(mptStartCrop.X, mptEndCrop.X))
                 Dim minY As Integer = Math.Max(0, Math.Min(mptStartCrop.Y, mptEndCrop.Y))
                 Dim maxX As Integer = Math.Min(mobjMetaData.Width, Math.Max(mptStartCrop.X, mptEndCrop.X))
@@ -1163,6 +1181,17 @@ Public Class MainForm
                 UpdateCropStatus()
                 picVideo.Invalidate()
                 SetColorInfo(e.Location)
+                If picVideo.Cursor <> Cursors.Cross Then
+                    picVideo.Cursor = Cursors.Cross
+                End If
+            ElseIf CropCornerCollision(e.Location) > -1 Then
+                If picVideo.Cursor <> Cursors.Cross Then
+                    picVideo.Cursor = Cursors.Cross
+                End If
+            Else
+                If picVideo.Cursor <> Cursors.Default Then
+                    picVideo.Cursor = Cursors.Default
+                End If
             End If
         End If
     End Sub
