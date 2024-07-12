@@ -619,12 +619,15 @@ Module Extensions
     ''' Converts pointf to point with optional truncation
     ''' </summary>
     <Extension>
-    Public Function ToPoint(pt As PointF, Optional truncate As Boolean = False) As Point
-        If truncate Then
-            Return New Point(Math.Truncate(pt.X), Math.Truncate(pt.Y))
-        Else
-            Return New Point(pt.X, pt.Y)
-        End If
+    Public Function ToPoint(pt As PointF, Optional rounding As Integer = 0) As Point
+        Select Case rounding
+            Case -1
+                Return New Point(Math.Floor(pt.X), Math.Floor(pt.Y))
+            Case 0
+                Return New Point(pt.X, pt.Y)
+            Case 1
+                Return New Point(Math.Ceiling(pt.X), Math.Ceiling(pt.Y))
+        End Select
     End Function
 
     ''' <summary>

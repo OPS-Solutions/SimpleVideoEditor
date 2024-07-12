@@ -1041,7 +1041,8 @@ Public Class MainForm
             Dim topRight As Point = New Point(mptEndCrop.X, mptStartCrop.Y).Transform(videoToClientMatrix)
             Dim bottomLeft As Point = New Point(mptStartCrop.X, mptEndCrop.Y).Transform(videoToClientMatrix)
             videoToClientMatrix.Invert()
-            Dim actualImagePoint As Point = e.Location.ToPointF.Transform(videoToClientMatrix).ToPoint(True)
+            Dim actualImagePoint As Point = e.Location.ToPointF.Transform(videoToClientMatrix).ToPoint(-1)
+            Dim actualImagePointC As Point = e.Location.ToPointF.Transform(videoToClientMatrix).ToPoint(1)
             'Start dragging start or end point
             If e.Button = Windows.Forms.MouseButtons.Left Then
                 mblnCropping = True
@@ -1066,7 +1067,7 @@ Public Class MainForm
         If picVideo.Image IsNot Nothing Then
             Dim clientToCacheVideoMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix(picVideo.Image.Size.ToRect)
             clientToCacheVideoMatrix.Invert()
-            Dim cacheImagePoint As Point = mouseLocation.ToPointF.Transform(clientToCacheVideoMatrix).ToPoint(True)
+            Dim cacheImagePoint As Point = mouseLocation.ToPointF.Transform(clientToCacheVideoMatrix).ToPoint(-1)
             cacheImagePoint = cacheImagePoint.Bound(picVideo.Image.Size.ToRect)
             Dim pixelColor As Color = CType(picVideo.Image, Bitmap).GetPixel(cacheImagePoint.X, cacheImagePoint.Y)
             Dim colorString As String = String.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", pixelColor.A, pixelColor.R, pixelColor.G, pixelColor.B)
@@ -1116,9 +1117,10 @@ Public Class MainForm
             Dim videoToClientMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
             Dim clientToVideoMatrix As System.Drawing.Drawing2D.Matrix = Me.GetVideoToClientMatrix()
             clientToVideoMatrix.Invert()
-            Dim startCropClient As Point = mptStartCrop.Transform(videoToClientMatrix)
-            Dim endCropClient As Point = mptEndCrop.Transform(videoToClientMatrix)
-            Dim actualImagePoint As Point = e.Location.ToPointF.Transform(clientToVideoMatrix).ToPoint(True)
+            Dim startCropClient As Point = mptStartCrop.ToPointF.Transform(videoToClientMatrix).ToPoint(-1)
+            Dim endCropClient As Point = mptEndCrop.ToPointF.Transform(videoToClientMatrix).ToPoint(1)
+            Dim actualImagePoint As Point = e.Location.ToPointF.Transform(clientToVideoMatrix).ToPoint(-1)
+            Dim actualImagePointC As Point = e.Location.ToPointF.Transform(clientToVideoMatrix).ToPoint(1)
             lblStatusMousePosition.Text = $"{actualImagePoint.X}, {actualImagePoint.Y}"
             If e.Button = Windows.Forms.MouseButtons.Left AndAlso mblnCropping Then
                 'Update the closest crop point so we can drag either
@@ -1142,13 +1144,13 @@ Public Class MainForm
                     Case 0
                         mptStartCrop = actualImagePoint
                     Case 1
-                        mptEndCrop = New Point(actualImagePoint.X + 1, mptEndCrop.Y)
-                        mptStartCrop = New Point(mptStartCrop.X, actualImagePoint.Y + 1)
+                        mptEndCrop = New Point(actualImagePointC.X, mptEndCrop.Y)
+                        mptStartCrop = New Point(mptStartCrop.X, actualImagePoint.Y)
                     Case 2
-                        mptEndCrop = actualImagePoint
+                        mptEndCrop = actualImagePointC
                     Case 3
-                        mptEndCrop = New Point(mptEndCrop.X, actualImagePoint.Y + 1)
-                        mptStartCrop = New Point(actualImagePoint.X + 1, mptStartCrop.Y)
+                        mptEndCrop = New Point(mptEndCrop.X, actualImagePointC.Y)
+                        mptStartCrop = New Point(actualImagePoint.X, mptStartCrop.Y)
                 End Select
                 Dim minX As Integer = Math.Max(0, Math.Min(mptStartCrop.X, mptEndCrop.X))
                 Dim minY As Integer = Math.Max(0, Math.Min(mptStartCrop.Y, mptEndCrop.Y))
