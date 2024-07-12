@@ -402,7 +402,7 @@ Public Class MainForm
                          'With 2 Gig estimated size limit, somehow I have seen 4+ gigs
                          'We do not want to hit memory limit, and we want some breathing room for
                          Dim sizeLimitKB As Integer = Math.Min(1000000, freeMemoryKB / 3)
-                         Dim estimatedFrameSizeKB As Integer = mobjMetaData.Width * mobjMetaData.Height * 32 / 8 / 1024
+                         Dim estimatedFrameSizeKB As Integer = Math.Max(1, mobjMetaData.Width * mobjMetaData.Height * 32 / 8 / 1024)
                          Dim estimatedCacheSize As Long = estimatedFrameSizeKB * mobjMetaData.TotalFrames
 
                          Dim scaleReduction As Double = sizeLimitKB / estimatedCacheSize
