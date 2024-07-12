@@ -1503,6 +1503,8 @@ Public Class MainForm
         'Change window title to current version
         Me.Text &= $" - {ProductVersion} - Open Source"
 
+        ClearControls()
+
         'Check if the program was started with a dragdrop exe
         Dim args() As String = Environment.GetCommandLineArgs()
         If args.Length > 1 Then
