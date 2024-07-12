@@ -608,7 +608,7 @@ Module Extensions
     End Function
 
     ''' <summary>
-    ''' Converts point to pointf with simple truncation
+    ''' Converts point to pointf
     ''' </summary>
     <Extension>
     Public Function ToPointF(pt As Point) As PointF
@@ -616,11 +616,15 @@ Module Extensions
     End Function
 
     ''' <summary>
-    ''' Converts pointf to point with simple truncation
+    ''' Converts pointf to point with optional truncation
     ''' </summary>
     <Extension>
-    Public Function ToPoint(pt As PointF) As Point
-        Return New Point(pt.X, pt.Y)
+    Public Function ToPoint(pt As PointF, Optional truncate As Boolean = False) As Point
+        If truncate Then
+            Return New Point(Math.Truncate(pt.X), Math.Truncate(pt.Y))
+        Else
+            Return New Point(pt.X, pt.Y)
+        End If
     End Function
 
     ''' <summary>
