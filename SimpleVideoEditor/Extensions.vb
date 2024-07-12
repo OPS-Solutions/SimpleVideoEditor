@@ -343,10 +343,10 @@ Module Extensions
         Else
             startingRect = startingRectangle
         End If
-        Dim left As Integer = startingRect.X
-        Dim top As Integer = startingRect.Y
-        Dim right As Integer = startingRect.X + startingRect.Width
-        Dim bottom As Integer = startingRect.Y + startingRect.Height
+        Dim left As Integer = Math.Max(startingRect.X - 1, 0)
+        Dim top As Integer = Math.Max(startingRect.Y - 1, 0)
+        Dim right As Integer = Math.Min(startingRect.X + startingRect.Width, img1.Width)
+        Dim bottom As Integer = Math.Min(startingRect.Y + startingRect.Height, img1.Height)
         Dim centerY As Integer = startingRect.Center.Y
         Dim centerX As Integer = startingRect.Center.X
 
@@ -356,22 +356,22 @@ Module Extensions
         While hasExpanded > 0
             hasExpanded = 0
             Dim leftExp As Integer = ExpandBoundEdge(img1, currentBounds, 0)
-            If leftExp <> left Then
+            If leftExp < left Then
                 hasExpanded += 1
                 left = leftExp
             End If
             Dim topExp As Integer = ExpandBoundEdge(img1, currentBounds, 1)
-            If topExp <> top Then
+            If topExp < top Then
                 hasExpanded += 1
                 top = topExp
             End If
             Dim rightExp As Integer = ExpandBoundEdge(img1, currentBounds, 2)
-            If rightExp <> right Then
+            If rightExp > right Then
                 hasExpanded += 1
                 right = rightExp
             End If
             Dim bottomExp As Integer = ExpandBoundEdge(img1, currentBounds, 3)
-            If bottomExp <> bottom Then
+            If bottomExp > bottom Then
                 hasExpanded += 1
                 bottom = bottomExp
             End If
