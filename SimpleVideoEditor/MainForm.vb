@@ -1355,10 +1355,10 @@ Public Class MainForm
             If (left = 0 AndAlso top = 0 AndAlso right = displaySize.Width - 1 AndAlso bottom = displaySize.Height - 1) Then
                 SetCropPoints(New Point(0, 0), New Point(0, 0))
             Else
-                top = Math.Max(If(Me.CropRect?.Top, 0), top / fitScale)
-                bottom = Math.Min(If(Me.CropRect?.Bottom, Me.mobjMetaData.Height), bottom / fitScale)
-                right = Math.Min(If(Me.CropRect?.Right, Me.mobjMetaData.Width), right / fitScale)
-                left = Math.Max(If(Me.CropRect?.Left, 0), left / fitScale)
+                top = Math.Min(If(Me.CropRect?.Top, 0), top / fitScale)
+                bottom = Math.Max(If(Me.CropRect?.Bottom, Me.mobjMetaData.Height), bottom / fitScale)
+                right = Math.Max(If(Me.CropRect?.Right, Me.mobjMetaData.Width), right / fitScale)
+                left = Math.Min(If(Me.CropRect?.Left, 0), left / fitScale)
                 SetCropPoints(New Point(left, top), New Point(right, bottom))
             End If
             picVideo.Invalidate()

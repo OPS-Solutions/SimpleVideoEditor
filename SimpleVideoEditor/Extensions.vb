@@ -345,8 +345,8 @@ Module Extensions
         End If
         Dim left As Integer = startingRect.X
         Dim top As Integer = startingRect.Y
-        Dim right As Integer = startingRect.X + startingRect.Width - 1
-        Dim bottom As Integer = startingRect.Y + startingRect.Height - 1
+        Dim right As Integer = startingRect.X + startingRect.Width
+        Dim bottom As Integer = startingRect.Y + startingRect.Height
         Dim centerY As Integer = startingRect.Center.Y
         Dim centerX As Integer = startingRect.Center.X
 
@@ -460,7 +460,7 @@ Module Extensions
                     Continue For
                 End If
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If Not srcPix.Equivalent(startPixel, DeltaELimit) Then
+                If Not srcPix.CompareDeltaE(startPixel) < DeltaELimit Then
                     areEquivalent = False
                     Exit For
                 End If
@@ -482,7 +482,7 @@ Module Extensions
                     Continue For
                 End If
                 Dim srcPix As Color = imageBytes.GetPixel(xIndex, yIndex, stride, 4)
-                If Not srcPix.Equivalent(startPixel, DeltaELimit) Then
+                If Not srcPix.CompareDeltaE(startPixel) < DeltaELimit Then
                     areEquivalent = False
                     Exit For
                 End If
