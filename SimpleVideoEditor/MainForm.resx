@@ -144,7 +144,7 @@
   <data name="CropSensitivityToolStripTextBox.ToolTipText" xml:space="preserve">
     <value>Delta E limit. (Default 5)
 0 means the crop border must be perfectly the same color.
-2 or lower: Border is near perfectly uniform
+2 or lower: Border is near perfectly uniform.
 10 or lower: Border looks pretty much uniform.
 49 or lower: Border is composed of similar colors.
 100 means the border is composed of colors that could look nothing alike.

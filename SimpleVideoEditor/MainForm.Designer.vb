@@ -38,6 +38,7 @@ Partial Class MainForm
         Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
         Me.MotionInterpolationToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.grpSettings = New System.Windows.Forms.GroupBox()
+        Me.picFPS = New System.Windows.Forms.PictureBox()
         Me.cmsSubtitle = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.BakedInHardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToggleableSoftToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -123,6 +124,7 @@ Partial Class MainForm
         Me.picVideo = New SimpleVideoEditor.PictureBoxPlus()
         Me.cmsFrameRate.SuspendLayout()
         Me.grpSettings.SuspendLayout()
+        CType(Me.picFPS, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.cmsSubtitle.SuspendLayout()
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.picColorKey, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -158,13 +160,12 @@ Partial Class MainForm
         'cmbDefinition
         '
         Me.cmbDefinition.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.cmbDefinition.ContextMenuStrip = Me.cmsFrameRate
         Me.cmbDefinition.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cmbDefinition.FormattingEnabled = True
-        Me.cmbDefinition.Items.AddRange(New Object() {"Original", "120p", "240p", "360p", "480p", "720p", "1080p", "1440p", "2160p"})
+        Me.cmbDefinition.Items.AddRange(New Object() {"????p", "2160p", "1440p", "1080p", "720p", "480p", "360p", "240p", "120p"})
         Me.cmbDefinition.Location = New System.Drawing.Point(6, 128)
         Me.cmbDefinition.Name = "cmbDefinition"
-        Me.cmbDefinition.Size = New System.Drawing.Size(75, 21)
+        Me.cmbDefinition.Size = New System.Drawing.Size(55, 21)
         Me.cmbDefinition.TabIndex = 9
         '
         'cmsFrameRate
@@ -241,6 +242,7 @@ Partial Class MainForm
         '
         Me.grpSettings.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.grpSettings.Controls.Add(Me.picFPS)
         Me.grpSettings.Controls.Add(Me.chkSubtitles)
         Me.grpSettings.Controls.Add(Me.picPlaybackSpeed)
         Me.grpSettings.Controls.Add(Me.picColorKey)
@@ -254,6 +256,19 @@ Partial Class MainForm
         Me.grpSettings.TabIndex = 17
         Me.grpSettings.TabStop = False
         Me.grpSettings.Text = "Settings"
+        '
+        'picFPS
+        '
+        Me.picFPS.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.picFPS.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.picFPS.Image = Global.SimpleVideoEditor.My.Resources.Resources.FPS
+        Me.picFPS.Location = New System.Drawing.Point(64, 130)
+        Me.picFPS.Margin = New System.Windows.Forms.Padding(0)
+        Me.picFPS.Name = "picFPS"
+        Me.picFPS.Size = New System.Drawing.Size(18, 18)
+        Me.picFPS.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
+        Me.picFPS.TabIndex = 26
+        Me.picFPS.TabStop = False
         '
         'cmsSubtitle
         '
@@ -949,6 +964,7 @@ Partial Class MainForm
         Me.Text = "Simple Video Editor"
         Me.cmsFrameRate.ResumeLayout(False)
         Me.grpSettings.ResumeLayout(False)
+        CType(Me.picFPS, System.ComponentModel.ISupportInitialize).EndInit()
         Me.cmsSubtitle.ResumeLayout(False)
         CType(Me.picPlaybackSpeed, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.picColorKey, System.ComponentModel.ISupportInitialize).EndInit()
@@ -1078,4 +1094,5 @@ Partial Class MainForm
     Friend WithEvents CopyPixelColorToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ToolStripSeparator5 As ToolStripSeparator
     Friend WithEvents CropSensitivityToolStripTextBox As ToolStripTextBox
+    Friend WithEvents picFPS As PictureBox
 End Class

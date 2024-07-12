@@ -108,11 +108,11 @@ Public Class MainForm
         Debug.Print($"Loading file '{fullPath}'")
         mstrVideoPath = fullPath
         sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
+        ClearControls()
         If mobjMetaData IsNot Nothing Then
             mobjMetaData.Dispose()
             mobjMetaData = Nothing
         End If
-        ClearControls()
         mobjMetaData = VideoData.FromFile(mstrVideoPath, inputMash)
         Me.Text = Me.Text.Split("-")(0).Trim + $" - {System.IO.Path.GetFileName(mstrVideoPath)}" + " - Open Source"
         ctlVideoSeeker.Enabled = True
@@ -130,18 +130,15 @@ Public Class MainForm
 
         'Remove irrelevant resolutions
         cmbDefinition.Items.Clear()
-        cmbDefinition.Items.AddRange(New Object() {"Original", "120p", "240p", "360p", "480p", "720p", "1080p"})
+        cmbDefinition.Items.Add("????p")
         cmbDefinition.SelectedIndex = 0
-        Dim removeStart As Integer = cmbDefinition.Items.Count
-        For definitionIndex As Integer = 1 To cmbDefinition.Items.Count - 1
-            If Integer.Parse(Regex.Match(cmbDefinition.Items(definitionIndex), "\d*").Value) > mobjMetaData.Height Then
-                removeStart = definitionIndex
-                Exit For
+        Dim commonHeights As Integer() = {2160, 1440, 1080, 720, 480, 360, 240, 120}
+        For Each objCommonHeight In commonHeights
+            If mobjMetaData.Height > objCommonHeight Then
+                cmbDefinition.Items.Add($"{objCommonHeight}p")
             End If
         Next
-        While removeStart < cmbDefinition.Items.Count
-            cmbDefinition.Items.RemoveAt(removeStart)
-        End While
+        UpdateDefaultDefinition()
 
         'Clear images
         picVideo.SetImage(Nothing)
@@ -639,7 +636,7 @@ Public Class MainForm
 
         'SCALE VIDEO
         Dim scale As Double = cropHeight
-        If specProperties.VerticalResolution > 0 Then
+        If specProperties.VerticalResolution > 0 AndAlso specProperties.VerticalResolution <> If(specProperties.Crop?.Height, mobjMetaData.Height) Then
             scale = specProperties.VerticalResolution
         End If
         scale /= cropHeight
@@ -1125,6 +1122,7 @@ Public Class MainForm
             mblnCropSignal = True
             ToolStripCropArg.Text = ""
             mblnCropSignal = False
+            cmbDefinition.Items(0) = ""
         Else
             'lblStatusCropRect.Text = $"{cropActual.X},{cropActual.Y},{cropActual.Width},{cropActual.Height}"
             lblStatusCropRect.Text = $"{cropActual?.Width} x {cropActual?.Height}"
@@ -1135,6 +1133,42 @@ Public Class MainForm
             ToolStripCropArg.SelectionStart = Math.Min(lastSelection, ToolStripCropArg.Text.Length)
             mblnCropSignal = False
         End If
+        UpdateDefaultDefinition()
+    End Sub
+
+    ''' <summary>
+    ''' Updates the definition combobox to show the default video definition in the first spot
+    ''' </summary>
+    Private Sub UpdateDefaultDefinition()
+        Dim lastSelection As String = cmbDefinition.SelectedItem
+        Dim lastIndex As Integer = cmbDefinition.SelectedIndex
+        cmbDefinition.Items.Clear()
+        cmbDefinition.Items.Add("????p")
+        cmbDefinition.SelectedIndex = 0
+        Dim commonHeights As Integer() = {2160, 1440, 1080, 720, 480, 360, 240, 120}
+        Dim cropActual As Rectangle? = Me.CropRect()
+        If Me.mobjMetaData IsNot Nothing AndAlso cropActual Is Nothing Then
+            cmbDefinition.Items(0) = $"{mobjMetaData.Height}p"
+        ElseIf cropActual IsNot Nothing Then
+            cmbDefinition.Items(0) = $"{cropActual?.Height}p"
+        Else
+            cmbDefinition.Items(0) = $"????p"
+        End If
+
+        If Me.mobjMetaData IsNot Nothing Then
+            For Each objCommonHeight In commonHeights
+                Dim pFlavoredHeight As String = $"{objCommonHeight}p"
+                If If(Me.CropRect?.Height, mobjMetaData.Height) > objCommonHeight Then
+                    cmbDefinition.Items.Add(pFlavoredHeight)
+                End If
+            Next
+        End If
+        If lastIndex > cmbDefinition.Items.Count - 1 AndAlso cmbDefinition.Items(lastIndex) = lastSelection Then
+            cmbDefinition.SelectedIndex = lastIndex
+        Else
+            cmbDefinition.SelectedIndex = 0
+        End If
+        Me.Refresh()
     End Sub
 
     ''' <summary>
@@ -1495,7 +1529,8 @@ Public Class MainForm
         'Setup Tooltips
         mobjGenericToolTip.SetToolTip(ctlVideoSeeker, $"Move sliders to trim video.{vbNewLine}Use [A][D][←][→] to move trim sliders frame by frame.{vbNewLine}Hold [Shift] to move preview slider instead.")
         mobjGenericToolTip.SetToolTip(picVideo, $"Left click and drag to crop.{vbNewLine}Right click to clear crop selection.")
-        mobjGenericToolTip.SetToolTip(cmbDefinition, $"Select the ending height of your video.{vbNewLine}Right click for FPS options.")
+        mobjGenericToolTip.SetToolTip(cmbDefinition, $"Select the ending height of your video.")
+        mobjGenericToolTip.SetToolTip(picFPS, $"Frames per second.{vbNewLine}Affects smoothness, not playback speed.")
         mobjGenericToolTip.SetToolTip(btnSave, $"Save video.{vbNewLine}Hold ctrl to manually modify ffmpeg arguments.")
         mobjGenericToolTip.SetToolTip(picFrame1, "View first frame of video.")
         mobjGenericToolTip.SetToolTip(picFrame2, "View 25% frame of video.")
@@ -2088,6 +2123,10 @@ Public Class MainForm
         End If
         Me.chkMute.Checked = (resultValue = 0)
         mobjOutputProperties.PlaybackVolume = resultValue
+    End Sub
+
+    Private Sub picFPS_Click(sender As Object, e As EventArgs) Handles picFPS.Click
+        cmsFrameRate.Show(picFPS.PointToScreen(CType(e, MouseEventArgs).Location))
     End Sub
 #End Region
 
