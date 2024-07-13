@@ -132,12 +132,6 @@ Public Class MainForm
         cmbDefinition.Items.Clear()
         cmbDefinition.Items.Add("????p")
         cmbDefinition.SelectedIndex = 0
-        Dim commonHeights As Integer() = {2160, 1440, 1080, 720, 480, 360, 240, 120}
-        For Each objCommonHeight In commonHeights
-            If mobjMetaData.Height > objCommonHeight Then
-                cmbDefinition.Items.Add($"{objCommonHeight}p")
-            End If
-        Next
         UpdateDefaultDefinition()
 
         'Clear images
@@ -1142,9 +1136,8 @@ Public Class MainForm
     Private Sub UpdateDefaultDefinition()
         Dim lastSelection As String = cmbDefinition.SelectedItem
         Dim lastIndex As Integer = cmbDefinition.SelectedIndex
-        cmbDefinition.Items.Clear()
-        cmbDefinition.Items.Add("????p")
-        cmbDefinition.SelectedIndex = 0
+        Dim desiredItems As New List(Of String)
+        desiredItems.Add("????p")
         Dim commonHeights As Integer() = {2160, 1440, 1080, 720, 480, 360, 240, 120}
         Dim cropActual As Rectangle? = Me.CropRect()
         If Me.mobjMetaData IsNot Nothing AndAlso cropActual Is Nothing Then
@@ -1154,21 +1147,41 @@ Public Class MainForm
         Else
             cmbDefinition.Items(0) = $"????p"
         End If
+        desiredItems.Add(cmbDefinition.Items(0))
 
         If Me.mobjMetaData IsNot Nothing Then
             For Each objCommonHeight In commonHeights
                 Dim pFlavoredHeight As String = $"{objCommonHeight}p"
                 If If(Me.CropRect?.Height, mobjMetaData.Height) > objCommonHeight Then
-                    cmbDefinition.Items.Add(pFlavoredHeight)
+                    desiredItems.Add(pFlavoredHeight)
                 End If
             Next
         End If
-        If lastIndex > cmbDefinition.Items.Count - 1 AndAlso cmbDefinition.Items(lastIndex) = lastSelection Then
-            cmbDefinition.SelectedIndex = lastIndex
+        Dim listOk As Boolean = True
+        If desiredItems.Count <> cmbDefinition.Items.Count Then
+            listOk = False
         Else
-            cmbDefinition.SelectedIndex = 0
+            For index As Integer = 1 To desiredItems.Count - 1
+                If cmbDefinition.Items.Count <= index Then
+                    listOk = False
+                    Exit For
+                End If
+                If cmbDefinition.Items(index) <> desiredItems(index) Then
+                    listOk = False
+                    Exit For
+                End If
+            Next
         End If
-        Me.Refresh()
+        If Not listOk Then
+            cmbDefinition.Items.Clear()
+            cmbDefinition.Items.AddRange(desiredItems.ToArray)
+            If lastIndex > cmbDefinition.Items.Count - 1 AndAlso cmbDefinition.Items(lastIndex) = lastSelection Then
+                cmbDefinition.SelectedIndex = lastIndex
+            Else
+                cmbDefinition.SelectedIndex = 0
+            End If
+            Me.Refresh()
+        End If
     End Sub
 
     ''' <summary>
