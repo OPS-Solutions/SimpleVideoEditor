@@ -1137,7 +1137,6 @@ Public Class MainForm
         Dim lastSelection As String = cmbDefinition.SelectedItem
         Dim lastIndex As Integer = cmbDefinition.SelectedIndex
         Dim desiredItems As New List(Of String)
-        desiredItems.Add("????p")
         Dim commonHeights As Integer() = {2160, 1440, 1080, 720, 480, 360, 240, 120}
         Dim cropActual As Rectangle? = Me.CropRect()
         If Me.mobjMetaData IsNot Nothing AndAlso cropActual Is Nothing Then
