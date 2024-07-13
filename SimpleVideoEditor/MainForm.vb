@@ -2582,7 +2582,11 @@ Public Class MainForm
             Select Case MessageBox.Show(Me, $"Open {files.Count} file(s)?", "Open File(s)?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
                 Case DialogResult.OK
                     ofdVideoIn.InitialDirectory = IO.Path.GetDirectoryName(files(0))
+                    'Don't mess with output if something is already loaded
+                    'It is possible that the user is processing multiple files from a source to an output directory
+                    If Me.mobjMetaData Is Nothing Then
                     sfdVideoOut.InitialDirectory = IO.Path.GetDirectoryName(files(0))
+                    End If
                     LoadFiles(files)
                 Case Else
                     Exit Sub
