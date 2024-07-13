@@ -1668,9 +1668,12 @@ Public Class MainForm
     ''' Resets controls to an empty state as if no file has been loaded
     ''' </summary>
     Private Sub ClearControls()
-        mptStartCrop = New Point(0, 0)
-        mptEndCrop = New Point(0, 0)
-        UpdateCropStatus()
+        'Only clear crop if it is no longer valid
+        If Not Me.mobjMetaData?.Size.ToRect.Contains(mptStartCrop) OrElse Not Me.mobjMetaData?.Size.ToRect.Contains(mptEndCrop) Then
+            mptStartCrop = New Point(0, 0)
+            mptEndCrop = New Point(0, 0)
+            UpdateCropStatus()
+        End If
         picVideo.SetImage(Nothing)
         picFrame1.Image = Nothing
         picFrame2.Image = Nothing
@@ -2585,7 +2588,7 @@ Public Class MainForm
                     'Don't mess with output if something is already loaded
                     'It is possible that the user is processing multiple files from a source to an output directory
                     If Me.mobjMetaData Is Nothing Then
-                    sfdVideoOut.InitialDirectory = IO.Path.GetDirectoryName(files(0))
+                        sfdVideoOut.InitialDirectory = IO.Path.GetDirectoryName(files(0))
                     End If
                     LoadFiles(files)
                 Case Else
