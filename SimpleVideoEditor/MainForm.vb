@@ -109,6 +109,11 @@ Public Class MainForm
         mstrVideoPath = fullPath
         sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
         ClearControls()
+        If mthdFrameGrabber IsNot Nothing AndAlso mthdFrameGrabber.IsAlive Then
+            mthdFrameGrabber.Abort()
+            'Wait until thread is finished aborting
+            mthdFrameGrabber.Join()
+        End If
         If mobjMetaData IsNot Nothing Then
             mobjMetaData.Dispose()
             mobjMetaData = Nothing
@@ -117,7 +122,6 @@ Public Class MainForm
         Me.Text = Me.Text.Split("-")(0).Trim + $" - {System.IO.Path.GetFileName(mstrVideoPath)}" + " - Open Source"
         ctlVideoSeeker.Enabled = True
         RefreshStatusToolTips()
-
 
         RemoveHandler ctlVideoSeeker.SeekChanged, AddressOf ctlVideoSeeker_SeekChanged
         RemoveHandler subForm.PreviewChanged, AddressOf subForm_PreviewChanged
@@ -2414,42 +2418,46 @@ Public Class MainForm
     ''' Eats anything in frame queue such that only the latest is grabbed
     ''' </summary>
     Private Sub FrameQueueProcessor()
-        Thread.CurrentThread.Name = "FrameQueueProcessor"
-        While True
-            Dim latestFrameRequest As Integer = mobjFramesToGrab.Take()
-            Dim discardCount As Integer = 0
-            Dim latestValue As Integer = 0
-            While mobjFramesToGrab.TryTake(latestValue)
-                discardCount += 1
-                latestFrameRequest = latestValue
-                'Loops until no elements in the queue, meaning we have the latest relevant request
-                'All others are discarded to avoid wasting CPU resources on frames the user doesn't care for anymore
+        Try
+            Thread.CurrentThread.Name = "FrameQueueProcessor"
+            While True
+                Dim latestFrameRequest As Integer = mobjFramesToGrab.Take()
+                Dim discardCount As Integer = 0
+                Dim latestValue As Integer = 0
+                While mobjFramesToGrab.TryTake(latestValue)
+                    discardCount += 1
+                    latestFrameRequest = latestValue
+                    'Loops until no elements in the queue, meaning we have the latest relevant request
+                    'All others are discarded to avoid wasting CPU resources on frames the user doesn't care for anymore
+                End While
+                If discardCount > 0 Then
+                    Debug.Print($"Discarded {discardCount} frame requests")
+                End If
+                'If we didn't load full resolution, then we should grab a full res image for the current frame
+                'Must do image access on the main thread, as the UI would potentially be using it, leading to an access exception
+                'Bitmaps can only be accessed on one thread, drawing and checking size are two things that count as being accessed
+                Dim fullSize As Boolean = True
+                Me.Invoke(Sub()
+                              Dim currentImage As Image = mobjMetaData.GetImageFromAnyCache(latestFrameRequest)
+                              If currentImage IsNot Nothing Then
+                                  fullSize = currentImage.Size.Equals(mobjMetaData.Size)
+                              End If
+                          End Sub)
+                If Not fullSize Then
+                    Debug.Print($"Grabbing ss full {latestFrameRequest}")
+                    mobjMetaData.GetFfmpegFrame(latestFrameRequest, 0, mobjMetaData.Size, True)
+                End If
+                'Cache some nearby stuff
+                If mobjMetaData.ImageCacheStatus(latestFrameRequest) = ImageCache.CacheStatus.Cached Then
+                    'Don't need to regrab
+                Else
+                    mobjMetaData.GetFfmpegFrame(latestFrameRequest)
+                End If
             End While
-            If discardCount > 0 Then
-                Debug.Print($"Discarded {discardCount} frame requests")
-            End If
-            'If we didn't load full resolution, then we should grab a full res image for the current frame
-            'TODO Beware upgrade disposing an image we are currently using, we need to make sure the image isn't still in use
-            Dim currentImage As Image = mobjMetaData.GetImageFromAnyCache(latestFrameRequest)
-            'Must do image access on the main thread, as the UI would potentially be using it, leading to an access exception
-            'Bitmaps can only be accessed on one thread, drawing and checking size are two things that count as being accessed
-            Dim fullSize As Boolean = True
-            Me.Invoke(Sub()
-                          If currentImage IsNot Nothing Then
-                              fullSize = currentImage.Size.Equals(mobjMetaData.Size)
-                          End If
-                      End Sub)
-            If Not fullSize Then
-                Debug.Print($"Grabbing ss full {latestFrameRequest}")
-                mobjMetaData.GetFfmpegFrame(latestFrameRequest, 0, mobjMetaData.Size, True)
-            End If
-            'Cache some nearby stuff
-            If mobjMetaData.ImageCacheStatus(latestFrameRequest) = ImageCache.CacheStatus.Cached Then
-                'Don't need to regrab
-            Else
-                mobjMetaData.GetFfmpegFrame(latestFrameRequest)
-            End If
-        End While
+        Catch ex As ThreadAbortException
+            'This is ok, we abort for opening new files to avoid other access errors
+            'I'm not a fan of throwing exceptions for flow control, but monitoring a flag instead wouldn't allow instant cancellation
+        End Try
     End Sub
 
     Private Sub NewFrameCached(sender As Object, objCache As ImageCache, ranges As List(Of List(Of Integer))) Handles mobjMetaData.RetrievedFrames
