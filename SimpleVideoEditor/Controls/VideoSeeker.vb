@@ -221,9 +221,9 @@
     Public Sub New(metaData As VideoData)
         InitializeComponent()
 
-        Me.MetaData = metaData
         Me.DoubleBuffered = True
         InitializePreviewForm()
+        Me.MetaData = metaData
     End Sub
 
     Private Sub InitializePreviewForm()
@@ -257,15 +257,16 @@
         End Using
 
         'Draw hole punches
-        Using pen As New Pen(Color.Gold, 1)
-            If maryHolePunches IsNot Nothing Then
+        If maryHolePunches IsNot Nothing Then
+            Dim tickWidth As Single = Me.Width / (maryHolePunches.Count - 1)
+            Using pen As New Pen(Color.Gold, Math.Ceiling(tickWidth))
                 Dim frameIndex As Integer = 0
                 For Each holePunch As Single In maryHolePunches
-                    e.Graphics.DrawLine(pen, New Point(frameIndex, Me.Height - 4), New Point(frameIndex, (Me.Height - 4) - (holePunch * COLOR_HEIGHT)))
+                    e.Graphics.DrawLine(pen, New Point(frameIndex * tickWidth, Me.Height - 4), New Point(frameIndex * tickWidth, (Me.Height - 4) - (holePunch * COLOR_HEIGHT)))
                     frameIndex += 1
                 Next
-            End If
-        End Using
+            End Using
+        End If
 
         'Draw frame ticks, color based on if the frame has been cached or not
         If Me.mobjMetaData IsNot Nothing Then

@@ -99,44 +99,33 @@ Public Class ImageCache
         ''' <summary>
         ''' Gets bytes from bitmap. Created for serialization
         ''' </summary>
-        'Public Property BitmapBytes() As Byte()
-        '    Get
-        '        If Me.Image Is Nothing Then
-        '            Return Nothing
-        '        Else
-        '            Using memStream As New MemoryStream
-        '                'The reason we have to do this is because the memory stream the bitmap
-        '                'was created with has already been long destroyed
-        '                Using tempMap As New Bitmap(Me.Image)
-        '                    tempMap.Save(memStream, Imaging.ImageFormat.Bmp)
-        '                    Return memStream.ToArray()
-        '                End Using
-        '            End Using
-        '        End If
-        '    End Get
-        '    Set(value As Byte())
-        '        If value Is Nothing Then
-        '            Me.Image = Nothing
-        '        Else
-        '            Using memStream As New MemoryStream
-        '                memStream.Write(value, 0, value.Count)
-        '                Me.Image = Bitmap.FromStream(memStream)
-        '                Dim imageData As BitmapData = Image.LockBits(New Rectangle(0, 0, Image.Width, Image.Height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb)
-
-        '                Dim byteTotal As Integer = imageData.Stride * imageData.Height
-        '                Dim scanLineTotal As Integer = imageData.Width * 3
-        '                Dim pixelBytesTotal As Integer = scanLineTotal * imageData.Height
-        '                If mbytPixels Is Nothing OrElse Not mbytPixels.Length = pixelBytesTotal Then
-        '                    ReDim mbytPixels(pixelBytesTotal - 1)
-        '                End If
-        '                For scanIndex As Integer = 0 To imageData.Height - 1
-        '                    Marshal.Copy(imageData.Scan0 + scanIndex * imageData.Stride, mbytPixels, scanIndex * scanLineTotal, scanLineTotal)
-        '                Next
-        '                Image.UnlockBits(imageData)
-        '            End Using
-        '        End If
-        '    End Set
-        'End Property
+        Public Property BitmapBytes() As Byte()
+            Get
+                If Me.ImageStore Is Nothing Then
+                    If Me.ImageData IsNot Nothing Then
+                        Return Me.ImageData
+                    End If
+                    Return Nothing
+                Else
+                    Using memStream As New MemoryStream
+                        'The reason we have to do this is because the memory stream the bitmap
+                        'was created with has already been long destroyed
+                        Using tempMap As New Bitmap(Me.ImageStore)
+                            tempMap.Save(memStream, Imaging.ImageFormat.Bmp)
+                            Return memStream.ToArray()
+                        End Using
+                    End Using
+                End If
+            End Get
+            Set(value As Byte())
+                If value Is Nothing Then
+                    Me.ImageStore = Nothing
+                    Me.ImageData = Nothing
+                Else
+                    Me.ImageData = value
+                End If
+            End Set
+        End Property
 
         <XmlIgnore>
         Private mbytPixels As Byte()
@@ -150,18 +139,9 @@ Public Class ImageCache
         ''' </summary>
         Public Function AverageColor() As Byte()
             If mbytAvgColor Is Nothing Then
-                mbytAvgColor = New Byte(2) {}
-                Dim rSum As Integer = 0
-                Dim gSum As Integer = 0
-                Dim bSum As Integer = 0
-                For index As Integer = 0 To mbytPixels.Count - 1 Step 3
-                    rSum += mbytPixels(index)
-                    gSum += mbytPixels(index + 1)
-                    bSum += mbytPixels(index + 2)
-                Next
-                mbytAvgColor(0) = rSum / mbytPixels.Count
-                mbytAvgColor(1) = gSum / mbytPixels.Count
-                mbytAvgColor(2) = bSum / mbytPixels.Count
+                If Me.ImageStore IsNot Nothing Then
+                    mbytAvgColor = Me.ImageStore.AverageColor()
+                End If
             End If
             Return mbytAvgColor
         End Function
@@ -172,38 +152,9 @@ Public Class ImageCache
         ''' <returns></returns>
         Public Function StdDev() As Double()
             If mdblStdDev Is Nothing Then
-                mdblStdDev = New Double(2) {}
-                Dim rSum As Integer = 0
-                Dim gSum As Integer = 0
-                Dim bSum As Integer = 0
-                For index As Integer = 0 To mbytPixels.Count - 1 Step 3
-                    rSum += mbytPixels(index)
-                    gSum += mbytPixels(index + 1)
-                    bSum += mbytPixels(index + 2)
-                Next
-                Dim rAvg As Double = rSum / mbytPixels.Count
-                Dim gAvg As Double = gSum / mbytPixels.Count
-                Dim bAvg As Double = bSum / mbytPixels.Count
-
-                'We already calculated it so we might as well save the computation for later
-                If mbytAvgColor Is Nothing Then
-                    mbytAvgColor = New Byte(2) {}
-                    mbytAvgColor(0) = rAvg
-                    mbytAvgColor(1) = gAvg
-                    mbytAvgColor(2) = bAvg
+                If Me.ImageStore IsNot Nothing Then
+                    mdblStdDev = Me.ImageStore.StdDev(mbytAvgColor)
                 End If
-
-                Dim rSqr As Double = 0
-                Dim gSqr As Double = 0
-                Dim bSqr As Double = 0
-                For index As Integer = 0 To mbytPixels.Count - 1 Step 3
-                    rSqr += Math.Pow(mbytPixels(index) - rAvg, 2)
-                    gSqr += Math.Pow(mbytPixels(index + 1) - gAvg, 2)
-                    bSqr += Math.Pow(mbytPixels(index + 2) - bAvg, 2)
-                Next
-                mdblStdDev(0) = Math.Sqrt(rSqr / mbytPixels.Count)
-                mdblStdDev(1) = Math.Sqrt(gSqr / mbytPixels.Count)
-                mdblStdDev(2) = Math.Sqrt(bSqr / mbytPixels.Count)
             End If
             Return mdblStdDev
         End Function
@@ -218,20 +169,18 @@ Public Class ImageCache
         ''' Checks that two frames are essentially the same, within margin 0-100% similar
         ''' </summary>
         Public Function EqualsWithin(value As CacheItem, margin As Double)
+            If Me.ImageStore Is Nothing Then
+                Dim unused As Bitmap = Me.GetImage()
+            End If
+            If value.ImageStore Is Nothing Then
+                Dim unused As Bitmap = value.GetImage()
+            End If
             Dim difStdDev As Double = CompareArrays(Me.StdDev, value.StdDev)
             If difStdDev > 1 Then
                 Return False
             End If
             Dim difFullyCompressed As Double = CompareArraysAvg(Me.AverageColor, value.AverageColor)
             Return margin >= difFullyCompressed
-
-            'Short circuit so we don't waste a ton of resources trying to calculate
-            If margin < difFullyCompressed Then
-                Return False
-            End If
-            Dim difAvg As Double = CompareArraysAvg(Me.mbytPixels, value.mbytPixels)
-
-            Return margin >= difAvg
         End Function
 
         Public Function Status() As CacheStatus

@@ -38,6 +38,7 @@
     Private mobjChainList As New List(Of List(Of Chain)) 'List of videos, each with a list of frame chains found
 
     Private Sub HolePuncherForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        CacheFullBitmaps = True
         ofdVideoIn.Multiselect = True
         ofdVideoIn.Filter = "Video Files (*.*)|*.*"
         ofdVideoIn.Title = "Select Video Files"
@@ -419,22 +420,35 @@
             If objVid.Count > 0 Then
                 Dim goodPortions As New List(Of GoodChain)
 
-                Dim firstGoodFrame As Integer = If(objVid(0).SlaveFrame = 0, objVid(0).Length, 0)
+                'Set whether each frame is good individually
+                Dim removalFrames(mlstMetaDatas(videoIndex).TotalFrames - 1) As Boolean
                 For Each objChain In objVid
-                    If firstGoodFrame >= mlstMetaDatas(videoIndex).TotalFrames Then
-                        Exit For
-                    End If
-                    'Keep track of chains that overlap so we don't duplicate unessecary video
-                    If firstGoodFrame > objChain.SlaveFrame Then
-                        firstGoodFrame = objChain.SlaveFrame + (objChain.Length - 1)
-                        Continue For
-                    End If
-                    goodPortions.Add(New GoodChain With {.startFrame = firstGoodFrame, .endFrame = objChain.SlaveFrame - 1})
-                    firstGoodFrame = objChain.SlaveFrame + (objChain.Length)
+                    For index As Integer = objChain.SlaveFrame To objChain.SlaveFrame + objChain.Length - 1
+                        removalFrames(index) = True
+                    Next
                 Next
-                If (mlstMetaDatas(videoIndex).TotalFrames - 1) - firstGoodFrame > 0 Then
-                    goodPortions.Add(New GoodChain With {.startFrame = firstGoodFrame, .endFrame = mlstMetaDatas(videoIndex).TotalFrames - 1})
-                End If
+
+                Dim isOK As Boolean = True
+                Dim currentStart As Integer = 0
+                Dim currentLength As Integer = 0
+                For index As Integer = 0 To removalFrames.Count - 1
+                    If Not removalFrames(index) Then
+                        If Not isOK Then
+                            currentStart = index
+                        End If
+                        isOK = True
+                        currentLength += 1
+                    Else
+                        If isOK AndAlso currentLength > 0 Then
+                            goodPortions.Add(New GoodChain With {.startFrame = currentStart, .endFrame = currentStart + currentLength - 1})
+                        End If
+                        currentLength = 0
+                        isOK = False
+                    End If
+                    If index = removalFrames.Count - 1 AndAlso isOK AndAlso currentLength > 0 Then
+                        goodPortions.Add(New GoodChain With {.startFrame = currentStart, .endFrame = currentStart + currentLength - 1})
+                    End If
+                Next
 
                 Dim processInfo As New ProcessStartInfo
                 processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
@@ -473,7 +487,6 @@
                     '"trim='00\:01\:40.5':'00\:00\:04.20'"
                     processInfo.Arguments += "[vidChunk" & goodIndex & "] trim=" & startHHMMSS & ":" & endHHMMSS & "," & "setpts=PTS-STARTPTS[v" & goodIndex & "],"
                 Next
-
 
                 'Build audio trim
                 processInfo.Arguments += "[0:a]asplit = " & goodPortions.Count
