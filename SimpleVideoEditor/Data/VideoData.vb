@@ -1484,6 +1484,32 @@ Public Class VideoData
         End Get
     End Property
 
+    ''' <summary>
+    ''' Gets the overall status of all known frames
+    ''' Returns Cached if all frames are cached
+    ''' Returns Queued if any amount are not yet cached
+    ''' Returns None if any amount are not yet queued
+    ''' </summary>
+    Public ReadOnly Property CacheStatus As ImageCache.CacheStatus
+        Get
+            Dim targetcache As ImageCache = mobjImageCache
+            Dim resultStatus As ImageCache.CacheStatus = ImageCache.CacheStatus.Cached
+            For frameIndex As Integer = 0 To mobjMetaData.TotalFrames - 1
+                Select Case targetcache(frameIndex).Status
+                    Case ImageCache.CacheStatus.Cached
+                        'Continue
+                    Case ImageCache.CacheStatus.Queued
+                        If resultStatus = ImageCache.CacheStatus.Cached Then
+                            resultStatus = ImageCache.CacheStatus.Queued
+                        End If
+                    Case ImageCache.CacheStatus.None
+                        Return ImageCache.CacheStatus.None
+                End Select
+            Next
+            Return resultStatus
+        End Get
+    End Property
+
 #Region "IDisposable Support"
     Private disposedValue As Boolean ' To detect redundant calls
 

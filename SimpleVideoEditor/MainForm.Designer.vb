@@ -437,13 +437,13 @@ Partial Class MainForm
         '
         Me.cmsPicVideo.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.cmsPicVideoClear, Me.cmsPicVideoExportFrame, Me.cmsAutoCrop})
         Me.cmsPicVideo.Name = "cmsPicVideo"
-        Me.cmsPicVideo.Size = New System.Drawing.Size(181, 92)
+        Me.cmsPicVideo.Size = New System.Drawing.Size(145, 70)
         '
         'cmsPicVideoClear
         '
         Me.cmsPicVideoClear.Image = Global.SimpleVideoEditor.My.Resources.Resources.Eraser
         Me.cmsPicVideoClear.Name = "cmsPicVideoClear"
-        Me.cmsPicVideoClear.Size = New System.Drawing.Size(180, 22)
+        Me.cmsPicVideoClear.Size = New System.Drawing.Size(144, 22)
         Me.cmsPicVideoClear.Text = "Clear"
         '
         'cmsPicVideoExportFrame
@@ -452,7 +452,7 @@ Partial Class MainForm
         Me.cmsPicVideoExportFrame.Enabled = False
         Me.cmsPicVideoExportFrame.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.cmsPicVideoExportFrame.Name = "cmsPicVideoExportFrame"
-        Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(180, 22)
+        Me.cmsPicVideoExportFrame.Size = New System.Drawing.Size(144, 22)
         Me.cmsPicVideoExportFrame.Text = "Export Frame"
         '
         'CurrentToolStripMenuItem
@@ -482,27 +482,27 @@ Partial Class MainForm
         Me.cmsAutoCrop.Enabled = False
         Me.cmsAutoCrop.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCrop
         Me.cmsAutoCrop.Name = "cmsAutoCrop"
-        Me.cmsAutoCrop.Size = New System.Drawing.Size(180, 22)
+        Me.cmsAutoCrop.Size = New System.Drawing.Size(144, 22)
         Me.cmsAutoCrop.Text = "Auto Crop"
         '
         'ContractToolStripMenuItem
         '
         Me.ContractToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCropContract
         Me.ContractToolStripMenuItem.Name = "ContractToolStripMenuItem"
-        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ContractToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.ContractToolStripMenuItem.Text = "Contract"
         '
         'ExpandToolStripMenuItem
         '
         Me.ExpandToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.AutoCropExpand
         Me.ExpandToolStripMenuItem.Name = "ExpandToolStripMenuItem"
-        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ExpandToolStripMenuItem.Size = New System.Drawing.Size(160, 22)
         Me.ExpandToolStripMenuItem.Text = "Expand"
         '
         'ToolStripSeparator5
         '
         Me.ToolStripSeparator5.Name = "ToolStripSeparator5"
-        Me.ToolStripSeparator5.Size = New System.Drawing.Size(177, 6)
+        Me.ToolStripSeparator5.Size = New System.Drawing.Size(157, 6)
         '
         'CropSensitivityToolStripTextBox
         '
@@ -616,13 +616,13 @@ Partial Class MainForm
         '
         Me.cmsVideoSeeker.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.CacheAllFramesToolStripMenuItem})
         Me.cmsVideoSeeker.Name = "cmsVideoSeeker"
-        Me.cmsVideoSeeker.Size = New System.Drawing.Size(166, 26)
+        Me.cmsVideoSeeker.Size = New System.Drawing.Size(181, 48)
         '
         'CacheAllFramesToolStripMenuItem
         '
         Me.CacheAllFramesToolStripMenuItem.Image = Global.SimpleVideoEditor.My.Resources.Resources.Picture
         Me.CacheAllFramesToolStripMenuItem.Name = "CacheAllFramesToolStripMenuItem"
-        Me.CacheAllFramesToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.CacheAllFramesToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.CacheAllFramesToolStripMenuItem.Text = "Cache All Frames"
         '
         'cmsSaveOptions

@@ -2534,6 +2534,14 @@ Public Class MainForm
         End If
     End Sub
 
+    Private Sub cmsVideoSeeker_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsVideoSeeker.Opening
+        If mobjMetaData?.CacheStatus >= ImageCache.CacheStatus.Queued Then
+            CacheAllFramesToolStripMenuItem.Enabled = False
+        Else
+            CacheAllFramesToolStripMenuItem.Enabled = True
+        End If
+    End Sub
+
     Private Async Sub CacheAllFramesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CacheAllFramesToolStripMenuItem.Click
         Me.UseWaitCursor = True
         Await mobjMetaData.GetFfmpegFrameAsync(0, -1)
