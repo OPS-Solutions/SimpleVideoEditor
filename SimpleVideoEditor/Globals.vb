@@ -6,6 +6,54 @@ Module Globals
     Public TempPath As String = System.IO.Path.Combine(System.IO.Path.GetTempPath, "SimpleVideoEditor")
     Public CacheFullBitmaps As Boolean = True
 
+#Region "Process Tracking"
+    ''' <summary>
+    ''' Keeps track of any processes started by this application
+    ''' </summary>
+    Private mlstProcesses As New List(Of Process)
+
+    ''' <summary>
+    ''' Adds a process to track, to be later closed by CloseProcesses in case they don't close themselves
+    ''' Use for all processes that may take seconds or longer, to ensure user closing application is not negatively impacted
+    ''' </summary>
+    Public Sub TrackProcess(objProcess As Process)
+        SyncLock mlstProcesses
+            mlstProcesses.Add(objProcess)
+            PruneProcesses()
+        End SyncLock
+    End Sub
+
+    ''' <summary>
+    ''' Checks the process list for anything that has already exited on its own, forgetting about them
+    ''' </summary>
+    Private Sub PruneProcesses()
+        Dim removableProcesses As New List(Of Process)
+        For Each objProcess In mlstProcesses
+            If objProcess.HasExited Then
+                removableProcesses.Add(objProcess)
+            End If
+        Next
+        For Each removableProcess In removableProcesses
+            removableProcess.Close()
+            removableProcess.Dispose()
+            mlstProcesses.Remove(removableProcess)
+        Next
+    End Sub
+
+    ''' <summary>
+    ''' Closes all tracked processes
+    ''' </summary>
+    Public Sub CloseProcesses()
+        SyncLock mlstProcesses
+            PruneProcesses()
+            For Each objProcess In mlstProcesses
+                objProcess.Kill()
+            Next
+        End SyncLock
+    End Sub
+#End Region
+
+
     ''' <summary>
     ''' Returns an .srt filepath for use by this process in the temp folder
     ''' Uniquely ID'ed by ProcessID

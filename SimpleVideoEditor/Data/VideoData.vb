@@ -176,10 +176,11 @@ Public Class VideoData
             processInfo.UseShellExecute = False
             processInfo.WindowStyle = ProcessWindowStyle.Hidden
             processInfo.CreateNoWindow = True
-            Dim srtProcess As Process = Process.Start(processInfo)
-            Dim errOutput As String
-            Using srtErr As StreamReader = srtProcess.StandardError
-                errOutput = srtErr.ReadToEndAsync.Wait(1000)
+            Using srtProcess As Process = Process.Start(processInfo)
+                Dim errOutput As String
+                Using srtErr As StreamReader = srtProcess.StandardError
+                    errOutput = srtErr.ReadToEndAsync.Wait(1000)
+                End Using
             End Using
             _Text = IO.File.ReadAllText(srtFile)
         End Sub
@@ -237,17 +238,17 @@ Public Class VideoData
         processInfo.UseShellExecute = False
         processInfo.RedirectStandardError = True
         processInfo.CreateNoWindow = True
-        Dim tempProcess As Process = Process.Start(processInfo)
+        Using tempProcess As Process = Process.Start(processInfo)
+            'Swap output to inside this application
+            Dim output As String
+            Using streamReader As System.IO.StreamReader = tempProcess.StandardError
+                output = streamReader.ReadToEnd()
+            End Using
+            tempProcess.WaitForExit(1000)
+            tempProcess.Close()
 
-        'Swap output to inside this application
-        Dim output As String
-        Using streamReader As System.IO.StreamReader = tempProcess.StandardError
-            output = streamReader.ReadToEnd()
+            Return New SimpleVideoEditor.VideoData(fullPath, output) With {.mblnInputMash = inputMash}
         End Using
-        tempProcess.WaitForExit(1000)
-        tempProcess.Close()
-
-        Return New SimpleVideoEditor.VideoData(fullPath, output) With {.mblnInputMash = inputMash}
     End Function
 
     ''' <summary>
@@ -345,7 +346,7 @@ Public Class VideoData
         processInfo.RedirectStandardOutput = True
         processInfo.RedirectStandardError = True
         Dim tempProcess As Process = Process.Start(processInfo)
-
+        TrackProcess(tempProcess)
 #If DEBUG Then
         Dim fullDataRead As New StringBuilder
 #End If
@@ -398,7 +399,7 @@ Public Class VideoData
                                                             End SyncLock
                                                         End If
                                                     End If
-                                                    End If
+                                                End If
 #If DEBUG Then
                                                 fullDataRead.Append(currentLine & vbCrLf)
 #End If
@@ -636,152 +637,152 @@ Public Class VideoData
         processInfo.RedirectStandardError = True
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
 
-        Using tempProcess As Process = Process.Start(processInfo)
-            For Each objRange In ranges
-                RaiseEvent QueuedFrames(Me, targetCache, ranges)
-            Next
+        Dim tempProcess As Process = Process.Start(processInfo)
+        TrackProcess(tempProcess)
+        For Each objRange In ranges
+            RaiseEvent QueuedFrames(Me, targetCache, ranges)
+        Next
 
-            'Grab each frame as they are output from ffmpeg in real time as fast as possible
-            'Don't wait for the entire thing to complete
-            'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
-            'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
+        'Grab each frame as they are output from ffmpeg in real time as fast as possible
+        'Don't wait for the entire thing to complete
+        'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
+        'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
 #If DEBUG Then
-            Dim fullDataRead As New StringBuilder
-            'Do
-            '    Debug.Print(tempProcess.StandardError.ReadLine)
-            'Loop While Not tempProcess.StandardError.EndOfStream
+        Dim fullDataRead As New StringBuilder
+        'Do
+        '    Debug.Print(tempProcess.StandardError.ReadLine)
+        'Loop While Not tempProcess.StandardError.EndOfStream
 #End If
-            Dim currentFrame As Integer = 0
-            Dim currentErrorFrame As Integer = 0
-            Dim framesRetrieved As New List(Of Integer)
-            'Dim frameRegex As New Regex("frame=\s*(\d*)")
-            Dim dispatchedCount As Integer = 0
-            dispatchedCount += 1
-            Dim bytePosition As Integer = 0
-            Dim errEnd As Boolean = False
+        Dim currentFrame As Integer = 0
+        Dim currentErrorFrame As Integer = 0
+        Dim framesRetrieved As New List(Of Integer)
+        'Dim frameRegex As New Regex("frame=\s*(\d*)")
+        Dim dispatchedCount As Integer = 0
+        dispatchedCount += 1
+        Dim bytePosition As Integer = 0
+        Dim errEnd As Boolean = False
 
-            Dim standardOutTask As Task = Task.Run(Sub()
+        Dim standardOutTask As Task = Task.Run(Sub()
 
-                                                       Do
-                                                           Dim imageBuffer(65535) As Char
-                                                           bytePosition = 0
-                                                           'Read PNG signature
-                                                           Dim charsRead As Integer = tempProcess.StandardOutput.ReadBlock(imageBuffer, bytePosition, 16)
-                                                           bytePosition += 16
-                                                           If charsRead <= 0 Then
-                                                               Exit Do
+                                                   Do
+                                                       Dim imageBuffer(65535) As Char
+                                                       bytePosition = 0
+                                                       'Read PNG signature
+                                                       Dim charsRead As Integer = tempProcess.StandardOutput.ReadBlock(imageBuffer, bytePosition, 16)
+                                                       bytePosition += 16
+                                                       If charsRead <= 0 Then
+                                                           Exit Do
+                                                       End If
+
+                                                       While True
+                                                           'Read other chunks, while checking for IEND chunk to finish
+                                                           Dim identifier As String = System.Text.Encoding.ASCII.GetString(System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition - 4, 4))
+                                                           Dim chunkHeaderBytes() As Byte = System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition - 8, 4)
+                                                           Dim chunkSize As Integer = BitConverter.ToUInt32({chunkHeaderBytes(3), chunkHeaderBytes(2), chunkHeaderBytes(1), chunkHeaderBytes(0)}, 0)
+                                                           Dim newSize As Integer = bytePosition + chunkSize + 12 - 1
+                                                           If imageBuffer.Count <= newSize Then
+                                                               'Double the size to avoid rediming too much and wasting resources
+                                                               ReDim Preserve imageBuffer(Math.Max(newSize, imageBuffer.Count * 2))
                                                            End If
+                                                           Dim nextHeaderSize As Integer = 8
+                                                           If identifier.Equals("IEND") Then
+                                                               nextHeaderSize = 0
+                                                           End If
+                                                           'Read chunk, +4 for CRC + 8 for next header
+                                                           Dim nextReadSize As Integer = chunkSize + 4 + nextHeaderSize
+                                                           charsRead = tempProcess.StandardOutput.ReadBlock(imageBuffer, bytePosition, nextReadSize)
+                                                           dispatchedCount += 1
+                                                           bytePosition += nextReadSize
+                                                           If nextHeaderSize = 0 Then
+                                                               Exit While
+                                                           End If
+                                                       End While
 
-                                                           While True
-                                                               'Read other chunks, while checking for IEND chunk to finish
-                                                               Dim identifier As String = System.Text.Encoding.ASCII.GetString(System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition - 4, 4))
-                                                               Dim chunkHeaderBytes() As Byte = System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition - 8, 4)
-                                                               Dim chunkSize As Integer = BitConverter.ToUInt32({chunkHeaderBytes(3), chunkHeaderBytes(2), chunkHeaderBytes(1), chunkHeaderBytes(0)}, 0)
-                                                               Dim newSize As Integer = bytePosition + chunkSize + 12 - 1
-                                                               If imageBuffer.Count <= newSize Then
-                                                                   'Double the size to avoid rediming too much and wasting resources
-                                                                   ReDim Preserve imageBuffer(Math.Max(newSize, imageBuffer.Count * 2))
-                                                               End If
-                                                               Dim nextHeaderSize As Integer = 8
-                                                               If identifier.Equals("IEND") Then
-                                                                   nextHeaderSize = 0
-                                                               End If
-                                                               'Read chunk, +4 for CRC + 8 for next header
-                                                               Dim nextReadSize As Integer = chunkSize + 4 + nextHeaderSize
-                                                               charsRead = tempProcess.StandardOutput.ReadBlock(imageBuffer, bytePosition, nextReadSize)
-                                                               dispatchedCount += 1
-                                                               bytePosition += nextReadSize
-                                                               If nextHeaderSize = 0 Then
-                                                                   Exit While
-                                                               End If
-                                                           End While
-
-                                                           SyncLock targetCache
-                                                               If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
-                                                                   'Don't cache stuff we already have cached
-                                                               Else
-                                                                   targetCache(frames(currentFrame)).ImageData = System.Text.Encoding.Default.GetBytes(imageBuffer, 0, bytePosition - 2)
-                                                               End If
-
-                                                               targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
-                                                               framesRetrieved.Add(frames(currentFrame))
-
-                                                               'If we have grabbed and done a lot, it wouldn't hurt to update the UI
-                                                               If framesRetrieved.Last > framesRetrieved.First + 10 Then
-                                                                   RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
-                                                                   framesRetrieved.Clear()
-                                                               End If
-                                                           End SyncLock
-                                                           currentFrame += 1
-                                                       Loop
-                                                   End Sub)
-
-
-            Dim standardErrTask As Task = Task.Run(Sub()
-                                                       Dim lineRead As String = tempProcess.StandardError.ReadLine
-                                                       Dim ptsNumerator As Integer = 1
-                                                       Dim ptsDenominator As Integer = 1
-                                                       fullDataRead.AppendLine(processInfo.Arguments)
-                                                       Do
-                                                           'Read StandardError for the showinfo result for PTS_Time
-                                                           If lineRead IsNot Nothing Then
-#If DEBUG Then
-                                                               fullDataRead.Append(lineRead + vbCrLf)
-#End If
-                                                               Dim infoMatch As Match = showInfoRegex.Match(lineRead)
-                                                               Dim baseMatch As Match = showInfoBaseRegex.Match(lineRead)
-
-                                                               If infoMatch.Success Then
-                                                                   Dim matchPTSTime As Double = 0
-                                                                   Dim matchPTS As Integer = -1
-                                                                   Double.TryParse(infoMatch.Groups("pts_time").Value, matchPTSTime)
-                                                                   If Integer.TryParse(infoMatch.Groups("pts").Value, matchPTS) Then
-                                                                       matchPTSTime = (ptsNumerator * matchPTS) / ptsDenominator
-                                                                   End If
-                                                                   Dim matchValue As Integer = Integer.Parse(infoMatch.Groups("index").Value)
-                                                                   If frames(matchValue) = frames(currentErrorFrame) Then
-                                                                       SyncLock targetCache
-                                                                           targetCache(frames(currentErrorFrame)).PTSTime = Math.Max(0, matchPTSTime)
-                                                                           targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
-                                                                       End SyncLock
-                                                                       currentErrorFrame += 1
-                                                                   End If
-                                                               ElseIf baseMatch.Success Then
-                                                                   Integer.TryParse(baseMatch.Groups("numerator").Value, ptsNumerator)
-                                                                   Integer.TryParse(baseMatch.Groups("denominator").Value, ptsDenominator)
-                                                               End If
-                                                               lineRead = tempProcess.StandardError.ReadLine
-                                                               dispatchedCount += 1
+                                                       SyncLock targetCache
+                                                           If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached Then
+                                                               'Don't cache stuff we already have cached
                                                            Else
-                                                               errEnd = True
+                                                               targetCache(frames(currentFrame)).ImageData = System.Text.Encoding.Default.GetBytes(imageBuffer, 0, bytePosition - 2)
                                                            End If
-                                                       Loop While Not errEnd
-                                                   End Sub)
 
-            'Wait for reading to finish
-            Dim taskList As New List(Of Task) From {standardOutTask, standardErrTask}
-            taskList.RemoveAll(Function(obj) obj Is Nothing)
+                                                           targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
+                                                           framesRetrieved.Add(frames(currentFrame))
 
-            Await Task.WhenAll(taskList)
-            Debug.Print($"Finished frame grab with {dispatchedCount} dispatches.")
-            tempWatch.Stop()
-            Dim rangeText As String = ""
-            For Each objRange In ranges
-                If objRange(0) = objRange(1) Then
-                    rangeText += $"{objRange(0)}, "
-                Else
-                    rangeText += $"{objRange(0)}-{objRange(1)}, "
-                End If
-                'unmark in case there was an issue
-                For index As Integer = objRange(0) To objRange(1)
-                    targetCache(index).QueueTime = Nothing
-                Next
-            Next
-            Debug.Print($"Grabbed frames {rangeText.Substring(0, rangeText.Length - 2)} In {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
-            If framesRetrieved.Count > 0 Then
-                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                                           'If we have grabbed and done a lot, it wouldn't hurt to update the UI
+                                                           If framesRetrieved.Last > framesRetrieved.First + 10 Then
+                                                               RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                                               framesRetrieved.Clear()
+                                                           End If
+                                                       End SyncLock
+                                                       currentFrame += 1
+                                                   Loop
+                                               End Sub)
+
+
+        Dim standardErrTask As Task = Task.Run(Sub()
+                                                   Dim lineRead As String = tempProcess.StandardError.ReadLine
+                                                   Dim ptsNumerator As Integer = 1
+                                                   Dim ptsDenominator As Integer = 1
+                                                   fullDataRead.AppendLine(processInfo.Arguments)
+                                                   Do
+                                                       'Read StandardError for the showinfo result for PTS_Time
+                                                       If lineRead IsNot Nothing Then
+#If DEBUG Then
+                                                           fullDataRead.Append(lineRead + vbCrLf)
+#End If
+                                                           Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+                                                           Dim baseMatch As Match = showInfoBaseRegex.Match(lineRead)
+
+                                                           If infoMatch.Success Then
+                                                               Dim matchPTSTime As Double = 0
+                                                               Dim matchPTS As Integer = -1
+                                                               Double.TryParse(infoMatch.Groups("pts_time").Value, matchPTSTime)
+                                                               If Integer.TryParse(infoMatch.Groups("pts").Value, matchPTS) Then
+                                                                   matchPTSTime = (ptsNumerator * matchPTS) / ptsDenominator
+                                                               End If
+                                                               Dim matchValue As Integer = Integer.Parse(infoMatch.Groups("index").Value)
+                                                               If frames(matchValue) = frames(currentErrorFrame) Then
+                                                                   SyncLock targetCache
+                                                                       targetCache(frames(currentErrorFrame)).PTSTime = Math.Max(0, matchPTSTime)
+                                                                       targetCache(frames(Math.Min(currentFrame, currentErrorFrame))).QueueTime = Nothing
+                                                                   End SyncLock
+                                                                   currentErrorFrame += 1
+                                                               End If
+                                                           ElseIf baseMatch.Success Then
+                                                               Integer.TryParse(baseMatch.Groups("numerator").Value, ptsNumerator)
+                                                               Integer.TryParse(baseMatch.Groups("denominator").Value, ptsDenominator)
+                                                           End If
+                                                           lineRead = tempProcess.StandardError.ReadLine
+                                                           dispatchedCount += 1
+                                                       Else
+                                                           errEnd = True
+                                                       End If
+                                                   Loop While Not errEnd
+                                               End Sub)
+
+        'Wait for reading to finish
+        Dim taskList As New List(Of Task) From {standardOutTask, standardErrTask}
+        taskList.RemoveAll(Function(obj) obj Is Nothing)
+
+        Await Task.WhenAll(taskList)
+        Debug.Print($"Finished frame grab with {dispatchedCount} dispatches.")
+        tempWatch.Stop()
+        Dim rangeText As String = ""
+        For Each objRange In ranges
+            If objRange(0) = objRange(1) Then
+                rangeText += $"{objRange(0)}, "
+            Else
+                rangeText += $"{objRange(0)}-{objRange(1)}, "
             End If
-        End Using
+            'unmark in case there was an issue
+            For index As Integer = objRange(0) To objRange(1)
+                targetCache(index).QueueTime = Nothing
+            Next
+        Next
+        Debug.Print($"Grabbed frames {rangeText.Substring(0, rangeText.Length - 2)} In {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
+        If framesRetrieved.Count > 0 Then
+            RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+        End If
         Return True
     End Function
 
@@ -930,96 +931,97 @@ Public Class VideoData
         'processInfo.RedirectStandardInput = True
         'processInfo.WindowStyle = ProcessWindowStyle.Hidden
 
-        Using tempProcess As Process = Process.Start(processInfo)
-            RaiseEvent QueuedFrames(Me, targetCache, New List(Of List(Of Integer))({New List(Of Integer)({startFrame, endFrame})}))
+        Dim tempProcess As Process = Process.Start(processInfo)
+        TrackProcess(tempProcess)
+        RaiseEvent QueuedFrames(Me, targetCache, New List(Of List(Of Integer))({New List(Of Integer)({startFrame, endFrame})}))
 
-            'Grab each frame as they are output from ffmpeg in real time as fast as possible
-            'Don't wait for the entire thing to complete
-            'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
-            'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
+        'Grab each frame as they are output from ffmpeg in real time as fast as possible
+        'Don't wait for the entire thing to complete
+        'Dim fullText As String = Await tempProcess.StandardOutput.ReadToEndAsync
+        'Dim endText As String = Await tempProcess.StandardError.ReadToEndAsync
 #If DEBUG Then
-            Dim fullDataRead As New StringBuilder
-            'Do
-            '    Debug.Print(tempProcess.StandardError.ReadLine)
-            'Loop While Not tempProcess.StandardError.EndOfStream
+        Dim fullDataRead As New StringBuilder
+        'Do
+        '    Debug.Print(tempProcess.StandardError.ReadLine)
+        'Loop While Not tempProcess.StandardError.EndOfStream
 #End If
-            Dim currentFrame As Integer = startFrame
-            Dim currentErrorFrame As Integer = startFrame
-            Dim framesRetrieved As New List(Of Integer)
-            'Dim frameRegex As New Regex("frame=\s*(\d*)")
-            Dim dispatchedCount As Integer = 0
-            dispatchedCount += 1
-            Dim bytePosition As Integer = 0
-            Dim errEnd As Boolean = False
+        Dim currentFrame As Integer = startFrame
+        Dim currentErrorFrame As Integer = startFrame
+        Dim framesRetrieved As New List(Of Integer)
+        'Dim frameRegex As New Regex("frame=\s*(\d*)")
+        Dim dispatchedCount As Integer = 0
+        dispatchedCount += 1
+        Dim bytePosition As Integer = 0
+        Dim errEnd As Boolean = False
 
-            Dim standardOutTask As Task = Task.Run(Sub()
+        Dim standardOutTask As Task = Task.Run(Sub()
 
-                                                       Do
-                                                           Dim imageBuffer(65535) As Char
-                                                           bytePosition = 0
-                                                           'Read PNG signature
-                                                           Dim charsRead As Integer = tempProcess.StandardOutput.ReadBlock(imageBuffer, bytePosition, 16)
-                                                           bytePosition += 16
-                                                           If charsRead <= 0 Then
-                                                               Exit Do
+                                                   Do
+                                                       Dim imageBuffer(65535) As Char
+                                                       bytePosition = 0
+                                                       'Read PNG signature
+                                                       Dim charsRead As Integer = tempProcess.StandardOutput.ReadBlock(imageBuffer, bytePosition, 16)
+                                                       bytePosition += 16
+                                                       If charsRead <= 0 Then
+                                                           Exit Do
+                                                       End If
+
+                                                       While True
+                                                           'Read other chunks, while checking for IEND chunk to finish
+                                                           Dim identifier As String = System.Text.Encoding.ASCII.GetString(System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition - 4, 4))
+                                                           Dim chunkHeaderBytes() As Byte = System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition - 8, 4)
+                                                           Dim chunkSize As Integer = BitConverter.ToUInt32({chunkHeaderBytes(3), chunkHeaderBytes(2), chunkHeaderBytes(1), chunkHeaderBytes(0)}, 0)
+                                                           Dim newSize As Integer = bytePosition + chunkSize + 12 - 1
+                                                           If imageBuffer.Count <= newSize Then
+                                                               'Double the size to avoid rediming too much and wasting resources
+                                                               ReDim Preserve imageBuffer(Math.Max(newSize, imageBuffer.Count * 2))
+                                                           End If
+                                                           Dim nextHeaderSize As Integer = 8
+                                                           If identifier.Equals("IEND") Then
+                                                               nextHeaderSize = 0
+                                                           End If
+                                                           'Read chunk, +4 for CRC + 8 for next header
+                                                           Dim nextReadSize As Integer = chunkSize + 4 + nextHeaderSize
+                                                           charsRead = tempProcess.StandardOutput.ReadBlock(imageBuffer, bytePosition, nextReadSize)
+                                                           dispatchedCount += 1
+                                                           bytePosition += nextReadSize
+                                                           If nextHeaderSize = 0 Then
+                                                               Exit While
+                                                           End If
+                                                       End While
+
+                                                       SyncLock targetCache
+                                                           If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached And Not upgradeImage Then
+                                                               'Don't cache stuff we already have cached
+                                                           Else
+                                                               targetCache(currentFrame).ImageData = System.Text.Encoding.Default.GetBytes(imageBuffer, 0, bytePosition - 2)
                                                            End If
 
-                                                           While True
-                                                               'Read other chunks, while checking for IEND chunk to finish
-                                                               Dim identifier As String = System.Text.Encoding.ASCII.GetString(System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition - 4, 4))
-                                                               Dim chunkHeaderBytes() As Byte = System.Text.Encoding.Default.GetBytes(imageBuffer, bytePosition - 8, 4)
-                                                               Dim chunkSize As Integer = BitConverter.ToUInt32({chunkHeaderBytes(3), chunkHeaderBytes(2), chunkHeaderBytes(1), chunkHeaderBytes(0)}, 0)
-                                                               Dim newSize As Integer = bytePosition + chunkSize + 12 - 1
-                                                               If imageBuffer.Count <= newSize Then
-                                                                   'Double the size to avoid rediming too much and wasting resources
-                                                                   ReDim Preserve imageBuffer(Math.Max(newSize, imageBuffer.Count * 2))
-                                                               End If
-                                                               Dim nextHeaderSize As Integer = 8
-                                                               If identifier.Equals("IEND") Then
-                                                                   nextHeaderSize = 0
-                                                               End If
-                                                               'Read chunk, +4 for CRC + 8 for next header
-                                                               Dim nextReadSize As Integer = chunkSize + 4 + nextHeaderSize
-                                                               charsRead = tempProcess.StandardOutput.ReadBlock(imageBuffer, bytePosition, nextReadSize)
-                                                               dispatchedCount += 1
-                                                               bytePosition += nextReadSize
-                                                               If nextHeaderSize = 0 Then
-                                                                   Exit While
-                                                               End If
-                                                           End While
+                                                           targetCache(currentFrame).QueueTime = Nothing
+                                                           framesRetrieved.Add(currentFrame)
 
-                                                           SyncLock targetCache
-                                                               If targetCache(currentFrame).Status = ImageCache.CacheStatus.Cached And Not upgradeImage Then
-                                                                   'Don't cache stuff we already have cached
-                                                               Else
-                                                                   targetCache(currentFrame).ImageData = System.Text.Encoding.Default.GetBytes(imageBuffer, 0, bytePosition - 2)
-                                                               End If
-
-                                                               targetCache(currentFrame).QueueTime = Nothing
-                                                               framesRetrieved.Add(currentFrame)
-
-                                                               'If we have grabbed a few frames, it wouldn't hurt to update the UI
-                                                               If framesRetrieved.Count > 10 Then
-                                                                   RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
-                                                                   framesRetrieved.Clear()
-                                                               End If
-                                                           End SyncLock
-                                                           currentFrame += 1
-                                                       Loop
-                                                   End Sub)
+                                                           'If we have grabbed a few frames, it wouldn't hurt to update the UI
+                                                           If framesRetrieved.Count > 10 Then
+                                                               RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+                                                               framesRetrieved.Clear()
+                                                           End If
+                                                       End SyncLock
+                                                       currentFrame += 1
+                                                   Loop
+                                               End Sub)
 
 
-            Dim standardErrTask As Task = Task.Run(Sub()
-                                                       Dim lineRead As String = tempProcess.StandardError.ReadLine
-                                                       Dim ptsNumerator As Integer = 1
-                                                       Dim ptsDenominator As Integer = 1
-                                                       Do
-                                                           'Read StandardError for the showinfo result for PTS_Time
-                                                           If lineRead IsNot Nothing Then
+        Dim standardErrTask As Task = Task.Run(Sub()
+                                                   Dim lineRead As String = tempProcess.StandardError.ReadLine
+                                                   Dim ptsNumerator As Integer = 1
+                                                   Dim ptsDenominator As Integer = 1
+                                                   Do
+                                                       'Read StandardError for the showinfo result for PTS_Time
+                                                       If lineRead IsNot Nothing Then
 #If DEBUG Then
-                                                               fullDataRead.Append(lineRead + vbCrLf)
+                                                           fullDataRead.Append(lineRead + vbCrLf)
 #End If
-                                                               Dim infoMatch As Match = showInfoRegex.Match(lineRead)
+                                                           Dim infoMatch As Match = showInfoRegex.Match(lineRead)
                                                                Dim baseMatch As Match = showInfoBaseRegex.Match(lineRead)
 
                                                                If infoMatch.Success Then
@@ -1071,10 +1073,9 @@ Public Class VideoData
                     targetCache(index).QueueTime = Nothing
                 Next
             End SyncLock
-            If framesRetrieved.Count > 0 Then
-                RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
-            End If
-        End Using
+        If framesRetrieved.Count > 0 Then
+            RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
+        End If
 
         Return targetCache(frame).GetImage
     End Function
@@ -1120,6 +1121,7 @@ Public Class VideoData
             AddHandler fsWatcher.Created, AddressOf ExportProgress
             AddHandler fsWatcher.Changed, AddressOf ExportProgress
             Dim tempProcess As Process = Process.Start(processInfo)
+            TrackProcess(tempProcess)
             tempProcess.WaitForExit()
             'TODO Below is just a dirty way to try and ensure the filewatcher has had enough time to trigger everything
             Task.Run(Sub()
@@ -1534,5 +1536,4 @@ Public Class VideoData
     Public Function ShallowCopy()
         Return Me.MemberwiseClone
     End Function
-
 End Class

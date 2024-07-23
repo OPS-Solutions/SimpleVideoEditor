@@ -857,6 +857,7 @@ Public Class MainForm
         AddRunHandlers()
         mproFfmpegProcess.StartInfo = processInfo
         mproFfmpegProcess.Start()
+        TrackProcess(mproFfmpegProcess)
     End Sub
 
     ''' <summary>
@@ -2677,6 +2678,8 @@ Public Class MainForm
             File.Delete(mobjMetaData.FullPath)
         End If
         CleanupTempFolder()
+        'End any spawned sub processes like ffmpeg, as very long videos could continually load in the background long after closing SVE
+        CloseProcesses()
     End Sub
 
     ''' <summary>
