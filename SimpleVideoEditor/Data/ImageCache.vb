@@ -10,6 +10,9 @@ Public Class ImageCache
 
     <Serializable()>
     Public Class CacheItem
+        Public Sub New()
+        End Sub
+
         Public Sub New(temporary As Boolean)
             mblnTemporary = temporary
         End Sub
