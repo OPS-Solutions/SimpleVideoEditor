@@ -1363,7 +1363,12 @@ Public Class VideoData
     Public Sub SaveScenesToFile()
         Using streamWriter As New System.IO.StreamWriter(Me.SceneFramesPath)
             For index As Integer = 0 To Me.mdblSceneFrames.Count - 1
-                streamWriter.WriteLine(Me.mdblSceneFrames(index))
+                If index = Me.mdblSceneFrames.Count - 1 Then
+                    'Don't add a carriage return for final line
+                    streamWriter.Write(Me.mdblSceneFrames(index))
+                Else
+                    streamWriter.WriteLine(Me.mdblSceneFrames(index))
+                End If
             Next
             streamWriter.Close()
         End Using
@@ -1374,20 +1379,27 @@ Public Class VideoData
     ''' </summary>
     Public Function ReadScenesFromFile() As Boolean
         If IO.File.Exists(Me.SceneFramesPath) Then
-            Using streamReader As New System.IO.StreamReader(Me.SceneFramesPath)
-                ReDim mdblSceneFrames(Me.TotalFrames - 1)
-                For index As Integer = 0 To Me.mdblSceneFrames.Count - 1
-                    Dim result As Double = 0
-                    If Double.TryParse(streamReader.ReadLine(), result) Then
-                        Me.mdblSceneFrames(index) = result
-                    Else
-                        streamReader.Close()
-                        Return False
-                    End If
-                Next
-                mblnSceneFramesLoaded = True
-                streamReader.Close()
-            End Using
+            Dim allLines As String() = IO.File.ReadAllLines(Me.SceneFramesPath)
+
+            If allLines.Count > 0 Then
+                If allLines.Count <> Me.TotalFrames Then
+                    Me.OverrideTotalFrames(allLines.Count)
+                End If
+                ReDim mdblSceneFrames(allLines.Count - 1)
+            Else
+                Return False
+            End If
+
+            For index As Integer = 0 To Me.mdblSceneFrames.Count - 1
+                Dim result As Double = 0
+                Dim lastLine As String = allLines(index)
+                If Double.TryParse(lastLine, result) Then
+                    Me.mdblSceneFrames(index) = result
+                Else
+                    Return False
+                End If
+            Next
+            mblnSceneFramesLoaded = True
             Return True
         End If
         Return False
