@@ -602,13 +602,15 @@ Public Class MainForm
         Dim audioFilterParams As New List(Of String)
 
         Dim startDurationArgs As String = ""
+        Dim outputDurationArgs As String = ""
         If specProperties?.PlaybackVolume <> 0 Then
             If specProperties.Trim IsNot Nothing Then
                 Dim duration As String = (specProperties.Trim.EndPTS) - (specProperties.Trim.StartPTS)
                 If duration > 0 Then
                     'duration = Math.Truncate(duration * mobjMetaData.Framerate) / mobjMetaData.Framerate
                     Dim startHHMMSS As String = FormatHHMMSSm(specProperties.Trim.StartPTS / specProperties.PlaybackSpeed)
-                    startDurationArgs = " -ss " & startHHMMSS & " -t " & (duration / specProperties.PlaybackSpeed).ToString
+                    startDurationArgs = " -ss " & startHHMMSS
+                    outputDurationArgs = " -t " & (duration / specProperties.PlaybackSpeed).ToString
                 End If
             End If
         Else
@@ -759,6 +761,7 @@ Public Class MainForm
 
         processInfo.Arguments += startDurationArgs
         processInfo.Arguments += inputArgs
+        processInfo.Arguments += outputDurationArgs
         processInfo.Arguments += complexFilterString
 
         'ADJUST VOLUME
