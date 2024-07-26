@@ -164,7 +164,9 @@ Public Class MainForm
         If mash Is Nothing Then
             LoadFile(files(0))
         Else
-            LoadFile(mash, True)
+            'If file exists, that should mean the user concatenated it
+            'Otherwise you would have some image patter like image_%d
+            LoadFile(mash, Not File.Exists(mash))
         End If
     End Sub
 
