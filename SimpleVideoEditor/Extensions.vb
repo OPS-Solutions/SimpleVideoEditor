@@ -904,26 +904,6 @@ Module Extensions
     End Function
 
     ''' <summary>
-    ''' Sets the image of a picturebox, ensuring the previous image is disposed
-    ''' </summary>
-    <Extension>
-    Public Sub SetImage(pictureBox As PictureBoxPlus, newImage As Image, Optional disposeOld As Boolean = False)
-        If (Not CacheFullBitmaps OrElse disposeOld) AndAlso pictureBox.Image IsNot Nothing Then
-            pictureBox.Image.Dispose()
-        End If
-        If newImage IsNot Nothing Then
-            If newImage.Size.FitScale(pictureBox.Size) > 1 Then
-                pictureBox.InterpolationMode = Drawing2D.InterpolationMode.NearestNeighbor
-            Else
-                pictureBox.InterpolationMode = Drawing2D.InterpolationMode.Default
-            End If
-            pictureBox.Image = newImage
-        Else
-            pictureBox.Image = Nothing
-        End If
-    End Sub
-
-    ''' <summary>
     ''' Gets the index of the first separator in the menu strip
     ''' </summary>
     ''' <param name="menuStrip"></param>

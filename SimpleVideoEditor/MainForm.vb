@@ -11,6 +11,7 @@ Imports System.Text.RegularExpressions
 Imports System.Threading
 Imports System.Timers
 Imports Microsoft.VisualBasic.Devices
+Imports SimpleVideoEditor.ImageCache
 
 Public Class MainForm
     'FFMPEG Usefull Commands
@@ -394,7 +395,7 @@ Public Class MainForm
         Me.UseWaitCursor = True
         mintCurrentFrame = 0
         Task.Run(Sub()
-                     Dim fullFrameGrab As Task(Of Bitmap) = Nothing
+                     Dim fullFrameGrab As Task(Of CacheItem) = Nothing
                      TryReadScenes()
                      'Grab compressed frames
                      If Not mobjMetaData.ReadThumbsFromFile Then
@@ -424,21 +425,23 @@ Public Class MainForm
                              CacheFullBitmaps = False
                          End If
                          'mobjMetaData.SaveThumbsToFile()
-                     End If
-
-                     If fullFrameGrab Is Nothing Then
-                         mtskPreview = mobjMetaData.GetFfmpegFrameRangesAsync(Me.CreatePreviewFrameDefaults())
-                         Task.Run(Sub()
-                                      mtskPreview.Wait()
-                                      PreviewFinished()
-                                      'TryReadScenes()
-                                  End Sub)
+                         If fullFrameGrab Is Nothing Then
+                             mtskPreview = mobjMetaData.GetFfmpegFrameRangesAsync(Me.CreatePreviewFrameDefaults())
+                             Task.Run(Sub()
+                                          mtskPreview.Wait()
+                                          PreviewFinished()
+                                          'TryReadScenes()
+                                      End Sub)
+                         Else
+                             Task.Run(Sub()
+                                          fullFrameGrab.Wait()
+                                          PreviewFinished()
+                                          'TryReadScenes()
+                                      End Sub)
+                         End If
                      Else
-                         Task.Run(Sub()
-                                      fullFrameGrab.Wait()
-                                      PreviewFinished()
-                                      'TryReadScenes()
-                                  End Sub)
+                         CacheFullBitmaps = False
+                         PreviewFinished()
                      End If
                  End Sub)
     End Sub
@@ -543,7 +546,7 @@ Public Class MainForm
             Dim previewFrames As List(Of Integer) = Me.CreatePreviewFrameDefaults(True)
 
             For previewIndex As Integer = 0 To previewFrames.Count - 1
-                Dim gotImage As Bitmap = Nothing
+                Dim gotData As ImageCache.CacheItem = Nothing
 
                 If mobjMetaData.AnyImageCacheStatus(previewFrames(previewIndex)) = ImageCache.CacheStatus.Cached Then
                     Dim targetPreview As PictureBoxPlus = Nothing
@@ -559,13 +562,9 @@ Public Class MainForm
                         Case Else
                             targetPreview = picFrame5
                     End Select
-                    gotImage = mobjMetaData.GetImageFromAnyCache(previewFrames(previewIndex))
-                    If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotImage.Width Then
-                        targetPreview.SetImage(gotImage)
-                    Else
-                        If Not CacheFullBitmaps Then
-                            gotImage.Dispose()
-                        End If
+                    gotData = mobjMetaData.GetAnyCachedData(previewFrames(previewIndex))
+                    If targetPreview.Image Is Nothing OrElse targetPreview.Image.Width < gotData.Width Then
+                        targetPreview.SetImageData(gotData)
                     End If
                 End If
             Next
@@ -712,7 +711,9 @@ Public Class MainForm
         Dim transparentOutput As Boolean = False
         Dim transparentInput As Boolean = False
         'Check if input has any transparency, unfortunately just checking 1 frame could fail, but it is better than nothing
-        If inputFile.GetImageFromAnyCache(If(specProperties.Trim IsNot Nothing, specProperties.Trim.StartFrame, 0))?.HasAlpha Then
+        Dim gotData As ImageCache.CacheItem = inputFile.GetAnyCachedData(If(specProperties.Trim IsNot Nothing, specProperties.Trim.StartFrame, 0))
+        Dim gotImage As Bitmap = gotData?.GetImage
+        If gotImage?.HasAlpha Then
             transparentInput = True
             Select Case IO.Path.GetExtension(outPutFile).ToLower()
                 'Known formats that can support full transparency (MOV WEBM MKV MOV AVI APNG)
@@ -733,6 +734,9 @@ Public Class MainForm
                 Case ".gif"
                     videoFilterParams.Add("split [a][b];[a] palettegen [p];[b]fifo[c];[c][p] paletteuse=dither=none")
             End Select
+        End If
+        If gotData?.Disposable Then
+            gotImage.Dispose()
         End If
 
         'Check if the user wants to do motion interpolation when using a framerate that would cause duplicate frames
@@ -1319,10 +1323,11 @@ Public Class MainForm
                                        Dim stopTest As New Stopwatch
                                        stopTest.Start()
 
-                                       If CacheFullBitmaps Then
-                                           boundRect = Me.mobjMetaData.GetImageFromCache(index).BoundContents(cropRect,, 64)
+                                       Dim imageData As ImageCache.CacheItem = Me.mobjMetaData.GetImageDataFromCache(index)
+                                       If Not imageData.Disposable Then
+                                           boundRect = imageData.GetImage.BoundContents(cropRect,, 64)
                                        Else
-                                           Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
+                                           Using checkImage As Bitmap = imageData.GetImage
                                                boundRect = checkImage.BoundContents(cropRect,, 64)
                                            End Using
                                        End If
@@ -1413,10 +1418,12 @@ Public Class MainForm
                                    For index As Integer = ctlVideoSeeker.RangeMinValue To ctlVideoSeeker.RangeMaxValue
                                        If Me.mobjMetaData.ImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
                                            Dim boundRect As Rectangle
-                                           If CacheFullBitmaps Then
-                                               boundRect = Me.mobjMetaData.GetImageFromCache(index).ExpandContents(cropRect)
+
+                                           Dim imageData As ImageCache.CacheItem = Me.mobjMetaData.GetImageDataFromCache(index)
+                                           If Not imageData.Disposable Then
+                                               boundRect = imageData.GetImage.ExpandContents(cropRect)
                                            Else
-                                               Using checkImage As Bitmap = Me.mobjMetaData.GetImageFromCache(index)
+                                               Using checkImage As Bitmap = imageData.GetImage
                                                    boundRect = checkImage.ExpandContents(cropRect)
                                                End Using
                                            End If
@@ -1630,6 +1637,7 @@ Public Class MainForm
 
         'Start render decay timer
         mthdRenderDecay = New Thread(Sub()
+                                         Threading.Thread.CurrentThread.Name = "Render Decay"
                                          While (True)
                                              Dim oldValue As Integer = mintDisplayInfo
                                              mintDisplayInfo = Math.Max(mintDisplayInfo - 10, 0)
@@ -2353,17 +2361,13 @@ Public Class MainForm
         If Not mintCurrentFrame = newVal Then
             If mstrVideoPath IsNot Nothing AndAlso mstrVideoPath.Length > 0 AndAlso mobjMetaData IsNot Nothing Then
                 mintCurrentFrame = newVal
-                If mobjMetaData.ImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-                    'Grab immediate
-                    picVideo.SetImage(mobjMetaData.GetImageFromCache(mintCurrentFrame))
+                'Grab immediate, will return normal cache, or thumb if we have it
+                Dim gotData As ImageCache.CacheItem = mobjMetaData.GetAnyCachedData(mintCurrentFrame)
+                If gotData IsNot Nothing Then
+                    picVideo.SetImageData(gotData)
                 Else
-                    If mobjMetaData.ThumbImageCacheStatus(mintCurrentFrame) = ImageCache.CacheStatus.Cached Then
-                        'Check for low res thumbnail if we have it
-                        picVideo.SetImage(mobjMetaData.GetImageFromThumbCache(mintCurrentFrame))
-                    Else
-                        'Loading image...
-                        picVideo.SetImage(Nothing)
-                    End If
+                    'Loading image...
+                    picVideo.SetImage(Nothing)
                 End If
 
                 mintDisplayInfo = RENDER_DECAY_TIME
@@ -2428,9 +2432,9 @@ Public Class MainForm
                 'Bitmaps can only be accessed on one thread, drawing and checking size are two things that count as being accessed
                 Dim fullSize As Boolean = True
                 Me.Invoke(Sub()
-                              Dim currentImage As Image = mobjMetaData.GetImageFromAnyCache(latestFrameRequest)
-                              If currentImage IsNot Nothing Then
-                                  fullSize = currentImage.Size.Equals(mobjMetaData.Size)
+                              Dim gotData As ImageCache.CacheItem = mobjMetaData.GetAnyCachedData(latestFrameRequest)
+                              If gotData IsNot Nothing AndAlso gotData.Status = ImageCache.CacheStatus.Cached Then
+                                  fullSize = gotData.Size.Equals(mobjMetaData.Size)
                               End If
                           End Sub)
                 If Not fullSize Then
@@ -2461,21 +2465,14 @@ Public Class MainForm
                 Else
                     'Grab immediate
                     SyncLock objCache
-                        Dim gotImage As Bitmap = mobjMetaData.GetImageFromCache(mintCurrentFrame, objCache)
+                        Debug.Print("Grabbing image")
+                        Dim gotData As ImageCache.CacheItem = mobjMetaData.GetImageDataFromCache(mintCurrentFrame, objCache)
+                        Dim gotImage As Bitmap = gotData.GetImage
                         If picVideo.Image Is Nothing OrElse picVideo.Image.Width < gotImage.Width Then
-                            If objCache.Temporary Then
-                                picVideo.SetImage(gotImage.Clone, True)
-                            Else
-                                picVideo.SetImage(gotImage)
-                            End If
+                            picVideo.SetImage(gotImage, gotData.Disposable)
                             RefreshStatusToolTips()
-                            If objCache.Temporary Then
-                                gotImage.Dispose()
-                            End If
-                        Else
-                            If Not CacheFullBitmaps Then
-                                gotImage.Dispose()
-                            End If
+                        ElseIf gotData.Disposable Then
+                            gotImage.Dispose()
                         End If
                     End SyncLock
                 End If

@@ -1,5 +1,6 @@
 ﻿Imports System.Drawing.Imaging
 Imports System.IO
+Imports System.Reflection
 Imports System.Runtime.InteropServices
 Imports System.Xml
 Imports System.Xml.Serialization
@@ -26,13 +27,14 @@ Public Class ImageCache
                 SyncLock Me
                     'Ensure 32bppArgb because some code depends on it like autocrop or just getting bytes of the image
                     'We want raw format to be memoryBmp, because otherwise things like lockbits may toss generic GDI+ errors
-                    If (CacheFullBitmaps And Not mblnTemporary) AndAlso ImageStore IsNot Nothing Then
+                    If (Not Disposable) AndAlso ImageStore IsNot Nothing Then
                         Return ImageStore
                     End If
                     If ImageData IsNot Nothing Then
                         Using tempStream As New MemoryStream(ImageData)
                             Dim incomingBitmap As Bitmap = New Bitmap(tempStream)
                             If incomingBitmap.PixelFormat <> Imaging.PixelFormat.Format32bppArgb OrElse Not incomingBitmap.RawFormat.Equals(Imaging.ImageFormat.MemoryBmp) Then
+                                'Ensure consistent pixel format that other functions can work with
                                 Dim newBitmap As New Bitmap(incomingBitmap.Width, incomingBitmap.Height, Imaging.PixelFormat.Format32bppArgb)
                                 Using g As Graphics = Graphics.FromImage(newBitmap)
                                     g.DrawImage(incomingBitmap, New Point(0, 0))
@@ -40,10 +42,12 @@ Public Class ImageCache
                                 incomingBitmap.Dispose()
                                 incomingBitmap = newBitmap
                             End If
-                            ImageStore = incomingBitmap
-                            If (CacheFullBitmaps And Not mblnTemporary) Then
-                                ImageData = {0} 'Release memory so the next garbage collect can clean up
+                            If Disposable Then
+                                'Assume the called will dispose of it
+                                Return incomingBitmap
                             End If
+                            ImageStore = incomingBitmap
+                            ImageData = {0} 'Release memory so the next garbage collect can clean up
                             Return ImageStore
                         End Using
                     Else
@@ -54,6 +58,15 @@ Public Class ImageCache
         End Property
 
         Private mblnTemporary As Boolean = False 'Overrides full bitmap caching to ensure the contents of the cache can be cleared without worry of external usage
+
+        ''' <summary>
+        ''' Marks whether or not the images recieved from GetImage should be disposed of
+        ''' </summary>
+        Public ReadOnly Property Disposable As Boolean
+            Get
+                Return mblnTemporary Or Not CacheFullBitmaps
+            End Get
+        End Property
 
         Private mobjImgSize As Size?
 
@@ -72,10 +85,10 @@ Public Class ImageCache
         Public ReadOnly Property Size As Size
             Get
                 If mobjImgSize Is Nothing Then
-                    If CacheFullBitmaps Then
+                    If Not Disposable Then
                         mobjImgSize = Me.GetImage().Size
                     Else
-                        Using tempMap As Image = Me.GetImage()
+                        Using tempMap As Image = GetImage
                             mobjImgSize = tempMap.Size
                         End Using
                     End If

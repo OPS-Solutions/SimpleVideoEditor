@@ -523,15 +523,11 @@
             End If
 
             If Me.mobjMetaData IsNot Nothing Then
-                Dim imageToPreview As Image = Nothing
-                If Me.mobjMetaData.ImageCacheStatus(mintHoveredFrameIndex) = ImageCache.CacheStatus.Cached Then
-                    imageToPreview = Me.mobjMetaData.GetImageFromCache(mintHoveredFrameIndex)
-                ElseIf Me.mobjMetaData.ThumbImageCacheStatus(mintHoveredFrameIndex) = ImageCache.CacheStatus.Cached Then
-                    imageToPreview = Me.mobjMetaData.GetImageFromThumbCache(mintHoveredFrameIndex)
-                End If
-                If imageToPreview IsNot Nothing Then
+                Dim imageToPreview As ImageCache.CacheItem = Nothing
+                imageToPreview = Me.mobjMetaData.GetAnyCachedData(mintHoveredFrameIndex)
+                If imageToPreview IsNot Nothing AndAlso imageToPreview.Status = ImageCache.CacheStatus.Cached Then
                     'Setup preview frame
-                    CType(mobjPreviewForm.Controls(0), PictureBoxPlus).SetImage(imageToPreview)
+                    CType(mobjPreviewForm.Controls(0), PictureBoxPlus).SetImageData(imageToPreview)
                     mobjPreviewForm.Visible = True
                     mobjPreviewForm.Location = Me.PointToScreen(New Point(actualPoint.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
                     Me.Focus()

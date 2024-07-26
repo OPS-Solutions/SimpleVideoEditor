@@ -203,6 +203,7 @@ Public Class VideoData
 
     Private mobjImageCache As ImageCache
     Private mobjTempCache As ImageCache 'Used for temporary storage when attempting to grab frames of a different size than image or thumbcache, contents get cleared away
+    Private mintTempIndex As Integer 'Last grabbed image index
     Private mobjThumbCache As ImageCache
     Private mblnInputMash As Boolean 'Data we set manaully saying the type of input we are using is actually a way to specify multiple files
     Private mobjSizeOverride As Size? 'For holding resolution data, such as when the resolution fails to be read, but we can still get an image from the stream and figure it out
@@ -437,6 +438,14 @@ Public Class VideoData
         End If
     End Function
 
+    Public Function GetImageDataFromCache(imageIndex As Integer, targetCache As ImageCache) As ImageCache.CacheItem
+        If targetCache?.Items.Length > imageIndex AndAlso imageIndex >= 0 Then
+            Return targetCache(imageIndex)
+        Else
+            Return Nothing
+        End If
+    End Function
+
     Public Function GetImageDataFromCache(imageIndex As Integer) As ImageCache.CacheItem
         If mobjImageCache?.Items.Length > imageIndex AndAlso imageIndex >= 0 Then
             Return Me.mobjImageCache(imageIndex)
@@ -457,11 +466,11 @@ Public Class VideoData
         End If
     End Function
 
-    Public Function GetImageFromAnyCache(imageIndex As Integer) As Bitmap
+    Public Function GetAnyCachedData(imageIndex As Integer) As ImageCache.CacheItem
         If Me.ImageCacheStatus(imageIndex) = ImageCache.CacheStatus.Cached Then
-            Return Me.GetImageFromCache(imageIndex)
+            Return Me.GetImageDataFromCache(imageIndex, mobjImageCache)
         ElseIf Me.ThumbImageCacheStatus(imageIndex) = ImageCache.CacheStatus.Cached Then
-            Return Me.GetImageFromThumbCache(imageIndex)
+            Return Me.GetImageDataFromCache(imageIndex, mobjThumbCache)
         Else
             Return Nothing
         End If
@@ -789,7 +798,7 @@ Public Class VideoData
     ''' <summary>
     ''' Polls ffmpeg for the given frame asynchrounously
     ''' </summary>
-    Public Async Function GetFfmpegFrameAsync(ByVal frame As Integer, Optional cacheSize As Integer = 20, Optional frameSize As Size = Nothing, Optional targetCache As ImageCache = Nothing) As Task(Of Bitmap)
+    Public Async Function GetFfmpegFrameAsync(ByVal frame As Integer, Optional cacheSize As Integer = 20, Optional frameSize As Size = Nothing, Optional targetCache As ImageCache = Nothing) As Task(Of CacheItem)
         If targetCache Is Nothing Then
             targetCache = mobjImageCache
         End If
@@ -803,7 +812,7 @@ Public Class VideoData
                                                         If seedFrame = frame Then
                                                             Exit Sub
                                                         End If
-                                                        Dim getFrameTask As Task(Of Bitmap) = GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
+                                                        Dim getFrameTask As Task(Of CacheItem) = GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
                                                     End Sub)
                 End If
                 If targetCache(Math.Max(0, frame - 4)).Status = ImageCache.CacheStatus.None Then
@@ -812,11 +821,11 @@ Public Class VideoData
                                                         If seedFrame = frame Then
                                                             Exit Sub
                                                         End If
-                                                        Dim getFrameTask As Task(Of Bitmap) = GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
+                                                        Dim getFrameTask As Task(Of CacheItem) = GetFfmpegFrameAsync(seedFrame, cacheSize, frameSize, targetCache)
                                                     End Sub)
                 End If
             End If
-            Return targetCache(frame).GetImage
+            Return targetCache(frame)
         End If
         Dim earlyFrame As Integer = Math.Max(0, frame - (cacheSize - 1) / 2)
 
@@ -865,7 +874,7 @@ Public Class VideoData
 
             If startFrame = endFrame AndAlso targetCache(frame).Status = ImageCache.CacheStatus.Cached Then
                 If targetCache(frame).Size.Width >= frameSize.Width Then
-                    Return targetCache(frame).GetImage
+                    Return targetCache(frame)
                 Else
                     upgradeImage = True
                 End If
@@ -878,7 +887,6 @@ Public Class VideoData
             End If
         End SyncLock
         If upgradeImage OrElse targetCache Is mobjTempCache Then
-            mobjTempCache.ClearImageCache()
             targetCache = mobjTempCache
         End If
         'If you are looking for only one frame, and it is queued, dont waste time trying to grab it again...
@@ -887,7 +895,7 @@ Public Class VideoData
             Return Await Task.Run(Function()
                                       Do
                                           If Not targetCache(frame).Status = ImageCache.CacheStatus.Queued Then
-                                              Return targetCache(frame).GetImage
+                                              Return targetCache(frame)
                                           Else
                                               Threading.Thread.Sleep(10)
                                           End If
@@ -1022,68 +1030,76 @@ Public Class VideoData
                                                            fullDataRead.Append(lineRead + vbCrLf)
 #End If
                                                            Dim infoMatch As Match = showInfoRegex.Match(lineRead)
-                                                               Dim baseMatch As Match = showInfoBaseRegex.Match(lineRead)
+                                                           Dim baseMatch As Match = showInfoBaseRegex.Match(lineRead)
 
-                                                               If infoMatch.Success Then
-                                                                   Dim matchPTSTime As Double = 0
-                                                                   Dim matchPTS As Integer = -1
-                                                                   Double.TryParse(infoMatch.Groups("pts_time").Value, matchPTSTime)
-                                                                   If Integer.TryParse(infoMatch.Groups("pts").Value, matchPTS) Then
-                                                                       matchPTSTime = (ptsNumerator * matchPTS) / ptsDenominator
-                                                                   End If
-                                                                   Dim matchValue As Integer = Integer.Parse(infoMatch.Groups("index").Value)
-                                                                   If (matchValue + startFrame) = currentErrorFrame Then
-                                                                       SyncLock targetCache
-                                                                           Dim existingPTS As Double? = AnyImageCachePTS(currentErrorFrame)
-                                                                           If existingPTS IsNot Nothing Then
-                                                                               targetCache(currentErrorFrame).PTSTime = existingPTS
-                                                                           Else
-                                                                               targetCache(currentErrorFrame).PTSTime = Math.Max(0, matchPTSTime)
-                                                                           End If
-                                                                       End SyncLock
-                                                                       currentErrorFrame += 1
-                                                                   End If
-                                                               ElseIf baseMatch.Success Then
-                                                                   Integer.TryParse(baseMatch.Groups("numerator").Value, ptsNumerator)
-                                                                   Integer.TryParse(baseMatch.Groups("denominator").Value, ptsDenominator)
+                                                           If infoMatch.Success Then
+                                                               Dim matchPTSTime As Double = 0
+                                                               Dim matchPTS As Integer = -1
+                                                               Double.TryParse(infoMatch.Groups("pts_time").Value, matchPTSTime)
+                                                               If Integer.TryParse(infoMatch.Groups("pts").Value, matchPTS) Then
+                                                                   matchPTSTime = (ptsNumerator * matchPTS) / ptsDenominator
                                                                End If
-                                                               lineRead = tempProcess.StandardError.ReadLine
-                                                               dispatchedCount += 1
-                                                           Else
-                                                               errEnd = True
+                                                               Dim matchValue As Integer = Integer.Parse(infoMatch.Groups("index").Value)
+                                                               If (matchValue + startFrame) = currentErrorFrame Then
+                                                                   SyncLock targetCache
+                                                                       Dim existingPTS As Double? = AnyImageCachePTS(currentErrorFrame)
+                                                                       If existingPTS IsNot Nothing Then
+                                                                           targetCache(currentErrorFrame).PTSTime = existingPTS
+                                                                       Else
+                                                                           targetCache(currentErrorFrame).PTSTime = Math.Max(0, matchPTSTime)
+                                                                       End If
+                                                                   End SyncLock
+                                                                   currentErrorFrame += 1
+                                                               End If
+                                                           ElseIf baseMatch.Success Then
+                                                               Integer.TryParse(baseMatch.Groups("numerator").Value, ptsNumerator)
+                                                               Integer.TryParse(baseMatch.Groups("denominator").Value, ptsDenominator)
                                                            End If
-                                                       Loop While Not errEnd
-                                                   End Sub)
+                                                           lineRead = tempProcess.StandardError.ReadLine
+                                                           dispatchedCount += 1
+                                                       Else
+                                                           errEnd = True
+                                                       End If
+                                                   Loop While Not errEnd
+                                               End Sub)
 
-            'Wait for reading to finish
-            Dim taskList As New List(Of Task) From {standardOutTask, standardErrTask}
-            taskList.RemoveAll(Function(obj) obj Is Nothing)
+        'Wait for reading to finish
+        Dim taskList As New List(Of Task) From {standardOutTask, standardErrTask}
+        taskList.RemoveAll(Function(obj) obj Is Nothing)
 
-            Await Task.WhenAll(taskList)
-            Debug.Print($"Finished frame grab with {dispatchedCount} dispatches.")
+        Await Task.WhenAll(taskList)
+        Debug.Print($"Finished frame grab with {dispatchedCount} dispatches.")
 
-            tempWatch.Stop()
-            Debug.Print($"Grabbed frames {startFrame}-{endFrame} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
+        tempWatch.Stop()
+        Debug.Print($"Grabbed frames {startFrame}-{endFrame} in {tempWatch.ElapsedTicks} ticks. ({tempWatch.ElapsedMilliseconds}ms)")
 
-            'With a video of 14.92fps and 35 total frames, the total returned images ended up being less than expected
+        'With a video of 14.92fps and 35 total frames, the total returned images ended up being less than expected
 
-            'unmark in case there was an issue
-            SyncLock targetCache
-                For index As Integer = startFrame To endFrame
-                    targetCache(index).QueueTime = Nothing
-                Next
-            End SyncLock
+        'unmark in case there was an issue
+        SyncLock targetCache
+            For index As Integer = startFrame To endFrame
+                targetCache(index).QueueTime = Nothing
+            Next
+        End SyncLock
         If framesRetrieved.Count > 0 Then
             RaiseEvent RetrievedFrames(Me, targetCache, framesRetrieved.CreateRanges)
         End If
 
-        Return targetCache(frame).GetImage
+        'CLear up no longer used images (dispose shouldn't happen, just setting to nothing)
+        If upgradeImage OrElse targetCache Is mobjTempCache Then
+            If mintTempIndex <> frame Then
+                mobjTempCache(mintTempIndex).ClearImageData()
+            End If
+            mintTempIndex = frame
+        End If
+
+        Return targetCache(frame)
     End Function
 
     ''' <summary>
     ''' Immediately polls ffmpeg for the given frame
     ''' </summary>
-    Public Function GetFfmpegFrame(ByVal frame As Integer, Optional cacheSize As Integer = 20, Optional frameSize As Size = Nothing, Optional temp As Boolean = False) As Bitmap
+    Public Function GetFfmpegFrame(ByVal frame As Integer, Optional cacheSize As Integer = 20, Optional frameSize As Size = Nothing, Optional temp As Boolean = False) As CacheItem
         If temp Then
             Return GetFfmpegFrameAsync(frame, cacheSize, frameSize, mobjTempCache).Result
         Else
@@ -1400,6 +1416,7 @@ Public Class VideoData
                 End If
             Next
             mblnSceneFramesLoaded = True
+            RaiseEvent ProcessedScene(Me, -1)
             Return True
         End If
         Return False
@@ -1454,7 +1471,14 @@ Public Class VideoData
     ''' </summary>
     Public Function ReadThumbsFromFile() As Boolean
         If IO.File.Exists(Me.ThumbFramesPath) Then
+            RaiseEvent QueuedFrames(Me, mobjThumbCache, New List(Of List(Of Integer))({New List(Of Integer)({0, mobjMetaData.TotalFrames - 1})}))
             mobjThumbCache = ImageCache.ReadFromFile(Me.ThumbFramesPath)
+
+            Dim ranges As New List(Of List(Of Integer))
+            Dim lastCached As Integer = mobjThumbCache.Items.ToList.FindLastIndex(Function(obj) obj.Status = CacheStatus.Cached)
+            Me.OverrideTotalFrames(lastCached + 1)
+            ranges.Add(New List(Of Integer)({0, lastCached})) 'Min and Max range
+            RaiseEvent RetrievedFrames(Me, mobjThumbCache, ranges)
             Return True
         End If
         Return False
