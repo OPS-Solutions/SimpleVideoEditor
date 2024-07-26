@@ -31,9 +31,13 @@ Partial Class HolePuncherForm
         Me.ofdVideoIn = New System.Windows.Forms.OpenFileDialog()
         Me.lblMinChain = New System.Windows.Forms.Label()
         Me.numMinChain = New System.Windows.Forms.NumericUpDown()
-        Me.pgbProgress = New System.Windows.Forms.ProgressBar()
+        Me.btnDetect = New System.Windows.Forms.Button()
+        Me.StatusStrip1 = New System.Windows.Forms.StatusStrip()
+        Me.ToolStripStatusLabel1 = New System.Windows.Forms.ToolStripStatusLabel()
+        Me.pgbProgress = New System.Windows.Forms.ToolStripProgressBar()
         CType(Me.numThreshold, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.numMinChain, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.StatusStrip1.SuspendLayout()
         Me.SuspendLayout()
         '
         'btnSaveHolePunch
@@ -43,7 +47,7 @@ Partial Class HolePuncherForm
         Me.btnSaveHolePunch.Enabled = False
         Me.btnSaveHolePunch.Font = New System.Drawing.Font("Microsoft Sans Serif", 20.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnSaveHolePunch.Image = Global.SimpleVideoEditor.My.Resources.Resources.Save
-        Me.btnSaveHolePunch.Location = New System.Drawing.Point(260, 214)
+        Me.btnSaveHolePunch.Location = New System.Drawing.Point(260, 201)
         Me.btnSaveHolePunch.Name = "btnSaveHolePunch"
         Me.btnSaveHolePunch.Size = New System.Drawing.Size(72, 35)
         Me.btnSaveHolePunch.TabIndex = 10
@@ -52,7 +56,7 @@ Partial Class HolePuncherForm
         'numThreshold
         '
         Me.numThreshold.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.numThreshold.Location = New System.Drawing.Point(260, 156)
+        Me.numThreshold.Location = New System.Drawing.Point(260, 113)
         Me.numThreshold.Name = "numThreshold"
         Me.numThreshold.Size = New System.Drawing.Size(72, 20)
         Me.numThreshold.TabIndex = 11
@@ -61,7 +65,7 @@ Partial Class HolePuncherForm
         'lblThreshold
         '
         Me.lblThreshold.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.lblThreshold.Location = New System.Drawing.Point(257, 140)
+        Me.lblThreshold.Location = New System.Drawing.Point(257, 97)
         Me.lblThreshold.Name = "lblThreshold"
         Me.lblThreshold.Size = New System.Drawing.Size(75, 13)
         Me.lblThreshold.TabIndex = 12
@@ -76,7 +80,7 @@ Partial Class HolePuncherForm
         Me.pnlSeekers.AutoScroll = True
         Me.pnlSeekers.Location = New System.Drawing.Point(12, 10)
         Me.pnlSeekers.Name = "pnlSeekers"
-        Me.pnlSeekers.Size = New System.Drawing.Size(239, 239)
+        Me.pnlSeekers.Size = New System.Drawing.Size(239, 226)
         Me.pnlSeekers.TabIndex = 13
         '
         'btnBrowse
@@ -97,7 +101,7 @@ Partial Class HolePuncherForm
         'lblMinChain
         '
         Me.lblMinChain.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.lblMinChain.Location = New System.Drawing.Point(257, 77)
+        Me.lblMinChain.Location = New System.Drawing.Point(257, 58)
         Me.lblMinChain.Name = "lblMinChain"
         Me.lblMinChain.Size = New System.Drawing.Size(75, 13)
         Me.lblMinChain.TabIndex = 16
@@ -107,7 +111,7 @@ Partial Class HolePuncherForm
         'numMinChain
         '
         Me.numMinChain.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.numMinChain.Location = New System.Drawing.Point(260, 93)
+        Me.numMinChain.Location = New System.Drawing.Point(260, 74)
         Me.numMinChain.Maximum = New Decimal(New Integer() {3600, 0, 0, 0})
         Me.numMinChain.Minimum = New Decimal(New Integer() {30, 0, 0, 0})
         Me.numMinChain.Name = "numMinChain"
@@ -115,20 +119,43 @@ Partial Class HolePuncherForm
         Me.numMinChain.TabIndex = 15
         Me.numMinChain.Value = New Decimal(New Integer() {600, 0, 0, 0})
         '
+        'btnDetect
+        '
+        Me.btnDetect.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.btnDetect.Font = New System.Drawing.Font("Microsoft Sans Serif", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.btnDetect.Image = Global.SimpleVideoEditor.My.Resources.Resources.HolePuncher
+        Me.btnDetect.Location = New System.Drawing.Point(260, 157)
+        Me.btnDetect.Name = "btnDetect"
+        Me.btnDetect.Size = New System.Drawing.Size(72, 24)
+        Me.btnDetect.TabIndex = 19
+        Me.btnDetect.UseVisualStyleBackColor = True
+        '
+        'StatusStrip1
+        '
+        Me.StatusStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripStatusLabel1, Me.pgbProgress})
+        Me.StatusStrip1.Location = New System.Drawing.Point(0, 239)
+        Me.StatusStrip1.Name = "StatusStrip1"
+        Me.StatusStrip1.Size = New System.Drawing.Size(344, 22)
+        Me.StatusStrip1.TabIndex = 20
+        Me.StatusStrip1.Text = "StatusStrip1"
+        '
+        'ToolStripStatusLabel1
+        '
+        Me.ToolStripStatusLabel1.Name = "ToolStripStatusLabel1"
+        Me.ToolStripStatusLabel1.Size = New System.Drawing.Size(0, 17)
+        '
         'pgbProgress
         '
-        Me.pgbProgress.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.pgbProgress.Location = New System.Drawing.Point(260, 39)
         Me.pgbProgress.Name = "pgbProgress"
-        Me.pgbProgress.Size = New System.Drawing.Size(72, 23)
-        Me.pgbProgress.TabIndex = 18
+        Me.pgbProgress.Size = New System.Drawing.Size(100, 16)
         '
         'HolePuncherForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(344, 261)
-        Me.Controls.Add(Me.pgbProgress)
+        Me.Controls.Add(Me.StatusStrip1)
+        Me.Controls.Add(Me.btnDetect)
         Me.Controls.Add(Me.lblMinChain)
         Me.Controls.Add(Me.numMinChain)
         Me.Controls.Add(Me.btnBrowse)
@@ -141,7 +168,10 @@ Partial Class HolePuncherForm
         Me.Text = "Hole Puncher Tool"
         CType(Me.numThreshold, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.numMinChain, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.StatusStrip1.ResumeLayout(False)
+        Me.StatusStrip1.PerformLayout()
         Me.ResumeLayout(False)
+        Me.PerformLayout()
 
     End Sub
 
@@ -153,5 +183,8 @@ Partial Class HolePuncherForm
     Friend WithEvents ofdVideoIn As OpenFileDialog
     Friend WithEvents lblMinChain As Label
     Friend WithEvents numMinChain As NumericUpDown
-    Friend WithEvents pgbProgress As ProgressBar
+    Friend WithEvents btnDetect As Button
+    Friend WithEvents StatusStrip1 As StatusStrip
+    Friend WithEvents ToolStripStatusLabel1 As ToolStripStatusLabel
+    Friend WithEvents pgbProgress As ToolStripProgressBar
 End Class

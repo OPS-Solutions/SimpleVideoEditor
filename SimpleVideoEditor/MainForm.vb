@@ -1126,7 +1126,6 @@ Public Class MainForm
             mblnCropSignal = True
             ToolStripCropArg.Text = ""
             mblnCropSignal = False
-            cmbDefinition.Items(0) = ""
         Else
             'lblStatusCropRect.Text = $"{cropActual.X},{cropActual.Y},{cropActual.Width},{cropActual.Height}"
             lblStatusCropRect.Text = $"{cropActual?.Width} x {cropActual?.Height}"
@@ -1149,14 +1148,18 @@ Public Class MainForm
         Dim desiredItems As New List(Of String)
         Dim commonHeights As Integer() = {2160, 1440, 1080, 720, 480, 360, 240, 120}
         Dim cropActual As Rectangle? = Me.CropRect()
+        Dim defaultText As String = ""
         If Me.mobjMetaData IsNot Nothing AndAlso cropActual Is Nothing Then
-            cmbDefinition.Items(0) = $"{mobjMetaData.Height}p"
+            defaultText = $"{mobjMetaData.Height}p"
         ElseIf cropActual IsNot Nothing Then
-            cmbDefinition.Items(0) = $"{cropActual?.Height}p"
+            defaultText = $"{cropActual?.Height}p"
         Else
-            cmbDefinition.Items(0) = $"????p"
+            defaultText = $"????p"
         End If
-        desiredItems.Add(cmbDefinition.Items(0))
+        If Not defaultText = cmbDefinition.Items(0) Then
+            cmbDefinition.Items(0) = defaultText
+        End If
+        desiredItems.Add(defaultText)
 
         If Me.mobjMetaData IsNot Nothing Then
             For Each objCommonHeight In commonHeights
@@ -1793,28 +1796,9 @@ Public Class MainForm
                             Directory.CreateDirectory(Path.GetDirectoryName(outPath))
                         End If
 
-                        'Generate temporary text file containing the files to concatenate
-                        'This method avoids a problem I ran into with some ftypisom error, allows audio to get though, and is WAY faster than complex filter. Though I'm not sure about file type support.
-                        Dim filesBuilder As New StringBuilder()
-                        For inputIndex As Integer = 1 To args.Count - 1
-                            filesBuilder.AppendLine($"file '{args(inputIndex)}'")
-                        Next
-                        Dim textPath As String = Path.Combine(Globals.TempPath, $"concatFiles {Now.ToString("yyyy-MM-dd hh-mm-ss")}.txt")
-                        File.WriteAllText(textPath, filesBuilder.ToString)
-                        Dim startInfo As New ProcessStartInfo("ffmpeg.exe", $" -safe 0 -f concat -i ""{textPath}"" -c copy ""{outPath}""")
-
-                        'If you add a=1, you get audo concatenation, but then it seems stuff without audio can't concatenate
-                        'Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}:v=1:a=1"" ""{outPath}""")
-                        'Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}"" ""{outPath}""")
-                        Dim manualEntryForm As New ManualEntryForm(startInfo.Arguments)
-                        Select Case manualEntryForm.ShowDialog()
-                            Case DialogResult.Cancel
-                                Return Nothing
-                        End Select
-                        startInfo.Arguments = manualEntryForm.ModifiedText
-
-                        Dim concatProcess As Process = Process.Start(startInfo)
-                        concatProcess.WaitForExit()
+                        Dim fileList As List(Of String) = args.ToList
+                        fileList.RemoveAt(0)
+                        ConcatFiles(fileList, outPath)
                         Return outPath
                     Case DialogResult.No
                         Return Nothing

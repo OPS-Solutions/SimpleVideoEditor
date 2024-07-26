@@ -1,4 +1,6 @@
-﻿Public Class HolePuncherForm
+﻿Imports System.Threading
+
+Public Class HolePuncherForm
 
     Public Structure Chain
         ''' <summary>
@@ -49,31 +51,7 @@
     End Sub
 
     Private Sub HolePuncherForm_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
-        Try
-            Select Case ofdVideoIn.ShowDialog()
-                Case DialogResult.OK
-                    'Load all of them
-                    For Each strVideo In ofdVideoIn.FileNames
-                        mlstMetaDatas.Add(VideoData.FromFile(strVideo))
-                        mobjChainList.Add(New List(Of Chain))
-                    Next
-                    'Add controls backwards to maintain display order
-                    For videoIndex As Integer = mlstMetaDatas.Count - 1 To 0 Step -1
-                        Dim newSeeker As New VideoSeeker(mlstMetaDatas(videoIndex))
-                        newSeeker.Dock = DockStyle.Top
-                        newSeeker.Height = 24
-                        pnlSeekers.Controls.Add(newSeeker)
-                    Next
-                    'Set up progress bar
-                    Dim maxComparisons As Integer = (mlstMetaDatas.Count * (mlstMetaDatas.Count - 1)) / 2
-                    pgbProgress.Maximum = maxComparisons
-                    pgbProgress.Value = 0
-
-                    CompareScenes()
-            End Select
-        Catch ex As Exception
-            MessageBox.Show(ex.StackTrace)
-        End Try
+        btnBrowse_Click(Me, Nothing)
     End Sub
 
     Private Async Sub CompareScenes()
@@ -126,17 +104,49 @@
     Delegate Sub RefreshProgressDelegate()
 
     Private Sub btnBrowse_Click(sender As Object, e As EventArgs) Handles btnBrowse.Click
-        ResetMetrics()
-        btnSaveHolePunch.Enabled = False
-        'Set up progress bar
-        Dim maxComparisons As Integer = (mlstMetaDatas.Count * (mlstMetaDatas.Count - 1)) / 2
-        pgbProgress.Maximum = maxComparisons
-        pgbProgress.Value = 0
-        For Each objChain In mobjChainList
-            objChain.Clear()
-        Next
-        mobjPuncherThread = New Threading.Thread(AddressOf DetectSimilarities)
-        mobjPuncherThread.Start(mobjChainList)
+        Try
+            Select Case ofdVideoIn.ShowDialog()
+                Case DialogResult.OK
+                    'Load all of them
+                    For Each strVideo In ofdVideoIn.FileNames
+                        mlstMetaDatas.Add(VideoData.FromFile(strVideo))
+                        mobjChainList.Add(New List(Of Chain))
+                    Next
+                    'Add controls backwards to maintain display order
+                    For videoIndex As Integer = mlstMetaDatas.Count - 1 To 0 Step -1
+                        Dim newSeeker As New VideoSeeker(mlstMetaDatas(videoIndex))
+                        newSeeker.Dock = DockStyle.Top
+                        newSeeker.Height = 24
+                        pnlSeekers.Controls.Add(newSeeker)
+                    Next
+                    'Set up progress bar
+                    Dim maxComparisons As Integer = (mlstMetaDatas.Count * (mlstMetaDatas.Count - 1)) / 2
+                    pgbProgress.Maximum = maxComparisons
+                    pgbProgress.Value = 0
+
+                    CompareScenes()
+            End Select
+        Catch ex As Exception
+            MessageBox.Show(ex.StackTrace)
+        End Try
+    End Sub
+
+    Private Sub btnDetect_Click(sender As Object, e As EventArgs) Handles btnDetect.Click
+        Try
+            ResetMetrics()
+            btnSaveHolePunch.Enabled = False
+            'Set up progress bar
+            Dim maxComparisons As Integer = (mlstMetaDatas.Count * (mlstMetaDatas.Count - 1)) / 2
+            pgbProgress.Maximum = maxComparisons
+            pgbProgress.Value = 0
+            For Each objChain In mobjChainList
+                objChain.Clear()
+            Next
+            mobjPuncherThread = New Threading.Thread(AddressOf DetectSimilarities)
+            mobjPuncherThread.Start(mobjChainList)
+        Catch ex As Exception
+            MessageBox.Show("Error detecting similarities." & vbNewLine & ex.ToString)
+        End Try
     End Sub
 
     Private Const IMAGE_COMPARE_THRESHOLD As Double = 0.004
@@ -412,6 +422,8 @@
 
     Private Sub btnSaveHolePunch_Click(sender As Object, e As EventArgs) Handles btnSaveHolePunch.Click
         Dim blnUserInjection = My.Computer.Keyboard.CtrlKeyDown
+        pgbProgress.Value = 0
+        pgbProgress.Maximum = mobjChainList.Count
         'Save all the stuff via ffmpeg
         Dim videoIndex As Integer = 0
         For Each objVid In mobjChainList
@@ -450,86 +462,133 @@
                     End If
                 Next
 
-                Dim processInfo As New ProcessStartInfo
-                processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
-
-                processInfo.Arguments = "-i """ & mlstMetaDatas(videoIndex).FullPath & """"
-                processInfo.Arguments += " -filter_complex ""[0:v]split = " & goodPortions.Count
-                '-filter_complex"
-                '[0:v]split = 3[vcopy1][vcopy2][vcopy3], 
-                '[vcopy1] trim=10:20,setpts=PTS-STARTPTS[v1], 
-                '[vcopy2] trim=30:40,setpts=PTS-STARTPTS[v2], 
-                '[vcopy3] trim=60:80,setpts=PTS-STARTPTS[v3],
-
-                '[0:a]asplit = 3[acopy1][acopy2][acopy3], 
-                '[acopy1] atrim=10:20,asetpts=PTS-STARTPTS[a1], 
-                '[acopy2] atrim=30:40,asetpts=PTS-STARTPTS[a2], 
-                '[acopy3] atrim=60:80,asetpts=PTS-STARTPTS[a3],
-
-                '[v1] [a1] [v2] [a2] [v3] [a3] concat=n=3:v=1:a=1[v][a]"
-
-                'Build video trim
+                'Split each good part into a separate video file
+                'This is because I can't get the concat filter to do subtitles, don't think it is supported
+                Dim fileList As New List(Of String)
+                Dim splitBarrier As New Barrier(goodPortions.Count + 1)
                 For goodIndex As Integer = 0 To goodPortions.Count - 1
-                    processInfo.Arguments += "[vidChunk" & goodIndex & "]"
+                    Dim processInfo As New ProcessStartInfo
+                    processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
+                    Dim goodPortion As GoodChain = goodPortions(goodIndex)
+                    Dim startTime As Double = mlstMetaDatas(videoIndex).AnyImageCachePTS(goodPortion.startFrame)
+                    Dim endTime As Double = mlstMetaDatas(videoIndex).AnyImageCachePTS(goodPortion.endFrame)
+                    processInfo.Arguments = $"-ss {FormatHHMMSSm(startTime)}"
+                    processInfo.Arguments += " -i """ & mlstMetaDatas(videoIndex).FullPath & """"
+                    processInfo.Arguments += $" -t {FormatHHMMSSm(endTime - startTime)}"
+                    Dim partFileName As String = FileNameAppend(mlstMetaDatas(videoIndex).FullPath, $"-Part{goodIndex + 1}")
+                    fileList.Add(partFileName)
+                    processInfo.Arguments += " -q:v 0 """ & partFileName & """"
+                    processInfo.UseShellExecute = True
+                    processInfo.WindowStyle = ProcessWindowStyle.Normal
+                    Dim newProcess As Process = Process.Start(processInfo)
+                    Task.Run(Sub()
+                                 newProcess.WaitForExit()
+                                 splitBarrier.SignalAndWait()
+                             End Sub)
                 Next
-                processInfo.Arguments += ","
-                For goodIndex As Integer = 0 To goodPortions.Count - 1
-                    Dim startHHMMSS As String = FormatHHMMSSm(goodPortions(goodIndex).startFrame / mlstMetaDatas(videoIndex).Framerate)
-                    startHHMMSS = startHHMMSS.Insert(0, "'")
-                    startHHMMSS = startHHMMSS.Insert(3, "\")
-                    startHHMMSS = startHHMMSS.Insert(7, "\")
-                    startHHMMSS += "'"
-                    Dim endHHMMSS As String = FormatHHMMSSm((goodPortions(goodIndex).endFrame + 1) / mlstMetaDatas(videoIndex).Framerate)
-                    endHHMMSS = endHHMMSS.Insert(0, "'")
-                    endHHMMSS = endHHMMSS.Insert(3, "\")
-                    endHHMMSS = endHHMMSS.Insert(7, "\")
-                    endHHMMSS += "'"
-                    '"trim='00\:01\:40.5':'00\:00\:04.20'"
-                    processInfo.Arguments += "[vidChunk" & goodIndex & "] trim=" & startHHMMSS & ":" & endHHMMSS & "," & "setpts=PTS-STARTPTS[v" & goodIndex & "],"
+                splitBarrier.SignalAndWait()
+
+                'Combine them back into 1 afterwards
+                ConcatFiles(fileList, FileNameAppend(mlstMetaDatas(videoIndex).FullPath, $"-SHINY"))
+
+                'Cleanup part files
+                For Each objFile In fileList
+                    System.IO.File.Delete(objFile)
                 Next
 
-                'Build audio trim
-                processInfo.Arguments += "[0:a]asplit = " & goodPortions.Count
-                For goodIndex As Integer = 0 To goodPortions.Count - 1
-                    processInfo.Arguments += "[audioChunk" & goodIndex & "]"
-                Next
-                processInfo.Arguments += ","
-                For goodIndex As Integer = 0 To goodPortions.Count - 1
-                    Dim startHHMMSS As String = FormatHHMMSSm(goodPortions(goodIndex).startFrame / mlstMetaDatas(videoIndex).Framerate)
-                    startHHMMSS = startHHMMSS.Insert(0, "'")
-                    startHHMMSS = startHHMMSS.Insert(3, "\")
-                    startHHMMSS = startHHMMSS.Insert(7, "\")
-                    startHHMMSS += "'"
-                    Dim endHHMMSS As String = FormatHHMMSSm((goodPortions(goodIndex).endFrame + 1) / mlstMetaDatas(videoIndex).Framerate)
-                    endHHMMSS = endHHMMSS.Insert(0, "'")
-                    endHHMMSS = endHHMMSS.Insert(3, "\")
-                    endHHMMSS = endHHMMSS.Insert(7, "\")
-                    endHHMMSS += "'"
-                    '"trim='00\:01\:40.5':'00\:00\:04.20'"
-                    processInfo.Arguments += "[audioChunk" & goodIndex & "] atrim=" & startHHMMSS & ":" & endHHMMSS & "," & "asetpts=PTS-STARTPTS[a" & goodIndex & "],"
-                Next
+                ''Concatless method
+                'processInfo.Arguments += " -filter_complex ""Select='"
+                'For goodIndex As Integer = 0 To goodPortions.Count - 1
+                '    Dim goodPortion As GoodChain = goodPortions(goodIndex)
+                '    processInfo.Arguments += $"between(n,{goodPortion.startFrame},{goodPortion.endFrame})"
+                '    If Not goodPortions.Count - 1 = goodIndex Then
+                '        processInfo.Arguments += " + " 'Or operator
+                '    End If
+                'Next
+                'processInfo.Arguments += "'"
+                'processInfo.Arguments += ", setpts=N/FRAME_RATE/TB"
+                'processInfo.Arguments += """"
 
-                'Build concatenate
-                For goodIndex As Integer = 0 To goodPortions.Count - 1
-                    processInfo.Arguments += "[v" & goodIndex & "] [a" & goodIndex & "] "
-                Next
-                processInfo.Arguments += "concat=n=" & goodPortions.Count & ":v=1:a=1:s=1[v][a]"" -map ""[v]"" -map ""[a]"""
+
+                'processInfo.Arguments += " -filter_complex ""[0:v]split = " & goodPortions.Count
+                ''-filter_complex"
+                ''[0:v]split = 3[vcopy1][vcopy2][vcopy3], 
+                ''[vcopy1] trim=10:20,setpts=PTS-STARTPTS[v1], 
+                ''[vcopy2] trim=30:40,setpts=PTS-STARTPTS[v2], 
+                ''[vcopy3] trim=60:80,setpts=PTS-STARTPTS[v3],
+
+                ''[0:a]asplit = 3[acopy1][acopy2][acopy3], 
+                ''[acopy1] atrim=10:20,asetpts=PTS-STARTPTS[a1], 
+                ''[acopy2] atrim=30:40,asetpts=PTS-STARTPTS[a2], 
+                ''[acopy3] atrim=60:80,asetpts=PTS-STARTPTS[a3],
+
+                ''[v1] [a1] [v2] [a2] [v3] [a3] concat=n=3:v=1:a=1[v][a]"
+
+                ''Build video trim
+                'For goodIndex As Integer = 0 To goodPortions.Count - 1
+                '    processInfo.Arguments += "[vidChunk" & goodIndex & "]"
+                'Next
+                'processInfo.Arguments += ","
+                'For goodIndex As Integer = 0 To goodPortions.Count - 1
+                '    Dim startHHMMSS As String = FormatHHMMSSm(goodPortions(goodIndex).startFrame / mlstMetaDatas(videoIndex).Framerate)
+                '    startHHMMSS = startHHMMSS.Insert(0, "'")
+                '    startHHMMSS = startHHMMSS.Insert(3, "\")
+                '    startHHMMSS = startHHMMSS.Insert(7, "\")
+                '    startHHMMSS += "'"
+                '    Dim endHHMMSS As String = FormatHHMMSSm((goodPortions(goodIndex).endFrame + 1) / mlstMetaDatas(videoIndex).Framerate)
+                '    endHHMMSS = endHHMMSS.Insert(0, "'")
+                '    endHHMMSS = endHHMMSS.Insert(3, "\")
+                '    endHHMMSS = endHHMMSS.Insert(7, "\")
+                '    endHHMMSS += "'"
+                '    '"trim='00\:01\:40.5':'00\:00\:04.20'"
+                '    processInfo.Arguments += "[vidChunk" & goodIndex & "] trim=" & startHHMMSS & ":" & endHHMMSS & "," & "setpts=PTS-STARTPTS[v" & goodIndex & "],"
+                'Next
+
+                ''Build audio trim
+                'processInfo.Arguments += "[0:a]asplit = " & goodPortions.Count
+                'For goodIndex As Integer = 0 To goodPortions.Count - 1
+                '    processInfo.Arguments += "[audioChunk" & goodIndex & "]"
+                'Next
+                'processInfo.Arguments += ","
+                'For goodIndex As Integer = 0 To goodPortions.Count - 1
+                '    Dim startHHMMSS As String = FormatHHMMSSm(goodPortions(goodIndex).startFrame / mlstMetaDatas(videoIndex).Framerate)
+                '    startHHMMSS = startHHMMSS.Insert(0, "'")
+                '    startHHMMSS = startHHMMSS.Insert(3, "\")
+                '    startHHMMSS = startHHMMSS.Insert(7, "\")
+                '    startHHMMSS += "'"
+                '    Dim endHHMMSS As String = FormatHHMMSSm((goodPortions(goodIndex).endFrame + 1) / mlstMetaDatas(videoIndex).Framerate)
+                '    endHHMMSS = endHHMMSS.Insert(0, "'")
+                '    endHHMMSS = endHHMMSS.Insert(3, "\")
+                '    endHHMMSS = endHHMMSS.Insert(7, "\")
+                '    endHHMMSS += "'"
+                '    '"trim='00\:01\:40.5':'00\:00\:04.20'"
+                '    processInfo.Arguments += "[audioChunk" & goodIndex & "] atrim=" & startHHMMSS & ":" & endHHMMSS & "," & "asetpts=PTS-STARTPTS[a" & goodIndex & "],"
+                'Next
+
+                ''Build concatenate
+                'For goodIndex As Integer = 0 To goodPortions.Count - 1
+                '    processInfo.Arguments += "[v" & goodIndex & "] [a" & goodIndex & "] "
+                'Next
+                'processInfo.Arguments += "concat=n=" & goodPortions.Count & ":v=1:a=1:s=1[v][a]"" -map ""[v]"" -map ""[a]"""
 
                 'OUTPUT TO FILE
-                processInfo.Arguments += " """ & FileNameAppend(mlstMetaDatas(videoIndex).FullPath, "-SHINY") & """"
-                If blnUserInjection Then
-                    'Show a form where the user can modify the arguments manually
-                    Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)
-                    manualEntryForm.ShowDialog()
-                    processInfo.Arguments = manualEntryForm.ModifiedText
-                End If
-                processInfo.UseShellExecute = True
-                processInfo.WindowStyle = ProcessWindowStyle.Normal
-                Process.Start(processInfo)
+                'processInfo.Arguments += " """ & FileNameAppend(mlstMetaDatas(videoIndex).FullPath, "-SHINY") & """"
+
+
+                'If blnUserInjection Then
+                '    'Show a form where the user can modify the arguments manually
+                '    Dim manualEntryForm As New ManualEntryForm(processInfo.Arguments)
+                '    manualEntryForm.ShowDialog()
+                '    processInfo.Arguments = manualEntryForm.ModifiedText
+                'End If
+                'processInfo.UseShellExecute = True
+                'processInfo.WindowStyle = ProcessWindowStyle.Normal
+                'Process.Start(processInfo)
             Else
                 'TODO Copy the video with no changes?
             End If
             videoIndex += 1
+            pgbProgress.Value += 1
         Next
     End Sub
 End Class

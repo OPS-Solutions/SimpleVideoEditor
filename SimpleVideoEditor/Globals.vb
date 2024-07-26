@@ -1,4 +1,5 @@
-﻿Imports System.Runtime.InteropServices
+﻿Imports System.IO
+Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Text.RegularExpressions
 
@@ -166,4 +167,33 @@ Module Globals
         End Using
         Return commonExtension
     End Function
+
+    ''' <summary>
+    ''' Concatenates files using the near instant method, under the assumption they are of the same type
+    ''' Blocks until finished
+    ''' </summary>
+    Public Sub ConcatFiles(files As List(Of String), outPath As String)
+        'Generate temporary text file containing the files to concatenate
+        'This method avoids a problem I ran into with some ftypisom error, allows audio to get though, and is WAY faster than complex filter. Though I'm not sure about file type support.
+        Dim filesBuilder As New StringBuilder()
+        For Each objFile In files
+            filesBuilder.AppendLine($"file '{objFile}'")
+        Next
+        Dim textPath As String = Path.Combine(Globals.TempPath, $"concatFiles {Now.ToString("yyyy-MM-dd hh-mm-ss")}.txt")
+        File.WriteAllText(textPath, filesBuilder.ToString)
+        Dim startInfo As New ProcessStartInfo("ffmpeg.exe", $" -safe 0 -f concat -i ""{textPath}"" -c copy ""{outPath}""")
+
+        'If you add a=1, you get audo concatenation, but then it seems stuff without audio can't concatenate
+        'Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}:v=1:a=1"" ""{outPath}""")
+        'Dim startInfo As New ProcessStartInfo("ffmpeg.exe", argInputs + $" -filter_complex ""concat=n={args.Count - 1}"" ""{outPath}""")
+        'Dim manualEntryForm As New ManualEntryForm(startInfo.Arguments)
+        'Select Case manualEntryForm.ShowDialog()
+        '    Case DialogResult.Cancel
+        '        Return Nothing
+        'End Select
+        'startInfo.Arguments = ManualEntryForm.ModifiedText
+
+        Dim concatProcess As Process = Process.Start(startInfo)
+        concatProcess.WaitForExit()
+    End Sub
 End Module
