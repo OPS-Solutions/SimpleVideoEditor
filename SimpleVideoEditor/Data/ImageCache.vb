@@ -130,20 +130,20 @@ Public Class ImageCache
         <XmlIgnore>
         Private mbytPixels As Byte()
         <XmlIgnore>
-        Private mbytAvgColor As Byte()
+        Private mobjAverageColor As Color?
         <XmlIgnore>
         Private mdblStdDev As Double()
 
         ''' <summary>
         ''' Returns byte array of RGB color averages from mbytPixels
         ''' </summary>
-        Public Function AverageColor() As Byte()
-            If mbytAvgColor Is Nothing Then
+        Public Function AverageColor() As Color
+            If mobjAverageColor Is Nothing Then
                 If Me.ImageStore IsNot Nothing Then
-                    mbytAvgColor = Me.ImageStore.AverageColor()
+                    mobjAverageColor = Me.ImageStore.AverageColor()
                 End If
             End If
-            Return mbytAvgColor
+            Return mobjAverageColor
         End Function
 
         ''' <summary>
@@ -153,7 +153,7 @@ Public Class ImageCache
         Public Function StdDev() As Double()
             If mdblStdDev Is Nothing Then
                 If Me.ImageStore IsNot Nothing Then
-                    mdblStdDev = Me.ImageStore.StdDev(mbytAvgColor)
+                    mdblStdDev = Me.ImageStore.StdDev(mobjAverageColor)
                 End If
             End If
             Return mdblStdDev
@@ -168,7 +168,7 @@ Public Class ImageCache
         ''' <summary>
         ''' Checks that two frames are essentially the same, within margin 0-100% similar
         ''' </summary>
-        Public Function EqualsWithin(value As CacheItem, margin As Double)
+        Public Function EqualsWithin(value As CacheItem, stdDevLimit As Double, deltaELimit As Double)
             If Me.ImageStore Is Nothing Then
                 Dim unused As Bitmap = Me.GetImage()
             End If
@@ -176,11 +176,13 @@ Public Class ImageCache
                 Dim unused As Bitmap = value.GetImage()
             End If
             Dim difStdDev As Double = CompareArrays(Me.StdDev, value.StdDev)
-            If difStdDev > 1 Then
+            If difStdDev > stdDevLimit Then
                 Return False
             End If
-            Dim difFullyCompressed As Double = CompareArraysAvg(Me.AverageColor, value.AverageColor)
-            Return margin >= difFullyCompressed
+
+            Dim deltaEFullyCompressed As Double = CompareDeltaE(Me.AverageColor, value.AverageColor)
+            'Dim difFullyCompressed As Double = CompareArraysAvg(Me.AverageColor, value.AverageColor)
+            Return 10 >= deltaEFullyCompressed
         End Function
 
         Public Function Status() As CacheStatus

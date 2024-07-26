@@ -1233,7 +1233,7 @@ Module Extensions
     ''' Returns byte array of ARGB color averages of the given image
     ''' </summary>
     <Extension()>
-    Public Function AverageColor(objImage As Bitmap) As Byte()
+    Public Function AverageColor(objImage As Bitmap) As Color
         Dim mbytpixels As Byte() = objImage.GetBytes
         Dim pxTotal As Integer = mbytpixels.Count
         Dim result As Byte() = New Byte(3) {}
@@ -1242,36 +1242,37 @@ Module Extensions
         Dim gSum As Integer = 0
         Dim bSum As Integer = 0
         For index As Integer = 0 To mbytpixels.Count - 1 Step 4
-            aSum += mbytpixels(index)
-            rSum += mbytpixels(index + 1)
-            gSum += mbytpixels(index + 2)
-            bSum += mbytpixels(index + 3)
+            bSum += mbytpixels(index)
+            gSum += mbytpixels(index + 1)
+            rSum += mbytpixels(index + 2)
+            aSum += mbytpixels(index + 3)
         Next
         result(0) = aSum / pxTotal
         result(1) = rSum / pxTotal
         result(2) = gSum / pxTotal
         result(3) = bSum / pxTotal
-        Return result
+        Return Color.FromArgb(result(0), result(1), result(2), result(3))
     End Function
 
     ''' <summary>
     ''' Calculates standard deviation of each color component in the image
-    ''' Assumes ARGB pixel format
+    ''' Assumes BGRA pixel order
+    ''' Returns ARGB order StdDev per component
     ''' </summary>
     <Extension()>
-    Public Function StdDev(objImage As Bitmap, Optional ByRef averageByes As Byte() = Nothing) As Double()
+    Public Function StdDev(objImage As Bitmap, Optional ByRef averageByes As Color? = Nothing) As Double()
         Dim mbytpixels As Byte() = objImage.GetBytes
-        Dim pxTotal As Integer = mbytpixels.Count
+        Dim pxTotal As Integer = mbytpixels.Count / 4
         Dim result As Double() = New Double(3) {}
         Dim aSum As Integer = 0
         Dim rSum As Integer = 0
         Dim gSum As Integer = 0
         Dim bSum As Integer = 0
         For index As Integer = 0 To mbytpixels.Count - 1 Step 4
-            aSum += mbytpixels(index)
-            rSum += mbytpixels(index + 1)
-            gSum += mbytpixels(index + 2)
-            bSum += mbytpixels(index + 3)
+            bSum += mbytpixels(index)
+            gSum += mbytpixels(index + 1)
+            rSum += mbytpixels(index + 2)
+            aSum += mbytpixels(index + 3)
         Next
         Dim aAvg As Double = aSum / pxTotal
         Dim rAvg As Double = rSum / pxTotal
@@ -1279,12 +1280,9 @@ Module Extensions
         Dim bAvg As Double = bSum / pxTotal
 
         'We already calculated it so we might as well save the computation for later
+
         If averageByes Is Nothing Then
-            averageByes = New Byte(3) {}
-            averageByes(0) = aAvg
-            averageByes(1) = rAvg
-            averageByes(2) = gAvg
-            averageByes(3) = bAvg
+            averageByes = Color.FromArgb(aAvg, rAvg, gAvg, bAvg)
         End If
 
         Dim aSqr As Double = 0
@@ -1292,10 +1290,10 @@ Module Extensions
         Dim gSqr As Double = 0
         Dim bSqr As Double = 0
         For index As Integer = 0 To mbytpixels.Count - 1 Step 4
-            aSqr += Math.Pow(mbytpixels(index) - aAvg, 2)
-            rSqr += Math.Pow(mbytpixels(index + 1) - rAvg, 2)
-            gSqr += Math.Pow(mbytpixels(index + 2) - gAvg, 2)
-            bSqr += Math.Pow(mbytpixels(index + 3) - bAvg, 2)
+            bSqr += Math.Pow(mbytpixels(index) - aAvg, 2)
+            gSqr += Math.Pow(mbytpixels(index + 1) - rAvg, 2)
+            rSqr += Math.Pow(mbytpixels(index + 2) - gAvg, 2)
+            aSqr += Math.Pow(mbytpixels(index + 3) - bAvg, 2)
         Next
         result(0) = Math.Sqrt(aSqr / pxTotal)
         result(1) = Math.Sqrt(rSqr / pxTotal)

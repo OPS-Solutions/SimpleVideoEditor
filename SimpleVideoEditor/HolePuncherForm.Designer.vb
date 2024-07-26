@@ -24,7 +24,7 @@ Partial Class HolePuncherForm
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(HolePuncherForm))
         Me.btnSaveHolePunch = New System.Windows.Forms.Button()
-        Me.numThreshold = New System.Windows.Forms.NumericUpDown()
+        Me.numStdDev = New System.Windows.Forms.NumericUpDown()
         Me.lblThreshold = New System.Windows.Forms.Label()
         Me.pnlSeekers = New System.Windows.Forms.Panel()
         Me.btnBrowse = New System.Windows.Forms.Button()
@@ -35,9 +35,12 @@ Partial Class HolePuncherForm
         Me.StatusStrip1 = New System.Windows.Forms.StatusStrip()
         Me.ToolStripStatusLabel1 = New System.Windows.Forms.ToolStripStatusLabel()
         Me.pgbProgress = New System.Windows.Forms.ToolStripProgressBar()
-        CType(Me.numThreshold, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.lblDeltaE = New System.Windows.Forms.Label()
+        Me.numDeltaE = New System.Windows.Forms.NumericUpDown()
+        CType(Me.numStdDev, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.numMinChain, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.StatusStrip1.SuspendLayout()
+        CType(Me.numDeltaE, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'btnSaveHolePunch
@@ -53,23 +56,25 @@ Partial Class HolePuncherForm
         Me.btnSaveHolePunch.TabIndex = 10
         Me.btnSaveHolePunch.UseVisualStyleBackColor = False
         '
-        'numThreshold
+        'numStdDev
         '
-        Me.numThreshold.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.numThreshold.Location = New System.Drawing.Point(260, 113)
-        Me.numThreshold.Name = "numThreshold"
-        Me.numThreshold.Size = New System.Drawing.Size(72, 20)
-        Me.numThreshold.TabIndex = 11
-        Me.numThreshold.Value = New Decimal(New Integer() {10, 0, 0, 0})
+        Me.numStdDev.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.numStdDev.Location = New System.Drawing.Point(260, 91)
+        Me.numStdDev.Maximum = New Decimal(New Integer() {10, 0, 0, 0})
+        Me.numStdDev.Minimum = New Decimal(New Integer() {1, 0, 0, 0})
+        Me.numStdDev.Name = "numStdDev"
+        Me.numStdDev.Size = New System.Drawing.Size(72, 20)
+        Me.numStdDev.TabIndex = 11
+        Me.numStdDev.Value = New Decimal(New Integer() {6, 0, 0, 0})
         '
         'lblThreshold
         '
         Me.lblThreshold.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.lblThreshold.Location = New System.Drawing.Point(257, 97)
+        Me.lblThreshold.Location = New System.Drawing.Point(257, 75)
         Me.lblThreshold.Name = "lblThreshold"
         Me.lblThreshold.Size = New System.Drawing.Size(75, 13)
         Me.lblThreshold.TabIndex = 12
-        Me.lblThreshold.Text = "Threshold"
+        Me.lblThreshold.Text = "StdDev"
         Me.lblThreshold.TextAlign = System.Drawing.ContentAlignment.TopCenter
         '
         'pnlSeekers
@@ -101,7 +106,7 @@ Partial Class HolePuncherForm
         'lblMinChain
         '
         Me.lblMinChain.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.lblMinChain.Location = New System.Drawing.Point(257, 58)
+        Me.lblMinChain.Location = New System.Drawing.Point(257, 36)
         Me.lblMinChain.Name = "lblMinChain"
         Me.lblMinChain.Size = New System.Drawing.Size(75, 13)
         Me.lblMinChain.TabIndex = 16
@@ -111,7 +116,7 @@ Partial Class HolePuncherForm
         'numMinChain
         '
         Me.numMinChain.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.numMinChain.Location = New System.Drawing.Point(260, 74)
+        Me.numMinChain.Location = New System.Drawing.Point(260, 52)
         Me.numMinChain.Maximum = New Decimal(New Integer() {3600, 0, 0, 0})
         Me.numMinChain.Minimum = New Decimal(New Integer() {30, 0, 0, 0})
         Me.numMinChain.Name = "numMinChain"
@@ -149,11 +154,34 @@ Partial Class HolePuncherForm
         Me.pgbProgress.Name = "pgbProgress"
         Me.pgbProgress.Size = New System.Drawing.Size(100, 16)
         '
+        'lblDeltaE
+        '
+        Me.lblDeltaE.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.lblDeltaE.Location = New System.Drawing.Point(257, 115)
+        Me.lblDeltaE.Name = "lblDeltaE"
+        Me.lblDeltaE.Size = New System.Drawing.Size(75, 13)
+        Me.lblDeltaE.TabIndex = 22
+        Me.lblDeltaE.Text = "DeltaE"
+        Me.lblDeltaE.TextAlign = System.Drawing.ContentAlignment.TopCenter
+        '
+        'numDeltaE
+        '
+        Me.numDeltaE.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.numDeltaE.Location = New System.Drawing.Point(260, 131)
+        Me.numDeltaE.Maximum = New Decimal(New Integer() {20, 0, 0, 0})
+        Me.numDeltaE.Minimum = New Decimal(New Integer() {1, 0, 0, 0})
+        Me.numDeltaE.Name = "numDeltaE"
+        Me.numDeltaE.Size = New System.Drawing.Size(72, 20)
+        Me.numDeltaE.TabIndex = 21
+        Me.numDeltaE.Value = New Decimal(New Integer() {10, 0, 0, 0})
+        '
         'HolePuncherForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(344, 261)
+        Me.Controls.Add(Me.lblDeltaE)
+        Me.Controls.Add(Me.numDeltaE)
         Me.Controls.Add(Me.StatusStrip1)
         Me.Controls.Add(Me.btnDetect)
         Me.Controls.Add(Me.lblMinChain)
@@ -161,22 +189,23 @@ Partial Class HolePuncherForm
         Me.Controls.Add(Me.btnBrowse)
         Me.Controls.Add(Me.pnlSeekers)
         Me.Controls.Add(Me.lblThreshold)
-        Me.Controls.Add(Me.numThreshold)
+        Me.Controls.Add(Me.numStdDev)
         Me.Controls.Add(Me.btnSaveHolePunch)
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.Name = "HolePuncherForm"
         Me.Text = "Hole Puncher Tool"
-        CType(Me.numThreshold, System.ComponentModel.ISupportInitialize).EndInit()
+        CType(Me.numStdDev, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.numMinChain, System.ComponentModel.ISupportInitialize).EndInit()
         Me.StatusStrip1.ResumeLayout(False)
         Me.StatusStrip1.PerformLayout()
+        CType(Me.numDeltaE, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
     End Sub
 
     Friend WithEvents btnSaveHolePunch As Button
-    Friend WithEvents numThreshold As NumericUpDown
+    Friend WithEvents numStdDev As NumericUpDown
     Friend WithEvents lblThreshold As Label
     Friend WithEvents pnlSeekers As Panel
     Friend WithEvents btnBrowse As Button
@@ -187,4 +216,6 @@ Partial Class HolePuncherForm
     Friend WithEvents StatusStrip1 As StatusStrip
     Friend WithEvents ToolStripStatusLabel1 As ToolStripStatusLabel
     Friend WithEvents pgbProgress As ToolStripProgressBar
+    Friend WithEvents lblDeltaE As Label
+    Friend WithEvents numDeltaE As NumericUpDown
 End Class

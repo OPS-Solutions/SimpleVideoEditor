@@ -38,6 +38,7 @@ Public Class HolePuncherForm
     Private mlstMetaDatas As New List(Of VideoData)
     Private mobjPuncherThread As Threading.Thread
     Private mobjChainList As New List(Of List(Of Chain)) 'List of videos, each with a list of frame chains found
+    Private mobjGenericToolTip As ToolTipPlus = New ToolTipPlus() 'Tooltip object required for setting tootips on controls
 
     Private Sub HolePuncherForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         CacheFullBitmaps = True
@@ -45,6 +46,14 @@ Public Class HolePuncherForm
         ofdVideoIn.Filter = "Video Files (*.*)|*.*"
         ofdVideoIn.Title = "Select Video Files"
         ofdVideoIn.AddExtension = True
+
+        mobjGenericToolTip.SetToolTip(btnBrowse, $"Search for multiple files to scan for duplicate content.")
+        mobjGenericToolTip.SetToolTip(btnDetect, $"Scan loaded videos for duplicate content.{vbNewLine}This will detect things like tv show openings/endings, and certian types of flashbacks.")
+        mobjGenericToolTip.SetToolTip(btnSaveHolePunch, $"Punches holes in any file where duplicate content was detected, creating a new -SHINY file.{vbNewLine}Intermediate files will be created temporarily.")
+        mobjGenericToolTip.SetToolTip(numMinChain, $"The number of consecutive frames something has to be similar to be removed.{vbNewLine}Shorter chains can help reduce removal of things like flashbacks.")
+        mobjGenericToolTip.SetToolTip(numStdDev, $"Higher values are more forgiving when comparing two frames.{vbNewLine}Higher can help for something like different credits rolling over the same ending.")
+        mobjGenericToolTip.SetToolTip(numDeltaE, $"Higher values are more forgiving when comparing two frames color.")
+
         mlstMetaDatas.Clear()
         pnlSeekers.Controls.Clear()
         mobjChainList.Clear()
@@ -149,11 +158,10 @@ Public Class HolePuncherForm
         End Try
     End Sub
 
-    Private Const IMAGE_COMPARE_THRESHOLD As Double = 0.004
-
     Private Sub DetectSimilarities(chainList As List(Of List(Of Chain)))
         Try
-            Dim threshold As Double = numThreshold.Value / 1000
+            Dim stdDevLimit As Double = numStdDev.Value
+            Dim deltaELimit As Double = numDeltaE.Value
             Dim minChainLength As Integer = numMinChain.Value 'At least this many frame in a row must be similar to remove
             Dim videoList As New List(Of Double())(mlstMetaDatas.Count)
             For Each objData In mlstMetaDatas
@@ -212,7 +220,7 @@ Public Class HolePuncherForm
                             End If
                             frameComparisons += 1
                             'If master(masterSubframe).EqualsWithin(slave(slaveFrame), threshold) AndAlso masterFrames(masterSubframe).EqualsWithin(slaveFrames(slaveFrame), IMAGE_COMPARE_THRESHOLD) Then
-                            If masterFrames(masterSubframe).EqualsWithin(slaveFrames(slaveFrame), IMAGE_COMPARE_THRESHOLD) Then
+                            If masterFrames(masterSubframe).EqualsWithin(slaveFrames(slaveFrame), stdDevLimit, deltaELimit) Then
                                 If chainLength = 0 Then
                                     chainStart = slaveFrame
                                     'Check that the farthest frame would be valid, because if its not, you don't
@@ -220,7 +228,7 @@ Public Class HolePuncherForm
                                     Dim masterPeek As Integer = masterSubframe + minChainLength
                                     Dim slavePeek As Integer = slaveFrame + minChainLength
                                     'If masterPeek > master.Count - 1 OrElse slavePeek > slave.Count - 1 OrElse Not (master(masterPeek).EqualsWithin(slave(slavePeek), threshold) AndAlso masterFrames(masterPeek).EqualsWithin(slaveFrames(slavePeek), IMAGE_COMPARE_THRESHOLD)) Then
-                                    If masterPeek > master.Count - 1 OrElse slavePeek > slave.Count - 1 OrElse Not masterFrames(masterPeek).EqualsWithin(slaveFrames(slavePeek), IMAGE_COMPARE_THRESHOLD) Then
+                                    If masterPeek > master.Count - 1 OrElse slavePeek > slave.Count - 1 OrElse Not masterFrames(masterPeek).EqualsWithin(slaveFrames(slavePeek), stdDevLimit, deltaELimit) Then
                                         totalBadChainSkips += 1
                                         Continue For
                                     End If
@@ -271,13 +279,13 @@ Public Class HolePuncherForm
                                 'TODO Do not check equals here, find the match with the longest forward chain, then go backwards from there
                                 'Actually that might not work, you could skip to just the end of a OP, but match something else
                                 'If (master(skipFrame).EqualsWithin(slave(slaveFrame), threshold) AndAlso masterFrames(skipFrame).EqualsWithin(slaveFrames(slaveFrame), IMAGE_COMPARE_THRESHOLD)) Then
-                                If masterFrames(skipFrame).EqualsWithin(slaveFrames(slaveFrame), IMAGE_COMPARE_THRESHOLD) Then
+                                If masterFrames(skipFrame).EqualsWithin(slaveFrames(slaveFrame), stdDevLimit, deltaELimit) Then
                                     Dim slaveOffset As Integer = 0
                                     skipMatches += 1
                                     For reverseIndex As Integer = skipFrame To masterFrame Step -1
                                         reverseFrameComparisons += 1
                                         'If (slaveFrame - slaveOffset < 0) OrElse Not (master(reverseIndex).EqualsWithin(slave(slaveFrame - slaveOffset), threshold) AndAlso masterFrames(reverseIndex).EqualsWithin(slaveFrames(slaveFrame - slaveOffset), IMAGE_COMPARE_THRESHOLD)) Then
-                                        If (slaveFrame - slaveOffset < 0) OrElse Not masterFrames(reverseIndex).EqualsWithin(slaveFrames(slaveFrame - slaveOffset), IMAGE_COMPARE_THRESHOLD) Then
+                                        If (slaveFrame - slaveOffset < 0) OrElse Not masterFrames(reverseIndex).EqualsWithin(slaveFrames(slaveFrame - slaveOffset), stdDevLimit, deltaELimit) Then
                                             slaveSkip = slaveFrame + 1
                                             chainStart = (slaveFrame - slaveOffset) + 1
                                             If slaveFrame - chainStart > farthestSlaveskip - farthestReversal Then
@@ -350,7 +358,7 @@ Public Class HolePuncherForm
             Dim master As Double() = metaDatas(masterIndex).SceneFrames
             Dim slave As Double() = metaDatas(slaveIndex).SceneFrames
 
-            Dim threshold As Double = numThreshold.Value / 1000
+            Dim threshold As Double = numStdDev.Value / 1000
             Dim minChainLength As Integer = numMinChain.Value 'At least this many frame in a row must be similar to remove
             Dim masterSubframe As Integer = masterFrame 'Keeps track of chain position
             Dim foundSufficientChain As Boolean = False
