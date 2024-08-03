@@ -2845,4 +2845,11 @@ Public Class MainForm
 
         Clipboard.SetText(pixelStatusLines(1))
     End Sub
+
+    Private Sub chkDeleteDuplicates_Click(sender As Object, e As EventArgs) Handles chkDeleteDuplicates.Click
+        'Mute audio for decimate
+        If Not chkDeleteDuplicates.Checked Then
+            chkMute.Checked = True
+        End If
+    End Sub
 End Class
