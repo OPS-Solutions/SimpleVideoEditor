@@ -205,28 +205,9 @@ Public Class MainForm
             Next
             sProperties.FPS = optimalRate
         End If
-        Dim ignoreTrim As Boolean = Not ctlVideoSeeker.RangeModified
-        If Not ignoreTrim Then
-            Dim endFrame As Integer = ctlVideoSeeker.RangeMaxValue
-            Dim lastPossible As Integer = mobjMetaData.TotalFrames - 1
-            'Find the last frame we actually know exists
-            For index As Integer = mobjMetaData.TotalFrames - 1 To 0 Step -1
-                If mobjMetaData.ThumbImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
-                    lastPossible = index
-                    Exit For
-                End If
-            Next
-            endFrame = Math.Min(endFrame, lastPossible)
-            Dim frameAfterEnd As Integer = Math.Min(endFrame + 1, lastPossible)
-            'Apply very marginal reduction to last frame duration to ensure -ss -t can be used with frame perfect precision
-            Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(frameAfterEnd) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, frameAfterEnd - 1))
-            Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) + lastFrameDuration * 0.99
-            sProperties.Trim = New TrimData With {
-                        .StartFrame = ctlVideoSeeker.RangeMinValue,
-                        .StartPTS = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue),
-                        .EndFrame = ctlVideoSeeker.RangeMaxValue,
-                        .EndPTS = lastFramePTS
-                    }
+        Dim doTrim As Boolean = ctlVideoSeeker.RangeModified
+        If doTrim Then
+            sProperties.Trim = GetTrimData()
         Else
             sProperties.Trim = Nothing
         End If
@@ -271,6 +252,37 @@ Public Class MainForm
             End If
         End Try
     End Sub
+
+
+    ''' <summary>
+    ''' Gets the trim data for the seek bars current selected range, checking valid times in the loaded metadata
+    ''' </summary>
+    ''' <returns></returns>
+    Private Function GetTrimData() As TrimData
+        If mobjMetaData Is Nothing Then
+            Return Nothing
+        End If
+        Dim endFrame As Integer = ctlVideoSeeker.RangeMaxValue
+        Dim lastPossible As Integer = mobjMetaData.TotalFrames - 1
+        'Find the last frame we actually know exists
+        For index As Integer = mobjMetaData.TotalFrames - 1 To 0 Step -1
+            If mobjMetaData.ThumbImageCacheStatus(index) = ImageCache.CacheStatus.Cached Then
+                lastPossible = index
+                Exit For
+            End If
+        Next
+        endFrame = Math.Min(endFrame, lastPossible)
+        Dim frameAfterEnd As Integer = Math.Min(endFrame + 1, lastPossible)
+        'Apply very marginal reduction to last frame duration to ensure -ss -t can be used with frame perfect precision
+        Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(frameAfterEnd) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, frameAfterEnd - 1))
+        Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) + lastFrameDuration * 0.99
+        Return New TrimData With {
+                    .StartFrame = ctlVideoSeeker.RangeMinValue,
+                    .StartPTS = mobjMetaData.ThumbImageCachePTS(ctlVideoSeeker.RangeMinValue),
+                    .EndFrame = ctlVideoSeeker.RangeMaxValue,
+                    .EndPTS = lastFramePTS
+                }
+    End Function
 
     ''' <summary>
     ''' Checks if the output file exists, displaying a popup message if it doesn't
@@ -1144,6 +1156,26 @@ Public Class MainForm
     End Sub
 
     ''' <summary>
+    ''' Updates the tooltip for seek bar to reflect the current selected times/duration
+    ''' </summary>
+    Private Sub UpdateSeekStatus()
+        Dim tipMessage As New StringBuilder
+        tipMessage.AppendLine("Move sliders to trim video.")
+        tipMessage.AppendLine("Use [A][D][←][→] to move trim sliders frame by frame.")
+        tipMessage.AppendLine("Hold [Shift] to move preview slider instead.")
+
+        If ctlVideoSeeker.RangeModified Then
+            Dim currentTrimData As TrimData = GetTrimData()
+            Dim duration As String = FormatHHMMSSm(currentTrimData.EndPTS - currentTrimData.StartPTS)
+            tipMessage.AppendLine($"Trimming from f{currentTrimData.StartFrame} to f{currentTrimData.EndFrame} = {currentTrimData.EndFrame - currentTrimData.StartFrame + 1} total.")
+            tipMessage.AppendLine($"Trimming from {FormatHHMMSSm(currentTrimData.StartPTS)} to {FormatHHMMSSm(currentTrimData.EndPTS)} = {duration} total.")
+        Else
+            tipMessage.AppendLine($"Trimming not set.")
+        End If
+        mobjGenericToolTip.SetToolTip(ctlVideoSeeker, tipMessage.ToString)
+    End Sub
+
+    ''' <summary>
     ''' Updates the definition combobox to show the default video definition in the first spot
     ''' </summary>
     Private Sub UpdateDefaultDefinition()
@@ -1563,7 +1595,6 @@ Public Class MainForm
         cmbDefinition.SelectedIndex = 0
 
         'Setup Tooltips
-        mobjGenericToolTip.SetToolTip(ctlVideoSeeker, $"Move sliders to trim video.{vbNewLine}Use [A][D][←][→] to move trim sliders frame by frame.{vbNewLine}Hold [Shift] to move preview slider instead.")
         mobjGenericToolTip.SetToolTip(picVideo, $"Left click and drag to crop.{vbNewLine}Right click to clear crop selection.")
         mobjGenericToolTip.SetToolTip(cmbDefinition, $"Select the ending height of your video.")
         mobjGenericToolTip.SetToolTip(picFPS, $"Frames per second.{vbNewLine}Affects smoothness, not playback speed.")
@@ -1657,6 +1688,7 @@ Public Class MainForm
     Private Sub RefreshStatusToolTips()
         'Status  tooltips
         UpdateCropStatus()
+        UpdateSeekStatus()
         Dim startText As String = $"Original resolution Width x Height of the loaded content.{vbNewLine}Double click to fit window to original resolution.{vbNewLine}Right click for raw stream info from ffmpeg."
         If mobjMetaData IsNot Nothing AndAlso picVideo.Image IsNot Nothing Then
             lblStatusResolution.ToolTipText = startText & vbNewLine & vbNewLine & $"Image cached at {picVideo.Image.Width}x{picVideo.Image.Height}."
@@ -1693,6 +1725,7 @@ Public Class MainForm
             mptStartCrop = New Point(0, 0)
             mptEndCrop = New Point(0, 0)
             UpdateCropStatus()
+            UpdateSeekStatus()
         End If
         picVideo.SetImage(Nothing)
         picFrame1.Image = Nothing
@@ -2405,6 +2438,7 @@ Public Class MainForm
                 mthdFrameGrabber.Start()
             End If
             mobjFramesToGrab.Add(mintCurrentFrame)
+            UpdateSeekStatus()
         End If
     End Sub
 
