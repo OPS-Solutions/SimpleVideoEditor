@@ -29,6 +29,9 @@ Public Class ToolTipPlus
         'Check if tip is already up to date
         If Not myTip.GetToolTip(control) = toolTip Then
             myTip.SetToolTip(control, toolTip)
+            If mblnVisible Then
+                CheckTipOK()
+            End If
         End If
         If Not mblnAssociatedControls.Contains(control) Then
             mblnAssociatedControls.Add(control)
@@ -144,26 +147,31 @@ Public Class ToolTipPlus
             mobjArmTimer.Interval = 500 - msElapsed
             mobjArmTimer.Start()
         Else
-            debugMove = True
             SyncLock mobjControlLock
                 If mobjLastControl IsNot Nothing Then
                     If mobjLastControl.InvokeRequired Then
                         mobjLastControl.BeginInvoke(Sub()
                                                         'Done in 2 stages to avoid deadlocking
-                                                        SyncLock mobjControlLock
-                                                            If mobjLastControl IsNot Nothing Then
-                                                                Dim associatedTip As String = myTip.GetToolTip(mobjLastControl)
-                                                                mblnManualShow = True
-                                                                Dim controlBased As Point = CType(mobjLastControl, Control).PointToClient(Cursor.Position())
-                                                                myTip.Show(associatedTip, mobjLastControl, controlBased.X, controlBased.Y + Cursor.Current.Size.Height)
-                                                                mdatLastPopup = Now
-                                                                mblnManualShow = False
-                                                            End If
-                                                        End SyncLock
+                                                        ShowTip()
                                                     End Sub)
+                    Else
+                        ShowTip()
                     End If
                 End If
             End SyncLock
         End If
+    End Sub
+
+    Private Sub ShowTip()
+        SyncLock mobjControlLock
+            If mobjLastControl IsNot Nothing Then
+                Dim associatedTip As String = myTip.GetToolTip(mobjLastControl)
+                mblnManualShow = True
+                Dim controlBased As Point = CType(mobjLastControl, Control).PointToClient(Cursor.Position())
+                myTip.Show(associatedTip, mobjLastControl, controlBased.X, controlBased.Y + Cursor.Current.Size.Height)
+                mdatLastPopup = Now
+                mblnManualShow = False
+            End If
+        End SyncLock
     End Sub
 End Class
