@@ -274,6 +274,9 @@ Public Class MainForm
         endFrame = Math.Min(endFrame, lastPossible)
         Dim frameAfterEnd As Integer = Math.Min(endFrame + 1, lastPossible)
         'Apply very marginal reduction to last frame duration to ensure -ss -t can be used with frame perfect precision
+        If mobjMetaData.ThumbImageCachePTS(frameAfterEnd) Is Nothing Then
+            Return Nothing
+        End If
         Dim lastFrameDuration As Decimal = mobjMetaData.ThumbImageCachePTS(frameAfterEnd) - mobjMetaData.ThumbImageCachePTS(Math.Max(0, frameAfterEnd - 1))
         Dim lastFramePTS As Decimal = mobjMetaData.ThumbImageCachePTS(endFrame) + lastFrameDuration * 0.99
         Return New TrimData With {
@@ -1164,8 +1167,8 @@ Public Class MainForm
         tipMessage.AppendLine("Use [A][D][←][→] to move trim sliders frame by frame.")
         tipMessage.AppendLine("Hold [Shift] to move preview slider instead.")
 
-        If ctlVideoSeeker.RangeModified Then
-            Dim currentTrimData As TrimData = GetTrimData()
+        Dim currentTrimData As TrimData = GetTrimData()
+        If ctlVideoSeeker.RangeModified AndAlso currentTrimData IsNot Nothing Then
             Dim duration As String = FormatHHMMSSm(currentTrimData.EndPTS - currentTrimData.StartPTS)
             tipMessage.AppendLine($"Trimming from f{currentTrimData.StartFrame} to f{currentTrimData.EndFrame} = {currentTrimData.EndFrame - currentTrimData.StartFrame + 1} total.")
             tipMessage.AppendLine($"Trimming from {FormatHHMMSSm(currentTrimData.StartPTS)} to {FormatHHMMSSm(currentTrimData.EndPTS)} = {duration} total.")
