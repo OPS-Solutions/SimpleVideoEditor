@@ -68,7 +68,7 @@ Public Class MainForm
 
     Private ReadOnly Property CropRect As Rectangle?
         Get
-            If mptStartCrop.X = mptEndCrop.X OrElse mptStartCrop.Y = mptEndCrop.Y Then
+            If mptStartCrop.X = mptEndCrop.X OrElse mptStartCrop.Y = mptEndCrop.Y OrElse mobjMetaData Is Nothing Then
                 Return Nothing
             Else
                 Return New Rectangle(mptStartCrop.X, mptStartCrop.Y, Math.Min(mobjMetaData.Width - mptStartCrop.X, mptEndCrop.X - mptStartCrop.X), Math.Min(mobjMetaData.Height - mptStartCrop.Y, mptEndCrop.Y - mptStartCrop.Y))
