@@ -176,20 +176,6 @@ Public Class MainForm
     ''' </summary>
     Private Async Sub SaveFile(ByVal outputPath As String, Optional overwrite As Boolean = False)
         Me.UseWaitCursor = True
-        'If overwrite is checked, re-name the current video, then run ffmpeg and output to original, and delete the re-named one
-        Dim overwriteOriginal As Boolean = False
-        Dim originalName As String = mstrVideoPath
-        If overwrite And System.IO.File.Exists(outputPath) Then
-            'If you want to overwrite the original file that is being used, rename it
-            If outputPath = mstrVideoPath Then
-                overwriteOriginal = True
-                My.Computer.FileSystem.RenameFile(outputPath, System.IO.Path.GetFileName(FileNameAppend(outputPath, "-temp")))
-                mstrVideoPath = FileNameAppend(mstrVideoPath, "-temp")
-                mobjMetaData.FullPath = mstrVideoPath
-            Else
-                My.Computer.FileSystem.DeleteFile(outputPath)
-            End If
-        End If
         Dim sProperties As SpecialOutputProperties = mobjOutputProperties.Clone
         'Limit GIF framerate to whatever is closest to optimal since gif only supports certain equal frame pacing, and ffmpeg will set FPS to like 21.42 with some FPS like 60
         If Not Path.GetExtension(mstrVideoPath).Equals(".gif") AndAlso Path.GetExtension(outputPath).Equals(".gif") Then
@@ -221,9 +207,31 @@ Public Class MainForm
 
         Dim runArgs As String = ""
         Dim workingMetadata As VideoData = mobjMetaData
+        'If overwrite is checked, re-name the current video, then run ffmpeg and output to original, and delete the re-named one
+        Dim overwriteOriginal As Boolean = False
+        Dim originalName As String = mstrVideoPath
         Try
-            'Now you can apply everything else
-            RunFfmpeg(workingMetadata, outputPath, sProperties)
+            'Generate arguments to run with
+            Dim processInfo As ProcessStartInfo = GetFfmpegProcessInfo(workingMetadata, outputPath, sProperties)
+            'Side effect of user injection can occur
+            'Side effect of batch generation can occur
+            If processInfo Is Nothing Then
+                Exit Sub
+            End If
+
+            If overwrite And System.IO.File.Exists(outputPath) Then
+                'If you want to overwrite the original file that is being used, rename it
+                If outputPath = mstrVideoPath Then
+                    overwriteOriginal = True
+                    My.Computer.FileSystem.RenameFile(outputPath, System.IO.Path.GetFileName(FileNameAppend(outputPath, "-temp")))
+                    mstrVideoPath = FileNameAppend(mstrVideoPath, "-temp")
+                    mobjMetaData.FullPath = mstrVideoPath
+                Else
+                    My.Computer.FileSystem.DeleteFile(outputPath)
+                End If
+            End If
+
+            RunFfmpeg(processInfo)
             If mproFfmpegProcess Is Nothing Then
                 Exit Sub
             End If
@@ -590,11 +598,9 @@ Public Class MainForm
 #End Region
 
     ''' <summary>
-    ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
+    ''' Returns the process info to start an ffmpeg process that applies the given properties to the video
     ''' </summary>
-    Private Sub RunFfmpeg(ByVal inputFile As VideoData, ByVal outPutFile As String, ByVal specProperties As SpecialOutputProperties)
-        mobjErrorLog.Clear()
-        mobjOutputLog.Clear()
+    Private Function GetFfmpegProcessInfo(ByVal inputFile As VideoData, ByVal outPutFile As String, ByVal specProperties As SpecialOutputProperties) As ProcessStartInfo
         Dim softSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso Not mobjOutputProperties.BakeSubs
         Dim hardSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso mobjOutputProperties.BakeSubs
 
@@ -850,7 +856,7 @@ Public Class MainForm
             Select Case manualEntryForm.ShowDialog()
                 Case DialogResult.Cancel
                     mproFfmpegProcess = Nothing
-                    Exit Sub
+                    Return Nothing
             End Select
             processInfo.Arguments = manualEntryForm.ModifiedText
         End If
@@ -870,13 +876,22 @@ Public Class MainForm
                 End Select
             End Using
             mproFfmpegProcess = Nothing
-            Exit Sub
+            Return Nothing
         End If
         processInfo.RedirectStandardError = True
         processInfo.RedirectStandardOutput = True
         processInfo.UseShellExecute = False
         processInfo.WindowStyle = ProcessWindowStyle.Hidden
         processInfo.CreateNoWindow = True
+        Return processInfo
+    End Function
+
+    ''' <summary>
+    ''' Runs ffmpeg.exe with given command information. Cropping and rotation must be seperated.
+    ''' </summary>
+    Private Sub RunFfmpeg(processInfo As ProcessStartInfo)
+        mobjErrorLog.Clear()
+        mobjOutputLog.Clear()
         mproFfmpegProcess = New Process()
         AddRunHandlers()
         mproFfmpegProcess.StartInfo = processInfo
