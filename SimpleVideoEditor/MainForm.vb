@@ -1185,10 +1185,10 @@ Public Class MainForm
         Dim currentTrimData As TrimData = GetTrimData()
         If ctlVideoSeeker.RangeModified AndAlso currentTrimData IsNot Nothing Then
             Dim duration As String = FormatHHMMSSm(currentTrimData.EndPTS - currentTrimData.StartPTS)
-            tipMessage.AppendLine($"Trimming from f{currentTrimData.StartFrame} to f{currentTrimData.EndFrame} = {currentTrimData.EndFrame - currentTrimData.StartFrame + 1} total.")
+            tipMessage.AppendLine($"Trimming from frame {currentTrimData.StartFrame} to {currentTrimData.EndFrame} = {currentTrimData.EndFrame - currentTrimData.StartFrame + 1} total.")
             tipMessage.AppendLine($"Trimming from {FormatHHMMSSm(currentTrimData.StartPTS)} to {FormatHHMMSSm(currentTrimData.EndPTS)} = {duration} total.")
         Else
-            tipMessage.AppendLine($"Trimming not set.")
+            tipMessage.AppendLine($"Not trimming.")
         End If
         mobjGenericToolTip.SetToolTip(ctlVideoSeeker, tipMessage.ToString)
     End Sub
