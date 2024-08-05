@@ -26,13 +26,18 @@ Public Class ToolTipPlus
     ''' <param name="control"></param>
     ''' <param name="toolTip"></param>
     Public Sub SetToolTip(control As Control, toolTip As String)
-        myTip.SetToolTip(control, toolTip)
-        mblnAssociatedControls.Add(control)
-        AddHandler control.MouseMove, AddressOf control_OnMouseMove
-        AddHandler control.MouseLeave, AddressOf control_OnMouseLeave
-        AddHandler control.MouseDown, AddressOf control_OnMouseDown
-        AddHandler control.MouseEnter, AddressOf control_OnMouseEnter
-        AddHandler control.MouseCaptureChanged, AddressOf control_OnMouseCaptureChanged
+        'Check if tip is already up to date
+        If Not myTip.GetToolTip(control) = toolTip Then
+            myTip.SetToolTip(control, toolTip)
+        End If
+        If Not mblnAssociatedControls.Contains(control) Then
+            mblnAssociatedControls.Add(control)
+            AddHandler control.MouseMove, AddressOf control_OnMouseMove
+            AddHandler control.MouseLeave, AddressOf control_OnMouseLeave
+            AddHandler control.MouseDown, AddressOf control_OnMouseDown
+            AddHandler control.MouseEnter, AddressOf control_OnMouseEnter
+            AddHandler control.MouseCaptureChanged, AddressOf control_OnMouseCaptureChanged
+        End If
     End Sub
 
     Public Sub RemoveAll()
