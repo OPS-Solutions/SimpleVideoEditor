@@ -2222,10 +2222,12 @@ Public Class MainForm
                     Task.Run(Sub()
                                  Me.Invoke(Sub()
                                                SetupExportProgress()
+                                               pgbOperationProgress.Maximum = mintCurrentFrame 'File name will be index, instead of number, so it is not + 1
                                            End Sub)
                                  If File.Exists(chosenName) Then
                                      My.Computer.FileSystem.DeleteFile(chosenName)
                                  End If
+                                 mlstWorkingFiles.Clear()
                                  mobjMetaData.ExportFfmpegFrames(mintCurrentFrame, mintCurrentFrame, chosenName, Me.CropRect, mobjOutputProperties.Rotation)
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = False
@@ -2262,6 +2264,7 @@ Public Class MainForm
                                            End Sub)
                                  chosenName = RenameFileForMultipleOutputs(chosenName)
                                  Dim firstFrame As String = Regex.Replace(chosenName, "%03d", "001")
+                                 mlstWorkingFiles.Clear()
                                  mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, Me.CropRect, mobjOutputProperties.Rotation)
                                  Me.Invoke(Sub()
                                                Me.UseWaitCursor = False
@@ -2293,9 +2296,9 @@ Public Class MainForm
                                  Me.Invoke(Sub()
                                                SetupExportProgress()
                                            End Sub)
-
                                  chosenName = RenameFileForMultipleOutputs(chosenName)
                                  mblnOverlaid = True
+                                 mlstWorkingFiles.Clear()
                                  mobjMetaData.ExportFfmpegFrames(startFrame, endFrame, chosenName, Me.CropRect, mobjOutputProperties.Rotation)
                                  mblnOverlaid = False
                                  For Each objFile In mlstWorkingFiles
