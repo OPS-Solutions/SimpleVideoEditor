@@ -109,7 +109,6 @@ Public Class MainForm
         Debug.Print($"Loading file '{fullPath}'")
         mstrVideoPath = fullPath
         sfdVideoOut.FileName = System.IO.Path.GetFileName(FileNameAppend(mstrVideoPath, "-SHINY"))
-        ClearControls()
         If mthdFrameGrabber IsNot Nothing AndAlso mthdFrameGrabber.IsAlive Then
             mthdFrameGrabber.Abort()
             'Wait until thread is finished aborting
@@ -119,6 +118,7 @@ Public Class MainForm
             mobjMetaData.Dispose()
             mobjMetaData = Nothing
         End If
+        ClearControls()
         mobjMetaData = VideoData.FromFile(mstrVideoPath, inputMash)
         Me.Text = Me.Text.Split("-")(0).Trim + $" - {System.IO.Path.GetFileName(mstrVideoPath)}" + " - Open Source"
         ctlVideoSeeker.Enabled = True
@@ -2546,13 +2546,8 @@ Public Class MainForm
                            End Sub)
         Else
             If mobjMetaData.SceneFrames IsNot Nothing Then
-                Dim increments As Integer = mobjMetaData.TotalFrames / ctlVideoSeeker.Width
                 'Check for nothing to avoid issue with loading a new file before the scene frames were set from the last
                 ctlVideoSeeker.SceneFrames = CompressSceneChanges(mobjMetaData.SceneFrames, ctlVideoSeeker.Width)
-                If mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime IsNot Nothing Then
-                    subForm.SetSRT(mobjMetaData.SubtitleStream?.Text)
-                    chkSubtitles.Enabled = True
-                End If
             End If
             If ctlVideoSeeker.RangeMaxValue.InRange(0, newFrame) Then
                 CheckSave()
@@ -2572,6 +2567,10 @@ Public Class MainForm
                 subForm.ctlSubtitleSeeker.UpdateRange(False)
                 subForm.ctlSubtitleSeeker.EventsEnabled = True
                 ctlVideoSeeker.EventsEnabled = True
+                If mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime IsNot Nothing Then
+                    subForm.SetSRT(mobjMetaData.SubtitleStream?.Text)
+                    chkSubtitles.Enabled = True
+                End If
             End If
         End If
     End Sub
