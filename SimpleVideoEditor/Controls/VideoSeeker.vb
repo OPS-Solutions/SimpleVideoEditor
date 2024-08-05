@@ -495,6 +495,21 @@
             If mintHoveredFrameIndex Is Nothing OrElse newHoverIndex <> mintHoveredFrameIndex Then
                 mintHoveredFrameIndex = newHoverIndex
                 Me.Invalidate()
+
+                'Update displayed hover preview frame
+                If Me.mobjMetaData IsNot Nothing Then
+                    Dim imageToPreview As ImageCache.CacheItem = Nothing
+                    imageToPreview = Me.mobjMetaData.GetAnyCachedData(mintHoveredFrameIndex)
+                    If imageToPreview IsNot Nothing AndAlso imageToPreview.Status = ImageCache.CacheStatus.Cached Then
+                        'Setup preview frame
+                        CType(mobjPreviewForm.Controls(0), PictureBoxPlus).SetImageData(imageToPreview)
+                        mobjPreviewForm.Visible = True
+                        mobjPreviewForm.Location = Me.PointToScreen(New Point(actualPoint.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
+                        Me.Focus()
+                    Else
+                        mobjPreviewForm.Visible = False
+                    End If
+                End If
             End If
             If e.Button = Windows.Forms.MouseButtons.Left Then
                 'Move range sliders
@@ -520,20 +535,6 @@
                     Case Else
                         'Ignore if nothing is selected
                 End Select
-            End If
-
-            If Me.mobjMetaData IsNot Nothing Then
-                Dim imageToPreview As ImageCache.CacheItem = Nothing
-                imageToPreview = Me.mobjMetaData.GetAnyCachedData(mintHoveredFrameIndex)
-                If imageToPreview IsNot Nothing AndAlso imageToPreview.Status = ImageCache.CacheStatus.Cached Then
-                    'Setup preview frame
-                    CType(mobjPreviewForm.Controls(0), PictureBoxPlus).SetImageData(imageToPreview)
-                    mobjPreviewForm.Visible = True
-                    mobjPreviewForm.Location = Me.PointToScreen(New Point(actualPoint.X - mobjPreviewForm.Width / 2, 0 - mobjPreviewForm.Height))
-                    Me.Focus()
-                Else
-                    mobjPreviewForm.Visible = False
-                End If
             End If
         End If
     End Sub
