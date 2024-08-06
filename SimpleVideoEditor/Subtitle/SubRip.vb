@@ -2,7 +2,7 @@
 Imports System.Text.RegularExpressions
 
 Public Class SubRip
-    Public Shared SubRipMatcher As Regex = New Regex("(?<id>\d*)\s*\n\s*(?<time>\d+:\d+:\d+,\d+ --> \d+:\d+:\d+,\d+)\s?\n(?<text>.*)\s*")
+    Public Shared SubRipMatcher As Regex = New Regex("(?<id>\d*)\s*(?<time>\d+:\d+:\d+,\d+ --> \d+:\d+:\d+,\d+)\s*(?<text>.+(\r?\n.+)*)\s*")
     Public Entries As New List(Of SubEntry)
 
     Public Sub New()

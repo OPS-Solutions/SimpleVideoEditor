@@ -17,11 +17,17 @@ Public Class SubEntry
 
             Dim startTime As New TimeSpan(0, Integer.Parse(timeMatch.Groups(1).Value), Integer.Parse(timeMatch.Groups(2).Value), Integer.Parse(timeMatch.Groups(3).Value), Integer.Parse(timeMatch.Groups(4).Value))
             Dim endTime As New TimeSpan(0, Integer.Parse(timeMatch.Groups(5).Value), Integer.Parse(timeMatch.Groups(6).Value), Integer.Parse(timeMatch.Groups(7).Value), Integer.Parse(timeMatch.Groups(8).Value))
+            Dim fullText As New StringBuilder
+            If sectionLines.Count > 2 Then
+                For index As Integer = 2 To sectionLines.Count - 1
+                    fullText.AppendLine(sectionLines(index))
+                Next
+            End If
             Return New SubEntry With {
             .SectionID = id,
             .StartTime = startTime,
             .EndTime = endTime,
-            .Text = If(sectionLines.Count > 2, sectionLines(2).Trim, ""),
+            .Text = If(sectionLines.Count > 2, fullText.ToString.Trim, ""),
             .SeedString = sectionText.Replace(vbCrLf, vbLf)
             }
         Catch ex As Exception

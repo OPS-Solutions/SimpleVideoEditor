@@ -2567,10 +2567,8 @@ Public Class MainForm
                 subForm.ctlSubtitleSeeker.UpdateRange(False)
                 subForm.ctlSubtitleSeeker.EventsEnabled = True
                 ctlVideoSeeker.EventsEnabled = True
-                If mobjMetaData.ThumbFrames(ctlVideoSeeker.RangeMaxValue).PTSTime IsNot Nothing Then
-                    subForm.SetSRT(mobjMetaData.SubtitleStream?.Text)
-                    chkSubtitles.Enabled = True
-                End If
+                subForm.SetSRT(mobjMetaData.SubtitleStream?.Text)
+                chkSubtitles.Enabled = True
             End If
         End If
     End Sub
