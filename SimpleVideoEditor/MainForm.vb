@@ -1635,8 +1635,8 @@ Public Class MainForm
         CacheAllFramesToolStripMenuItem.ToolTipText = $"Caches every frame of the video into memory (high RAM requirement).{vbNewLine}Afterwards, frame scrubbing will be borderline instant."
 
         'Cropping
-        ContractToolStripMenuItem.ToolTipText = $"Attempts to shrink the current selection rectangle as long as the pixels it overlays are of consistent color."
-        ExpandToolStripMenuItem.ToolTipText = $"Attempts to expand the current selection rectangle until the pixels it overlays are of consistent color."
+        ContractToolStripMenuItem.ToolTipText = $"Attempts to shrink the current selection rectangle as long as the surrounding borders are of consistent color."
+        ExpandToolStripMenuItem.ToolTipText = $"Attempts to expand the current selection rectangle until the surrounding borders are of consistent color."
 
         'Export frames
         CurrentToolStripMenuItem.ToolTipText = $"Save the current previewed frame as a new image file."

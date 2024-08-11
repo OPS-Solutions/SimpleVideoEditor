@@ -343,16 +343,16 @@ Module Extensions
         Else
             startingRect = startingRectangle
         End If
-        Dim left As Integer = Math.Max(startingRect.X - 1, 0)
-        Dim top As Integer = Math.Max(startingRect.Y - 1, 0)
-        Dim right As Integer = Math.Min(startingRect.X + startingRect.Width, img1.Width)
-        Dim bottom As Integer = Math.Min(startingRect.Y + startingRect.Height, img1.Height)
+        Dim left As Integer = Math.Max(startingRect.X, 0)
+        Dim top As Integer = Math.Max(startingRect.Y, 0)
+        Dim right As Integer = Math.Min(startingRect.X + startingRect.Width - 1, img1.Width)
+        Dim bottom As Integer = Math.Min(startingRect.Y + startingRect.Height - 1, img1.Height)
         Dim centerY As Integer = startingRect.Center.Y
         Dim centerX As Integer = startingRect.Center.X
 
         'Left line check
         Dim hasExpanded As Integer = 1
-        Dim currentBounds As Rectangle = New Rectangle(left, top, right - left, bottom - top)
+        Dim currentBounds As Rectangle = New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
         While hasExpanded > 0
             hasExpanded = 0
             Dim leftExp As Integer = ExpandBoundEdge(img1, currentBounds, 0)
@@ -379,16 +379,7 @@ Module Extensions
             currentBounds = New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
         End While
 
-        Dim potentialRect As Rectangle = New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
-        'As the algorithm continues until finding a solid border, it would create a rectangle including a 1px border, so we should remove it
-        If potentialRect.Area > startingRect.Area Then
-            Dim bestX As Integer = Math.Min(potentialRect.X + 1, startingRect.X)
-            Dim bestY As Integer = Math.Min(potentialRect.Y + 1, startingRect.Y)
-            Dim bestRight As Integer = Math.Max(potentialRect.Right - 2, startingRect.Right - 1)
-            Dim bestBottom As Integer = Math.Max(potentialRect.Bottom - 2, startingRect.Bottom - 1)
-            Return New Rectangle(bestX, bestY, (bestRight - bestX) + 1, (bestBottom - bestY) + 1)
-        End If
-        Return New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
+        Return currentBounds
     End Function
 
     ''' <summary>
@@ -440,7 +431,7 @@ Module Extensions
         End Select
 
         Dim stepDirection As Integer = (If(startIndex > endIndex, -1, 1))
-        For index As Integer = startIndex To endIndex Step stepDirection
+        For index As Integer = startIndex + stepDirection To endIndex Step stepDirection
             Dim xIndex As Integer = If(isHorizontal, index, startPerp)
             Dim yIndex As Integer = If(isHorizontal, startPerp, index)
             Dim pixIndex As Integer = (xIndex * 4) + yIndex * stride
@@ -468,7 +459,7 @@ Module Extensions
             If Not areEquivalent Then
                 'Reached edge of check without a consistent bound, should be outer edge of image
                 If index = endIndex Then
-                    Return index + stepDirection
+                    Return index
                 End If
                 Continue For
             End If
@@ -490,11 +481,11 @@ Module Extensions
             If Not areEquivalent Then
                 'Reached edge of check without a consistent bound, should be outer edge of image
                 If index = endIndex Then
-                    Return index + stepDirection
+                    Return index
                 End If
             End If
             If areEquivalent Then
-                Return index
+                Return index - stepDirection
             End If
         Next
 
