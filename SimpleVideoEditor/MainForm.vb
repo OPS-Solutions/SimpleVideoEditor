@@ -61,6 +61,8 @@ Public Class MainForm
     Private mobjOverlaid As Bitmap = Nothing
     Private mlstWorkingFiles As New List(Of String)
 
+    Private mobjCropRegex As New Regex("crop=(?<width>\d*):?(?<height>\d*):?(?<x>\d*):?(?<y>\d*)")
+
     ''' <summary>
     ''' Stores the last location of the form, used to detect location delta for moving child forms
     ''' </summary>
@@ -1526,7 +1528,7 @@ Public Class MainForm
     End Function
 
     Private Function ReadCropData(cropData As String) As Rectangle?
-        Dim cropMatch As Match = Regex.Match(cropData, "crop=(?<width>\d*):(?<height>\d*):(?<x>\d*):(?<y>\d*)")
+        Dim cropMatch As Match = mobjCropRegex.Match(cropData)
         If Not cropMatch.Success Then
             Return Nothing
         End If
@@ -2864,8 +2866,23 @@ Public Class MainForm
             Exit Sub
         End If
         'Sanitize to ensure numeric values
-        Dim cropMatch As Match = Regex.Match(senderStrip.Text, "crop=(?<w>\d*):(?<h>\d*):(?<x>\d*):(?<y>\d*)")
+        Dim cropMatch As Match = mobjCropRegex.Match(senderStrip.Text)
         Dim cropResult As Rectangle? = ReadCropData(senderStrip.Text)
+        Dim extendSelection As Boolean = False
+        If ToolStripCropArg.Text = "" Then
+            SetCropData(New Rectangle)
+        End If
+        If cropResult?.Width = 0 OrElse cropResult?.Height = 0 Then
+            If Not ToolStripCropArg.SelectionStart = ToolStripCropArg.Text.Length Then
+                If ToolStripCropArg.SelectionStart = cropMatch.Groups("width").Index AndAlso cropResult.Value.Width = 0 Then
+                    extendSelection = True
+                End If
+                If ToolStripCropArg.SelectionStart = cropMatch.Groups("height").Index AndAlso cropResult.Value.Height = 0 Then
+                    extendSelection = True
+                End If
+            End If
+            cropResult = New Rectangle(cropResult?.X, cropResult?.Y, Math.Max(1, cropResult.Value.Width), Math.Max(1, cropResult.Value.Height))
+        End If
         If cropResult.HasValue Then
             SetCropData(cropResult.Value)
         Else
@@ -2873,6 +2890,10 @@ Public Class MainForm
             If Me.CropRect().HasValue Then
                 UpdateCropStatus()
             End If
+        End If
+        If extendSelection Then
+            'Assume simple backspace deletion
+            ToolStripCropArg.SelectionLength += 1
         End If
     End Sub
 
