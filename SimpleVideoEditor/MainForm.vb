@@ -2,6 +2,7 @@
 Imports System.Drawing.Imaging
 Imports System.IO
 Imports System.IO.Pipes
+Imports System.Net.Security
 Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.Remoting.Metadata.W3cXsd2001
@@ -1237,10 +1238,24 @@ Public Class MainForm
         If Not listOk Then
             cmbDefinition.Items.Clear()
             cmbDefinition.Items.AddRange(desiredItems.ToArray)
-            If lastIndex > cmbDefinition.Items.Count - 1 AndAlso cmbDefinition.Items(lastIndex) = lastSelection Then
-                cmbDefinition.SelectedIndex = lastIndex
-            Else
-                cmbDefinition.SelectedIndex = 0
+            Dim foundCurrent As Boolean = False
+            If lastIndex <> 0 Then
+                For existingIndex As Integer = 0 To cmbDefinition.Items.Count - 1
+                    If cmbDefinition.Items(existingIndex).Equals(lastSelection) Then
+                        If cmbDefinition.SelectedIndex <> existingIndex Then
+                            cmbDefinition.SelectedIndex = existingIndex
+                            foundCurrent = True
+                            Exit For
+                        End If
+                    End If
+                Next
+            End If
+            If Not foundCurrent Then
+                If lastIndex > cmbDefinition.Items.Count - 1 AndAlso cmbDefinition.Items(cmbDefinition.Items.Count - 1) = lastSelection Then
+                    cmbDefinition.SelectedIndex = lastIndex
+                Else
+                    cmbDefinition.SelectedIndex = 0
+                End If
             End If
             Me.Refresh()
         End If
