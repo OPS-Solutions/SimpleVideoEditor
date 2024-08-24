@@ -606,12 +606,6 @@ Public Class MainForm
         Dim softSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso Not mobjOutputProperties.BakeSubs
         Dim hardSubs As Boolean = mobjOutputProperties.Subtitles?.Length > 0 AndAlso mobjOutputProperties.BakeSubs
 
-        If specProperties?.PlaybackSpeed <> 0 AndAlso specProperties.Trim IsNot Nothing Then
-            'duration /= specProperties.PlaybackSpeed
-            specProperties.Trim.StartPTS *= specProperties.PlaybackSpeed
-            specProperties.Trim.EndPTS *= specProperties.PlaybackSpeed
-        End If
-
         Dim processInfo As New ProcessStartInfo
         processInfo.FileName = Application.StartupPath & "\ffmpeg.exe"
 
@@ -630,7 +624,7 @@ Public Class MainForm
                 Dim duration As String = (specProperties.Trim.EndPTS) - (specProperties.Trim.StartPTS)
                 If duration > 0 Then
                     'duration = Math.Truncate(duration * mobjMetaData.Framerate) / mobjMetaData.Framerate
-                    Dim startHHMMSS As String = FormatHHMMSSm(specProperties.Trim.StartPTS / specProperties.PlaybackSpeed)
+                    Dim startHHMMSS As String = FormatHHMMSSm(specProperties.Trim.StartPTS)
                     startDurationArgs = " -ss " & startHHMMSS
                     outputDurationArgs = " -t " & (duration / specProperties.PlaybackSpeed).ToString
                 End If
