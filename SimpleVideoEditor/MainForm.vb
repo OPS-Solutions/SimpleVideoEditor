@@ -178,89 +178,94 @@ Public Class MainForm
     ''' Sets up necessary information and runs ffmpeg targetting the desired filepath, saving to the target location, overwriting or deleting as necessary
     ''' </summary>
     Private Async Sub SaveFile(ByVal outputPath As String, Optional overwrite As Boolean = False)
-        Me.UseWaitCursor = True
-        Dim sProperties As SpecialOutputProperties = mobjOutputProperties.Clone
-        'Limit GIF framerate to whatever is closest to optimal since gif only supports certain equal frame pacing, and ffmpeg will set FPS to like 21.42 with some FPS like 60
-        If Not Path.GetExtension(mstrVideoPath).Equals(".gif") AndAlso Path.GetExtension(outputPath).Equals(".gif") Then
-            'Gif supports 100, 50, 33.3, 25, 20, 16.6, 14.2, and so on, as delay is set to #/100
-            Dim maxRate As Double = mobjMetaData.Framerate * sProperties.PlaybackSpeed
-            Dim currentRate As Double = If(sProperties.FPS = 0, maxRate, sProperties.FPS)
-            Dim optimalRate As Double = 25
-            For index As Integer = 1 To 10
-                Dim testRate As Double = 100 / index
-                If Math.Abs(currentRate - optimalRate) > Math.Abs(currentRate - testRate) Then
-                    optimalRate = testRate
-                End If
-            Next
-            sProperties.FPS = optimalRate
-        End If
-        Dim doTrim As Boolean = ctlVideoSeeker.RangeModified
-        If doTrim Then
-            sProperties.Trim = GetTrimData()
-        Else
-            sProperties.Trim = Nothing
-        End If
-
-        subForm.SaveToTemp(If(sProperties.Trim?.StartPTS, 0), If(mobjOutputProperties.BakeSubs, 1, sProperties.PlaybackSpeed))
-
-        mproFfmpegProcess = Nothing
-
-        sProperties.Crop = Me.CropRect
-        sProperties.SetResolution(cmbDefinition.Items(cmbDefinition.SelectedIndex))
-
-        Dim runArgs As String = ""
-        Dim workingMetadata As VideoData = mobjMetaData
-        'If overwrite is checked, re-name the current video, then run ffmpeg and output to original, and delete the re-named one
-        Dim overwriteOriginal As Boolean = False
-        Dim originalName As String = mstrVideoPath
         Try
-            'Generate arguments to run with
-            Dim processInfo As ProcessStartInfo = GetFfmpegProcessInfo(workingMetadata, outputPath, sProperties)
-            'Side effect of user injection can occur
-            'Side effect of batch generation can occur
-            If processInfo Is Nothing Then
-                Exit Sub
+            Me.UseWaitCursor = True
+            Dim sProperties As SpecialOutputProperties = mobjOutputProperties.Clone
+            'Limit GIF framerate to whatever is closest to optimal since gif only supports certain equal frame pacing, and ffmpeg will set FPS to like 21.42 with some FPS like 60
+            If Not Path.GetExtension(mstrVideoPath).Equals(".gif") AndAlso Path.GetExtension(outputPath).Equals(".gif") Then
+                'Gif supports 100, 50, 33.3, 25, 20, 16.6, 14.2, and so on, as delay is set to #/100
+                Dim maxRate As Double = mobjMetaData.Framerate * sProperties.PlaybackSpeed
+                Dim currentRate As Double = If(sProperties.FPS = 0, maxRate, sProperties.FPS)
+                Dim optimalRate As Double = 25
+                For index As Integer = 1 To 10
+                    Dim testRate As Double = 100 / index
+                    If Math.Abs(currentRate - optimalRate) > Math.Abs(currentRate - testRate) Then
+                        optimalRate = testRate
+                    End If
+                Next
+                sProperties.FPS = optimalRate
+            End If
+            Dim doTrim As Boolean = ctlVideoSeeker.RangeModified
+            If doTrim Then
+                sProperties.Trim = GetTrimData()
+            Else
+                sProperties.Trim = Nothing
             End If
 
-            If overwrite And System.IO.File.Exists(outputPath) Then
-                'If you want to overwrite the original file that is being used, rename it
-                If outputPath = mstrVideoPath Then
-                    overwriteOriginal = True
-                    My.Computer.FileSystem.RenameFile(outputPath, System.IO.Path.GetFileName(FileNameAppend(outputPath, "-temp")))
-                    mstrVideoPath = FileNameAppend(mstrVideoPath, "-temp")
-                    mobjMetaData.FullPath = mstrVideoPath
-                Else
-                    My.Computer.FileSystem.DeleteFile(outputPath)
-                End If
-            End If
+            subForm.SaveToTemp(If(sProperties.Trim?.StartPTS, 0), If(mobjOutputProperties.BakeSubs, 1, sProperties.PlaybackSpeed))
 
-            RunFfmpeg(processInfo)
-            If mproFfmpegProcess Is Nothing Then
-                Exit Sub
-            End If
-            mproFfmpegProcess.BeginErrorReadLine()
-            mproFfmpegProcess.BeginOutputReadLine()
-            runArgs += vbNewLine & mproFfmpegProcess.StartInfo.Arguments
-            Await mproFfmpegProcess.WaitForFinishAsync()
+            mproFfmpegProcess = Nothing
 
-            If overwriteOriginal Then
-                If File.Exists(outputPath) Then
-                    My.Computer.FileSystem.DeleteFile(mstrVideoPath)
-                    LoadFiles({outputPath})
+            sProperties.Crop = Me.CropRect
+            sProperties.SetResolution(cmbDefinition.Items(cmbDefinition.SelectedIndex))
+
+            Dim runArgs As String = ""
+            Dim workingMetadata As VideoData = mobjMetaData
+            'If overwrite is checked, re-name the current video, then run ffmpeg and output to original, and delete the re-named one
+            Dim overwriteOriginal As Boolean = False
+            Dim originalName As String = mstrVideoPath
+            Try
+                'Generate arguments to run with
+                Dim processInfo As ProcessStartInfo = GetFfmpegProcessInfo(workingMetadata, outputPath, sProperties)
+                'Side effect of user injection can occur
+                'Side effect of batch generation can occur
+                If processInfo Is Nothing Then
+                    Exit Sub
                 End If
-            End If
-            CheckOutput(outputPath, runArgs, True)
-        Catch
-            Throw
-        Finally
-            If overwriteOriginal Then
-                If Not File.Exists(outputPath) Then
-                    'Failed, so rename back to the original name without temp
-                    My.Computer.FileSystem.RenameFile(mstrVideoPath, System.IO.Path.GetFileName(outputPath))
-                    mobjMetaData.FullPath = originalName
-                    mstrVideoPath = originalName
+
+                If overwrite And System.IO.File.Exists(outputPath) Then
+                    'If you want to overwrite the original file that is being used, rename it
+                    If outputPath = mstrVideoPath Then
+                        overwriteOriginal = True
+                        My.Computer.FileSystem.RenameFile(outputPath, System.IO.Path.GetFileName(FileNameAppend(outputPath, "-temp")))
+                        mstrVideoPath = FileNameAppend(mstrVideoPath, "-temp")
+                        mobjMetaData.FullPath = mstrVideoPath
+                    Else
+                        My.Computer.FileSystem.DeleteFile(outputPath)
+                    End If
                 End If
-            End If
+
+                RunFfmpeg(processInfo)
+                If mproFfmpegProcess Is Nothing Then
+                    Exit Sub
+                End If
+                mproFfmpegProcess.BeginErrorReadLine()
+                mproFfmpegProcess.BeginOutputReadLine()
+                runArgs += vbNewLine & mproFfmpegProcess.StartInfo.Arguments
+                Await mproFfmpegProcess.WaitForFinishAsync()
+
+                If overwriteOriginal Then
+                    If File.Exists(outputPath) Then
+                        My.Computer.FileSystem.DeleteFile(mstrVideoPath)
+                        LoadFiles({outputPath})
+                    End If
+                End If
+                CheckOutput(outputPath, runArgs, True)
+            Catch
+                Throw
+            Finally
+                If overwriteOriginal Then
+                    If Not File.Exists(outputPath) Then
+                        'Failed, so rename back to the original name without temp
+                        My.Computer.FileSystem.RenameFile(mstrVideoPath, System.IO.Path.GetFileName(outputPath))
+                        mobjMetaData.FullPath = originalName
+                        mstrVideoPath = originalName
+                    End If
+                End If
+            End Try
+        Catch ex As Exception
+            MessageBox.Show(Me, $"Failed to save output '{sfdVideoOut.FileName}'.{vbNewLine}{vbNewLine}{ex.ToString}",
+                        "Save failed", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
     End Sub
 
