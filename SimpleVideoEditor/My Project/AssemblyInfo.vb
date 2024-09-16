@@ -10,7 +10,7 @@ Imports System.Runtime.InteropServices
 
 <Assembly: AssemblyTitle("Simple Video Editor")>
 ' A development time day is roughly 8-12hrs dedicated time
-<Assembly: AssemblyDescription("Simple ffmpeg.exe wrapper for editing videos." & vbCrLf & "This video editor is free to distribute. Just copy the folder." & vbCrLf & "Development Time: 27 days" & vbCrLf & "Author: Neil Harbin" & vbCrLf & "Licenced under GPL v3.0" & vbCrLf & "Source:" & vbCrLf & "https://github.com/OPS-Solutions/SimpleVideoEditor")>
+<Assembly: AssemblyDescription("Simple ffmpeg.exe wrapper for editing videos." & vbCrLf & "This video editor is free to distribute. Just copy the folder." & vbCrLf & "Development Time: 32 days" & vbCrLf & "Author: Neil Harbin" & vbCrLf & "Licenced under GPL v3.0" & vbCrLf & "Source:" & vbCrLf & "https://github.com/OPS-Solutions/SimpleVideoEditor")>
 <Assembly: AssemblyCompany("LightGuide, Inc.")>
 <Assembly: AssemblyProduct("Simple Video Editor")>
 <Assembly: AssemblyCopyright("Copyright © 2017-2024")>
@@ -32,5 +32,5 @@ Imports System.Runtime.InteropServices
 ' by using the '*' as shown below:
 ' <Assembly: AssemblyVersion("1.0.*")> 
 
-<Assembly: AssemblyVersion("1.7.2.90")>
-<Assembly: AssemblyFileVersion("1.7.2.90")>
+<Assembly: AssemblyVersion("2.0.0.0")>
+<Assembly: AssemblyFileVersion("2.0.0.0")>

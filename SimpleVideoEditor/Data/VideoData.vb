@@ -732,7 +732,9 @@ Public Class VideoData
                                                    Dim lineRead As String = tempProcess.StandardError.ReadLine
                                                    Dim ptsNumerator As Integer = 1
                                                    Dim ptsDenominator As Integer = 1
+#If DEBUG Then
                                                    fullDataRead.AppendLine(processInfo.Arguments)
+#End If
                                                    Do
                                                        'Read StandardError for the showinfo result for PTS_Time
                                                        If lineRead IsNot Nothing Then
