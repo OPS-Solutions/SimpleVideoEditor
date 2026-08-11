@@ -193,7 +193,8 @@ Module Globals
         'End Select
         'startInfo.Arguments = ManualEntryForm.ModifiedText
 
-        Dim concatProcess As Process = Process.Start(startInfo)
-        concatProcess.WaitForExit()
+        Using concatProcess As Process = Process.Start(startInfo)
+            concatProcess.WaitForExit()
+        End Using
     End Sub
 End Module
