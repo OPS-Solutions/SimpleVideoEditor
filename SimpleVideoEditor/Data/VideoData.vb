@@ -116,7 +116,7 @@ Public Class VideoData
             End If
             _TimeBase = tempBase
         End Sub
-        Public Shared Function FromDescription(streamDescription As String)
+        Public Shared Function FromDescription(streamDescription As String) As VideoStreamData
             If Regex.Match(streamDescription, "stream.*video.*").Groups(0).Value?.Length > 0 Then
                 Return New VideoStreamData(streamDescription)
             Else
@@ -207,8 +207,6 @@ Public Class VideoData
     Private mobjThumbCache As ImageCache
     Private mblnInputMash As Boolean 'Data we set manaully saying the type of input we are using is actually a way to specify multiple files
     Private mobjSizeOverride As Size? 'For holding resolution data, such as when the resolution fails to be read, but we can still get an image from the stream and figure it out
-
-    Private Shared mobjLock As String = "Lock"
 
     Private showInfoRegex As New Regex("n:\s*(?<index>\d*).*pts:\s*(?<pts>(-|)\d+|nan).*pts_time:(?<pts_time>(-|)[\d\.]+|nan)")
     Private showInfoBaseRegex As New Regex("config in time_base: (?<numerator>\d+)\/(?<denominator>\d+)")
@@ -1292,7 +1290,7 @@ Public Class VideoData
     ''' <summary>
     ''' The total number of frames in the video, ex: 60 for a 2 second 30fps video
     ''' </summary>
-    Public ReadOnly Property TotalFrames As Double
+    Public ReadOnly Property TotalFrames As Integer
         Get
             Return mobjMetaData.TotalFrames
         End Get
@@ -1571,7 +1569,7 @@ Public Class VideoData
 #End Region
 #End Region
 
-    Public Function ShallowCopy()
+    Public Function ShallowCopy() As VideoData
         Return Me.MemberwiseClone
     End Function
 End Class

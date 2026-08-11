@@ -86,7 +86,7 @@ Module Globals
     ''' <summary>
     ''' Add a little bit of text to the end of a file name string between its extension like "-temp" or "-SHINY".
     ''' </summary>
-    Public Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String)
+    Public Function FileNameAppend(ByVal fullPath As String, ByVal newEnd As String) As String
         Return System.IO.Path.GetDirectoryName(fullPath) & "\" & System.IO.Path.GetFileNameWithoutExtension(fullPath) & newEnd & System.IO.Path.GetExtension(fullPath)
     End Function
 

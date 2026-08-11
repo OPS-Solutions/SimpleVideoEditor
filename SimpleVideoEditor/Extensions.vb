@@ -746,7 +746,7 @@ Module Extensions
             Dim B As Double = 200 * (fy - fz)
             Return New ColorLAB(L, A, B)
         End Function
-        Private Function LabFunction(value As Double)
+        Private Function LabFunction(value As Double) As Double
             If value > o3 Then
                 Return Math.Pow(value, 1 / 3)
             Else
@@ -798,7 +798,7 @@ Module Extensions
     ''' <summary>
     ''' Takes a color channel value 0-1 and returns the linearized value
     ''' </summary>
-    Private Function LinearizeSRGBChannel(channelValue As Double)
+    Private Function LinearizeSRGBChannel(channelValue As Double) As Double
         If channelValue < 0.04045 Then
             Return channelValue / 12.92
         Else
@@ -1173,7 +1173,7 @@ Module Extensions
     ''' Working implementation of GetFirstCharIndexOfCurrentLine, but not ruined by word wrap
     ''' </summary>
     <Extension()>
-    Public Function GetFirstCharIndexOfCurrentLineUnwrapped(textBox As RichTextBox) As String
+    Public Function GetFirstCharIndexOfCurrentLineUnwrapped(textBox As RichTextBox) As Integer
         Dim lineMatches As MatchCollection = Regex.Matches(textBox.Text.Substring(0, textBox.SelectionStart), "\n")
         If lineMatches.Count = 0 Then
             Return 0
@@ -1185,7 +1185,7 @@ Module Extensions
     ''' Checks the image for any pixels with alpha under 255
     ''' </summary>
     <Extension()>
-    Public Function HasAlpha(objImage As Bitmap)
+    Public Function HasAlpha(objImage As Bitmap) As Boolean
         Dim pixBytes As Byte() = objImage.GetBytes
         Dim imageData As BitmapData = objImage.LockBits(New Rectangle(0, 0, objImage.Width, objImage.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
         Dim stride As Integer = imageData.Stride

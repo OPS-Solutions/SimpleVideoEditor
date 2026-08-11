@@ -68,7 +68,7 @@ They can be styled with tags to make <b>bolded</b>, <i>italic</i>,<u>underlined<
             End If
             Dim currentLine As String = txtEditor.Lines(Math.Min(txtEditor.Lines.Count - 1, txtEditor.GetLineFromCharIndexUnwrapped(txtEditor.SelectionStart)))
             If Regex.IsMatch(currentLine, "(\d*):(\d*):(\d*),(\d\d\d) --> (\d*):(\d*):(\d*),(\d\d\d)") Then
-                If (txtEditor.GetFirstCharIndexOfCurrentLineUnwrapped + "00:00:00,000 -".Length) > txtEditor.SelectionStart Then
+                If (txtEditor.GetFirstCharIndexOfCurrentLineUnwrapped.ToString + "00:00:00,000 -".Length) > txtEditor.SelectionStart Then
                     'Set seeker to start time
                     ctlSubtitleSeeker.PreviewLocation = ctlSubtitleSeeker.RangeMinValue
                 Else

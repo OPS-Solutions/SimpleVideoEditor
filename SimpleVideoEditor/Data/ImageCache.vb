@@ -78,7 +78,7 @@ Public Class ImageCache
 
         Public ReadOnly Property Height
             Get
-                Return Size.Width
+                Return Size.Height
             End Get
         End Property
 
@@ -181,7 +181,7 @@ Public Class ImageCache
         ''' <summary>
         ''' Checks that two frames are essentially the same, within margin 0-100% similar
         ''' </summary>
-        Public Function EqualsWithin(value As CacheItem, stdDevLimit As Double, deltaELimit As Double)
+        Public Function EqualsWithin(value As CacheItem, stdDevLimit As Double, deltaELimit As Double) As Boolean
             If Me.ImageStore Is Nothing Then
                 Dim unused As Bitmap = Me.GetImage()
             End If
