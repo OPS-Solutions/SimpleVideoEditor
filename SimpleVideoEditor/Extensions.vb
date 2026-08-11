@@ -1206,7 +1206,7 @@ Module Extensions
     <Extension()>
     Public Function AverageColor(objImage As Bitmap) As Color
         Dim mbytpixels As Byte() = objImage.GetBytes
-        Dim pxTotal As Integer = mbytpixels.Count
+        Dim pxTotal As Integer = mbytpixels.Count / 4
         Dim result As Byte() = New Byte(3) {}
         Dim aSum As Integer = 0
         Dim rSum As Integer = 0
