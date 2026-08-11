@@ -350,6 +350,7 @@ Public Class ImageCache
             Dim newCache As ImageCache
             Using fileStream = New FileStream(filePath, FileMode.Open, FileAccess.Read)
                 Using streamReader As XmlTextReader = New XmlTextReader(fileStream)
+                    streamReader.DtdProcessing = DtdProcessing.Prohibit
                     Dim xmlSerializer As New XmlSerializer(GetType(ImageCache))
                     newCache = xmlSerializer.Deserialize(streamReader)
                 End Using
