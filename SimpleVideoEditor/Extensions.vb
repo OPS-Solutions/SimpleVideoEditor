@@ -333,6 +333,8 @@ Module Extensions
     ''' </summary>
     <Extension>
     Public Function ExpandContents(img1 As Bitmap, Optional startingRectangle As Rectangle? = Nothing, Optional alphaLimit As Integer = 0) As Rectangle
+        Dim imageBytes() As Byte = img1.GetBytes
+
         Dim imageData As BitmapData = img1.LockBits(New Rectangle(0, 0, img1.Width, img1.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
         Dim stride As Integer = imageData.Stride
         img1.UnlockBits(imageData)
@@ -355,22 +357,22 @@ Module Extensions
         Dim currentBounds As Rectangle = New Rectangle(left, top, (right - left) + 1, (bottom - top) + 1)
         While hasExpanded > 0
             hasExpanded = 0
-            Dim leftExp As Integer = ExpandBoundEdge(img1, currentBounds, 0)
+            Dim leftExp As Integer = ExpandBoundEdge(img1, imageBytes, stride, currentBounds, 0)
             If leftExp < left Then
                 hasExpanded += 1
                 left = leftExp
             End If
-            Dim topExp As Integer = ExpandBoundEdge(img1, currentBounds, 1)
+            Dim topExp As Integer = ExpandBoundEdge(img1, imageBytes, stride, currentBounds, 1)
             If topExp < top Then
                 hasExpanded += 1
                 top = topExp
             End If
-            Dim rightExp As Integer = ExpandBoundEdge(img1, currentBounds, 2)
+            Dim rightExp As Integer = ExpandBoundEdge(img1, imageBytes, stride, currentBounds, 2)
             If rightExp > right Then
                 hasExpanded += 1
                 right = rightExp
             End If
-            Dim bottomExp As Integer = ExpandBoundEdge(img1, currentBounds, 3)
+            Dim bottomExp As Integer = ExpandBoundEdge(img1, imageBytes, stride, currentBounds, 3)
             If bottomExp > bottom Then
                 hasExpanded += 1
                 bottom = bottomExp
@@ -387,13 +389,7 @@ Module Extensions
     ''' side is 0=left, 1=top, 2=right, 3=bottom
     ''' </summary>
     ''' <returns></returns>
-    Private Function ExpandBoundEdge(img1 As Bitmap, boundRect As Rectangle, side As Integer) As Integer
-        Dim imageBytes() As Byte = img1.GetBytes
-
-        Dim imageData As BitmapData = img1.LockBits(New Rectangle(0, 0, img1.Width, img1.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb)
-        Dim stride As Integer = imageData.Stride
-        img1.UnlockBits(imageData)
-
+    Private Function ExpandBoundEdge(img1 As Bitmap, imageBytes As Byte(), stride As Integer, boundRect As Rectangle, side As Integer) As Integer
         Dim imageRect As Rectangle = img1.Size.ToRect
         Dim startIndex As Integer = 0
         Dim endIndex As Integer = 0
